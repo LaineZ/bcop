@@ -30,7 +30,7 @@ fn main() {
     let client = reqwest::blocking::Client::new();
     for i in 1..5
     {
-        println!("getting tag {}", tags[0]);
+        println!("getting tag {}", tags[1]);
         let request_body = format!("{{\"filters\":{{ \"format\":\"all\",\"location\":0,\"sort\":\"pop\",\"tags\":[\"{}\"] }},\"page\":\"{}\"}}", tags[0], i);
         let res = client.post("https://bandcamp.com/api/hub/2/dig_deeper").body(request_body).send();
         match res {
@@ -42,7 +42,8 @@ fn main() {
 
                     match tracks {
                         Some(value) => {
-                            
+                            //let album: structs::struct_json_album::JsonAlbum = serde_json::from_str(&bop_core::get_album_data::fix_json(value)).unwrap();
+                            println!("{}", &bop_core::get_album_data::fix_json(value));
                         },
                         None => println!("failed to get: {}", &item.tralbum_url),
                     }
