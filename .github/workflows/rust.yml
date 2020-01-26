@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install libaudio-dev
-      run: apt install libaudio-dev
+      run: sudo apt install libaudio-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
