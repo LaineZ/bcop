@@ -42,8 +42,9 @@ fn main() {
 
                     match tracks {
                         Some(value) => {
-                            //let album: structs::struct_json_album::JsonAlbum = serde_json::from_str(&bop_core::get_album_data::fix_json(value)).unwrap();
+                            let album: structs::struct_json_album::Root = serde_json::from_str(&bop_core::get_album_data::fix_json(value)).unwrap();
                             println!("{}", &bop_core::get_album_data::fix_json(value));
+                            println!("DECODED VALUE: {:#?}", album)
                         },
                         None => println!("failed to get: {}", &item.tralbum_url),
                     }
