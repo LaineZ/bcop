@@ -1,10 +1,9 @@
-pub fn http_request(address: &str) -> String {
-        let body = reqwest::blocking::get(address)
-        .unwrap()
-        .text_with_charset("utf-8");
+pub async fn http_request(url: &str) -> Result<String, reqwest::Error> {
+    let res = reqwest::get(url).await?;
 
-        match body {
-            Ok(v) => return v,
-            Err(e) => panic!("error: {:?}", e),
-        }
-    }
+    println!("Status: {}", res.status());
+
+    let body = res.text().await?;
+
+    Ok(body)
+}
