@@ -1,5 +1,7 @@
 mod bop_core;
 mod structs;
+use std::thread;
+use std::sync::mpsc::channel;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,6 +23,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("{}", album_json_fixed);
                     let data: structs::struct_json_album::Root = serde_json::from_str(album_json_fixed.as_str()).unwrap();
                     println!("{:#?}", data);
+                    println!("попытка проиграть первый трек...");
+
+                    let device = rodio::default_output_device().unwrap();
+                    let track = bop_core::playback::get_track_from_url(data.trackinfo[0].file.mp3128.as_str()).await;
+                    let sink = bop_core::playback::create_sink(track, device, 0);
+                    sink.play();
+                    loop {
+                        thread::sleep_ms(1000);
+                        println!("{}", sink.volume());
+                        sink.set_volume(sink.volume() - 0.1);
+                    }
                 }
                 None => println!("не получилось"),
             }

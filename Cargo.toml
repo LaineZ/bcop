@@ -16,3 +16,4 @@ reqwest =  { version = "0.10.0", features = ["blocking"] }
 regex = "1.3.3"
 futures = "0.3.4"
 tokio = { version = "0.2.11", features = ["full"] }
+bytes = "0.5.4"
