@@ -57,10 +57,10 @@ use crate::structs;
                                             .await;
         match res {
             Ok(value) => {
-                return serde_json::from_str(value.text().await.unwrap().as_str()).unwrap();
+                serde_json::from_str(value.text().await.unwrap().as_str()).unwrap()
             }
             Err(error) => {
-                panic!("пизда {:#?}", error);
+                panic!("ошибка {:#?}", error);
             }
         }
     }

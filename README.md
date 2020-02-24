@@ -1,2 +1,7 @@
 # A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written on Rust!
-## In development!
+**IN DEVELOPMENT!**
+## Stream mode
+To play in CLI stream run command
+``bandcamp-online-player.exe stream [tags]``
+
+**Example:** ``bandcamp-online-player.exe stream metal`` plays a metal tag
