@@ -2,6 +2,6 @@
 **IN DEVELOPMENT!**
 ## Stream mode
 To play in CLI stream run command
-``bandcamp-online-player.exe stream [tags]``
+``bandcamp-online-player.exe stream [tag]``
 
-**Example:** ``bandcamp-online-player.exe stream metal`` plays a metal tag
+**Example:** ``bandcamp-online-player.exe stream metal`` - plays a metal tag

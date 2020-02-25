@@ -1,6 +1,5 @@
 mod bop_core;
 mod structs;
-use std::thread;
 use std::env;
 
 #[tokio::main]
@@ -11,6 +10,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("BandcampOnlinePlayer by 140bpmdubstep\nCommand line: {:?}", args);
     
+    if args.len() < 2 {
+        eprint!("error: Invalid number of arguments supplyed. Exiting");
+        std::process::exit(1);
+    }
 
     match args[1].as_str() {
         "stream" => {
@@ -45,8 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         _ => {
-            println!("Allowed options:\n[stream] [tag(s)] - plays in commandline mode tracks from specified tag(s)");
-            
+            eprint!("error: Invalid arguments supplyed. Exiting");
+            println!("Allowed options:\n[stream] [tag] - plays in commandline mode tracks from specified tag");
         }
     }
     Ok(())
