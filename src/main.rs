@@ -24,8 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let device = rodio::default_output_device().unwrap();
 
         let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
-
-        loop {
+        while !sink.empty() {
             let mut command = String::new();
             std::io::stdin()
                 .read_line(&mut command)
@@ -34,6 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 command.as_str().trim().split(" ").collect();
             match command_args[0] {
                 "c" => std::process::exit(0),
+                "exit" => std::process::exit(0),
                 "vol" => {
                     if command_args.len() > 0 {
                         match command_args[1].parse::<f32>() {
@@ -83,11 +83,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 "help" => {
                     println!("command help:");
-                    println!("`c` - closes program");
+                    println!("`c` - closes program\nALIAS: exit");
                     println!("`p` - play/pause");
                     println!("`next` - plays next track");
                     println!("`vol [number: float]` - sets volume (default: 1.0) CAUTION: values above 1.0 causes a serious clipping!");
-                    println!("`seek [serconds: number] - sets track position (in seconds)`")
+                    println!("`seek [serconds: number]` - sets track position (in seconds)`")
                 }
                 _ => println!(
                     "error: unknown command `{}` type `help`",
@@ -103,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let data: structs::struct_json_discover::Root =
                 bop_core::get_album_data::get_tag_data(args[2].clone(), 1).await;
             for item in data.items {
-                println!("loading album: {} - {}", item.artist, item.title);
+                println!("loading album tracks: {} - {}", item.artist, item.title);
                 let album_page: Result<String, reqwest::Error> =
                     bop_core::bop_http_tools::http_request(item.tralbum_url.as_str()).await;
                 match album_page {
@@ -124,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     .await?;
                                     println!("playing: ready to accept commands type `help` to more info!");
                                     loop_control(track_bytes);
+                                    println!("playback stopped");
                                 }
                             }
                             None => println!("unable to start playback"),
