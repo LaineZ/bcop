@@ -35,8 +35,9 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
+
     - name: Install Rust (rustup)
-      run: sudo apt update && sudo apt install libaudio-dev libasound2-dev && rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
+      run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
       if: matrix.os != 'macos-latest'
       shell: bash
 
@@ -47,7 +48,9 @@ jobs:
         curl https://sh.rustup.rs | sh -s -- -y
         echo "##[add-path]$HOME/.cargo/bin"
       if: matrix.os == 'macos-latest'
-
+    
+    - name: Install libs (Linux)
+      run: sudo apt update && sudo apt install libaudio-dev libasound2-dev
     - name: Build
       run: cargo build --verbose --release
 
