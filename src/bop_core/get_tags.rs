@@ -10,15 +10,14 @@ pub async fn get_tags() -> Vec<String> {
         Ok(value) => {
             let fragment = Html::parse_fragment(value.as_str());
             let selector = Selector::parse("a").unwrap();
-        
+
             let mut tags = Vec::new();
-        
+
             for element in fragment.select(&selector) {
                 match element.value().attr("href") {
-                    None => {},
+                    None => {}
                     Some(value) => {
-                        if value.starts_with("/tag/")
-                        {
+                        if value.starts_with("/tag/") {
                             //println!("{:?}", value.replace("/tag/", ""));
                             tags.push(value.replace("/tag/", ""));
                         }
