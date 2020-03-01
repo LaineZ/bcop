@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub struct Track {
     pub artist: String,
     pub title: String,

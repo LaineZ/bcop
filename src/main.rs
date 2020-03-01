@@ -3,6 +3,10 @@ mod structs;
 use std::env;
 use bytes::Bytes;
 use bop_core::playback;
+use structs::struct_json_discover;
+use structs::struct_json_album;
+
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,8 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args[1].as_str() {
         "stream" => {
             println!("info: running in stream mode");
-            let data: structs::struct_json_discover::Root =
-                bop_core::get_album_data::get_tag_data(args[2].clone(), 1).await;
+            let data: struct_json_discover::Root = bop_core::get_album_data::get_tag_data(args[2].clone(), 1).await;
             for item in data.items {
                 println!("loading album tracks: {} - {}", item.artist, item.title);
                 let album_page: Result<String, reqwest::Error> =
@@ -114,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 let album_json_fixed =
                                     bop_core::get_album_data::fix_json(album_value);
                                 //println!("{}", album_json_fixed);
-                                let data: structs::struct_json_album::Root =
+                                let data: struct_json_album::Root =
                                     serde_json::from_str(album_json_fixed.as_str()).unwrap();
                                 for track in data.trackinfo.unwrap() {
                                     println!("loading track: {}", track.title.unwrap());
@@ -131,7 +134,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     Err(_) => {
-                        panic!("unconvertable error detected! Exiting...");
+                        println!("error: unconvertable error detected! Exiting...");
+                        std::process::exit(1);
                     }
                 }
             }

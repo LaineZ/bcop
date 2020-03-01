@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+
+
 use crate::bop_core;
 
 use scraper::Html;
