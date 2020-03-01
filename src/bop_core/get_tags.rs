@@ -1,36 +1,28 @@
 #![allow(dead_code)]
 
-
 use crate::bop_core;
 
-use scraper::Html;
-use scraper::Selector;
 use std::vec::Vec;
 
-pub async fn get_tags() -> Vec<String> {
-    let response = bop_core::bop_http_tools::http_request("https://bandcamp.com/tags").await;
-    match response {
-        Ok(value) => {
-            let fragment = Html::parse_fragment(value.as_str());
-            let selector = Selector::parse("a").unwrap();
+use anyhow::Result;
+use scraper::Html;
+use scraper::Selector;
 
-            let mut tags = Vec::new();
+pub async fn get_tags() -> Result<Vec<String>> {
+    let response = bop_core::bop_http_tools::http_request("https://bandcamp.com/tags").await?;
+    let fragment = Html::parse_fragment(response.as_str());
+    let selector = Selector::parse("a").unwrap();
 
-            for element in fragment.select(&selector) {
-                match element.value().attr("href") {
-                    None => {}
-                    Some(value) => {
-                        if value.starts_with("/tag/") {
-                            //println!("{:?}", value.replace("/tag/", ""));
-                            tags.push(value.replace("/tag/", ""));
-                        }
-                    }
-                }
+    let tags = fragment
+        .select(&selector)
+        .filter_map(|el| {
+            let value = el.value().attr("href")?;
+            if !value.starts_with("/tag/") {
+                return None;
             }
-            return tags;
-        }
-        Err(_) => {
-            panic!("пиздец");
-        }
-    }
+            Some(value.replace("/tag/", ""))
+        })
+        .collect();
+
+    Ok(tags)
 }
