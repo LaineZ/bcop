@@ -1,37 +1,23 @@
-use crate::structs;
+use crate::model::discover::DiscoverData;
+
+use anyhow::Result;
 use regex::Regex;
+use serde_json::json;
 
-pub fn fix_json(album_data: &str) -> String {
-    let fixed_data;
-    let fixed_data_json;
+pub fn fix_json(data: &str) -> String {
+    // fix url field
+    let regex = Regex::new("(?P<root>url: \".+)\" \\+ \"(?P<album>.+\",)").unwrap();
+    let data = regex.replace_all(data, "$root$album");
 
-    let regex = Regex::new("(?P<root>url: \".+)\" \\+ \"(?P<album>.+\",)");
+    // add quotes to fields
+    let regex = Regex::new("    (?P<property>[a-zA-Z_]+):").unwrap();
+    let data = regex.replace_all(&data, "\"$property\":");
 
-    match regex {
-        Ok(reg) => {
-            fixed_data = reg.replace_all(album_data, "$root$album");
-        }
-        Err(e) => panic!("No matches! {}", e),
-    }
+    // remove comments
+    let regex = Regex::new("// .*").unwrap();
+    let data = regex.replace_all(&data, "");
 
-    let regex = Regex::new("    (?P<property>[a-zA-Z_]+):");
-
-    match regex {
-        Ok(reg) => {
-            fixed_data_json = reg.replace_all(&fixed_data, "\"$property\":");
-        }
-        Err(e) => panic!("No matches! {}", e),
-    }
-
-    let regex = Regex::new("// .*");
-
-    match regex {
-        Ok(reg) => {
-            let remove_comments = reg.replace_all(&fixed_data_json, "");
-            remove_comments.into()
-        }
-        Err(e) => panic!("No matches! {}", e),
-    }
+    data.into()
 }
 
 pub fn get_album_data(html_code: &str) -> Option<&str> {
@@ -39,23 +25,29 @@ pub fn get_album_data(html_code: &str) -> Option<&str> {
     let stop = "};";
 
     let album_data = &html_code[html_code.find(start)? + start.len() - 1..];
-    let album_data = &album_data[..album_data.find(stop)? + 1];
+    let album_data = &album_data[..=album_data.find(stop)?];
     Some(album_data)
 }
 
-pub async fn get_tag_data(tags: String, page: i32) -> structs::struct_json_discover::Root {
+pub async fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
     let client = reqwest::Client::new();
 
-    let request_body = format!("{{\"filters\":{{ \"format\":\"all\",\"location\":0,\"sort\":\"pop\",\"tags\":[\"{}\"] }},\"page\":\"{}\"}}", tags, page);
-    let res = client
+    let request = json!({
+        "filters": {
+            "format": "all",
+            "location": 0,
+            "sort": "pop",
+            "tags": [tags]
+        },
+        "page": page
+    });
+
+    let response = client
         .post("https://bandcamp.com/api/hub/2/dig_deeper")
-        .body(request_body)
+        .body(request.to_string())
         .send()
-        .await;
-    match res {
-        Ok(value) => serde_json::from_str(value.text().await.unwrap().as_str()).unwrap(),
-        Err(error) => {
-            panic!("ошибка {:#?}", error);
-        }
-    }
+        .await?;
+
+    let data = serde_json::from_str(response.text().await?.as_str())?;
+    Ok(data)
 }

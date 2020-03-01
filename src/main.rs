@@ -1,17 +1,82 @@
 mod bop_core;
-mod structs;
+mod model;
+
 use std::env;
-use bytes::Bytes;
+
 use bop_core::playback;
-use structs::struct_json_discover;
-use structs::struct_json_album;
+use bytes::Bytes;
+use model::album::Album;
 
+fn loop_control(track_bytes: Bytes) {
+    let device = rodio::default_output_device().unwrap();
 
+    let mut sink = playback::create_sink(track_bytes.clone(), device, 0).unwrap();
+    while !sink.empty() {
+        let mut command = String::new();
+        std::io::stdin()
+            .read_line(&mut command)
+            .expect("Failed to read line");
+        let command_args: Vec<&str> = command.as_str().trim().split(' ').collect();
+        match command_args[0] {
+            "c" => std::process::exit(0),
+            "exit" => std::process::exit(0),
+            "vol" => {
+                if !command_args.is_empty() {
+                    match command_args[1].parse::<f32>() {
+                        Ok(volume) => {
+                            sink.set_volume(volume);
+                            println!("volume set at: {}", volume)
+                        }
+                        Err(_) => println!("error: invalid volume format"),
+                    }
+                }
+            }
+
+            "seek" => {
+                if !command_args.is_empty() {
+                    match command_args[1].parse::<u32>() {
+                        Ok(seek) => {
+                            println!("seeking at: {}", seek);
+                            let device = rodio::default_output_device().unwrap();
+                            sink.stop();
+                            sink =
+                                playback::create_sink(track_bytes.clone(), device, seek).unwrap();
+                        }
+                        Err(_) => println!("error: invalid seek format"),
+                    }
+                }
+            }
+
+            "p" => {
+                if sink.is_paused() {
+                    println!("info: playing");
+                    sink.play()
+                } else {
+                    println!("info: paused");
+                    sink.pause()
+                }
+            }
+
+            "next" => {
+                println!("stopping current track");
+                break;
+            }
+
+            "help" => {
+                println!("command help:");
+                println!("`c` - closes program\nALIAS: exit");
+                println!("`p` - play/pause");
+                println!("`next` - plays next track");
+                println!("`vol [number: float]` - sets volume (default: 1.0) CAUTION: values above 1.0 causes a serious clipping!");
+                println!("`seek [serconds: number]` - sets track position (in seconds)`")
+            }
+            _ => println!("error: unknown command `{}` type `help`", command_args[0]),
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // like a test
-
     let args: Vec<String> = env::args().collect();
 
     println!(
@@ -24,87 +89,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    fn loop_control(track_bytes: Bytes) {
-        let device = rodio::default_output_device().unwrap();
-
-        let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
-        while !sink.empty() {
-            let mut command = String::new();
-            std::io::stdin()
-                .read_line(&mut command)
-                .expect("Failed to read line");
-            let command_args: Vec<&str> =
-                command.as_str().trim().split(" ").collect();
-            match command_args[0] {
-                "c" => std::process::exit(0),
-                "exit" => std::process::exit(0),
-                "vol" => {
-                    if command_args.len() > 0 {
-                        match command_args[1].parse::<f32>() {
-                            Ok(volume) => {
-                                sink.set_volume(volume);
-                                println!("volume set at: {}", volume)
-                            }
-                            Err(_) => {
-                                println!("error: invalid volume format")
-                            }
-                        }
-                    }
-                }
-
-                "seek" => {
-                    if command_args.len() > 0 {
-                        match command_args[1].parse::<u32>() {
-                            Ok(seek) => {
-                                println!("seeking at: {}", seek);
-                                let device = rodio::default_output_device().unwrap();
-                                sink.stop();
-                                sink = playback::create_sink(track_bytes.clone(), device, seek);
-                            }
-                            Err(_) => {
-                                println!("error: invalid seek format")
-                            }
-                        }
-                    }
-                }
-
-                "p" => {
-                    
-                    if sink.is_paused() {
-                        println!("info: playing");
-                        sink.play()
-                    } else {
-                        println!("info: paused");
-                        sink.pause()
-                    }
-                    
-                }
-
-                "next" => {
-                    println!("stopping current track");
-                    break;
-                }
-
-                "help" => {
-                    println!("command help:");
-                    println!("`c` - closes program\nALIAS: exit");
-                    println!("`p` - play/pause");
-                    println!("`next` - plays next track");
-                    println!("`vol [number: float]` - sets volume (default: 1.0) CAUTION: values above 1.0 causes a serious clipping!");
-                    println!("`seek [serconds: number]` - sets track position (in seconds)`")
-                }
-                _ => println!(
-                    "error: unknown command `{}` type `help`",
-                    command_args[0]
-                ),
-            }
-        }
-    }
-
     match args[1].as_str() {
         "stream" => {
             println!("info: running in stream mode");
-            let data: struct_json_discover::Root = bop_core::get_album_data::get_tag_data(args[2].clone(), 1).await;
+            let data = bop_core::get_album_data::get_tag_data(args[2].clone(), 1)
+                .await
+                .unwrap();
             for item in data.items {
                 println!("loading album tracks: {} - {}", item.artist, item.title);
                 let album_page: Result<String, reqwest::Error> =
@@ -117,7 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 let album_json_fixed =
                                     bop_core::get_album_data::fix_json(album_value);
                                 //println!("{}", album_json_fixed);
-                                let data: struct_json_album::Root =
+                                let data: Album =
                                     serde_json::from_str(album_json_fixed.as_str()).unwrap();
                                 for track in data.trackinfo.unwrap() {
                                     println!("loading track: {}", track.title.unwrap());

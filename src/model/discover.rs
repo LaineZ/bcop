@@ -1,5 +1,7 @@
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-pub struct Root {
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverData {
     pub discover_spec: DiscoverSpec,
     pub more_available: bool,
     pub ok: bool,
@@ -7,7 +9,7 @@ pub struct Root {
     pub items: Vec<Item>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DiscoverSpec {
     pub format_type_id: i64,
     pub tag_pretty_name: String,
@@ -24,7 +26,7 @@ pub struct DiscoverSpec {
     pub tag_id: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Item {
     pub band_url: String,
     pub featured_track_title: String,
@@ -52,7 +54,7 @@ pub struct Item {
     pub item_id: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Package {
     pub currency: String,
     pub quantity: ::serde_json::Value,
@@ -65,21 +67,21 @@ pub struct Package {
     pub price: Price,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Image {
     pub id: i64,
     pub width: i64,
     pub height: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Price {
     pub currency: String,
     pub is_money: bool,
     pub amount: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioUrl {
     #[serde(rename = "mp3-128")]
     pub mp3128: String,
