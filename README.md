@@ -1,5 +1,8 @@
-# A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written on Rust!
+# BandcampOnlinePlayer-rs
 **IN DEVELOPMENT!**
+
+A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written on Rust!
+
 ## Stream mode
 Сurrently, the player only supports **CLI Stream mode** to play in CLI stream run command:
 ### Linux/Mac
