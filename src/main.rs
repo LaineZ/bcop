@@ -21,7 +21,7 @@ fn loop_control(track_bytes: Bytes) {
             "c" => std::process::exit(0),
             "exit" => std::process::exit(0),
             "vol" => {
-                if !command_args.is_empty() {
+                if !command_args.is_empty() && command_args.len() > 1 {
                     match command_args[1].parse::<f32>() {
                         Ok(volume) => {
                             sink.set_volume(volume);
@@ -33,7 +33,7 @@ fn loop_control(track_bytes: Bytes) {
             }
 
             "seek" => {
-                if !command_args.is_empty() {
+                if !command_args.is_empty() && command_args.len() > 1 {
                     match command_args[1].parse::<u32>() {
                         Ok(seek) => {
                             println!("seeking at: {}", seek);
