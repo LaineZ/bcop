@@ -14,6 +14,13 @@ jobs:
     - name: Install ALSA libs
       run: sudo apt install libaudio-dev libasound2-dev
     - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo build --release --verbose
+    - name: Compressing ZIP
+      run: zip -r bandcamp-online-player-linux.zip /home/runner/work/bc_rs/bc_rs/target/release/bandcamp_online_cli
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Artifact name
+        name: bandcamp-online-cli
+        # Directory containing files to upload
+        path: /home/runner/work/bc_rs/bc_rs/target/release/bandcamp_online_cli/bandcamp-online-player-linux.zip
