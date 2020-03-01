@@ -23,4 +23,4 @@ jobs:
         # Artifact name
         name: bandcamp-online-cli
         # Directory containing files to upload
-        path: /home/runner/work/bc_rs/bc_rs/target/release/bandcamp_online_cli/bandcamp-online-player-linux.zip
+        path: bandcamp-online-player-linux.zip
