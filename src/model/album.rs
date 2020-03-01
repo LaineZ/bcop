@@ -82,7 +82,7 @@ pub struct Trackinfo {
     pub video_caption: ::serde_json::Value,
     pub title_link: Option<String>,
     pub encodings_id: Option<i64>,
-    pub file: File,
+    pub file: Option<File>,
     pub is_capped: Option<bool>,
     pub sizeof_lyrics: Option<i64>,
 }
@@ -90,7 +90,7 @@ pub struct Trackinfo {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct File {
     #[serde(rename = "mp3-128")]
-    pub mp3128: Option<String>,
+    pub mp3128: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

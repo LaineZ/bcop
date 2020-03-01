@@ -6,6 +6,7 @@ use std::env;
 use bop_core::playback;
 use bytes::Bytes;
 use model::album::Album;
+use bop_core::get_tags;
 
 fn loop_control(track_bytes: Bytes) {
     let device = rodio::default_output_device().unwrap();
@@ -92,7 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args[1].as_str() {
         "stream" => {
             println!("info: running in stream mode");
-            let data = bop_core::get_album_data::get_tag_data(args[2].clone(), 1)
+            let data = bop_core::get_album_data::get_tag_data(args[2].clone(), 5)
                 .await
                 .unwrap();
             for item in data.items {
@@ -111,13 +112,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     serde_json::from_str(album_json_fixed.as_str()).unwrap();
                                 for track in data.trackinfo.unwrap() {
                                     println!("loading track: {}", track.title.unwrap());
-                                    let track_bytes = bop_core::playback::get_track_from_url(
-                                        track.file.mp3128.unwrap().as_str(),
-                                    )
-                                    .await?;
-                                    println!("playing: ready to accept commands type `help` to more info!");
-                                    loop_control(track_bytes);
-                                    println!("playback stopped");
+                                    match track.file {
+                                        Some(trackfile) => {
+                                            let track_bytes = bop_core::playback::get_track_from_url(
+                                                trackfile.mp3128.as_str(),
+                                            )
+                                            .await?;
+                                            println!("playing: ready to accept commands type `help` to more info!");
+                                            loop_control(track_bytes);
+                                            println!("playback stopped");
+                                        }
+                                        None => {
+                                            println!("warning: this cannot cannot be played because does not contain mp3 stream url!");
+                                            continue;
+                                        }
+                                    }
                                 }
                             }
                             None => println!("unable to start playback"),
@@ -130,9 +139,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+        "streamtags" => {
+            println!("available tags:");
+
+            let tags = get_tags::get_tags().await?;
+            for tag in tags {
+                println!("{}", tag)
+            }
+        }
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
-            println!("Allowed options:\n[stream] [tag] - plays in commandline mode tracks from specified tag");
+            println!("Allowed options:");
+            println!("stream [tag] - plays in commandline mode tracks from specified tag");
+            println!("streamtags - show all most popular tags");
         }
     }
     Ok(())
