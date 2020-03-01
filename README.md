@@ -1,7 +1,11 @@
 # BandcampOnlinePlayer-rs
 **IN DEVELOPMENT!**
 
+![Create Release](https://github.com/LaineZ/bc_rs/workflows/Create%20Release/badge.svg?event=push)
+
 A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written on Rust!
+
+You can download latest version from "actions" menu
 
 ## Stream mode
 Сurrently, the player only supports **CLI Stream mode** to play in CLI stream run command:
