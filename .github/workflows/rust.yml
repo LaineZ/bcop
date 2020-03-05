@@ -47,6 +47,12 @@ jobs:
       run: sudo apt update && sudo apt install libaudio-dev libasound2-dev libgtk-3-dev
       if: matrix.os == 'ubuntu-latest'
 
+    - name: Install deps (macOS)
+      # As of 7.12.2019 rust is not installed on MacOS
+      # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners#macos-1015
+      run: brew install cairo
+      if: matrix.os == 'macos-latest'
+
     - name: Install Rust (macos)
       # As of 7.12.2019 rust is not installed on MacOS
       # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners#macos-1015
