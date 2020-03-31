@@ -1,39 +1,41 @@
-use std::io::Cursor;
-
+use crate::bop_core::bop_http_tools;
 use anyhow::Result;
 use bytes::Bytes;
-use rodio::buffer::SamplesBuffer;
-use rodio::{Decoder, Sink, Source};
-
-use crate::bop_core::bop_http_tools;
+use rodio::Source;
+use std::io::Cursor;
 
 pub async fn get_track_from_url(url: &str) -> Result<Bytes> {
     let bytes = bop_http_tools::http_request_bytes(url).await?;
     Ok(bytes)
 }
 
-pub fn create_sink(bytes: Bytes, device: rodio::Device, seek_sec: u32) -> Result<Sink> {
+pub fn create_sink(bytes: Bytes, device: rodio::Device, seek_sec: u32) -> rodio::Sink {
     let cursor = Cursor::new(bytes);
 
-    let decoder = Decoder::new(cursor)?;
-    let channels = decoder.channels();
-    let sample_rate = decoder.sample_rate();
+    let sink = rodio::Sink::new(&device);
 
-    let samples: Vec<_> = decoder.collect();
-    let mut buffer = SamplesBuffer::new(channels, sample_rate, samples);
+    let mut decoder = rodio::Decoder::new(cursor).unwrap();
 
-    let sink = Sink::new(&device);
-
-    let total_dur = buffer.total_duration().unwrap().as_secs();
-
-    if u64::from(seek_sec) < total_dur {
-        for _ in 0..(seek_sec * buffer.sample_rate()) {
-            buffer.next();
+    match decoder.total_duration() {
+        Some(dur) => {
+            let total_dur: u32 = dur.as_secs() as u32;
+            if seek_sec < total_dur {
+                for _ in 0..(seek_sec * decoder.sample_rate()) {
+                    decoder.next();
+                }
+            } else {
+                println!("warning: ignoring seeking larger than {} secs", total_dur)
+            }
         }
-    } else {
-        println!("warning: ignoring seeking larger than {} secs", total_dur)
+        None => {
+            println!(
+                "warning: unable to determine duration for this track, seek may crash program"
+            );
+            for _ in 0..(seek_sec * decoder.sample_rate()) {
+                decoder.next();
+            }
+        }
     }
-
-    sink.append(buffer);
-    Ok(sink)
+    sink.append(decoder);
+    sink
 }

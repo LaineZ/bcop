@@ -1,12 +1,14 @@
 use crate::bop_core;
 use crate::bop_core::playback;
+use crate::bop_core::playback_advanced;
 use crate::model::album::Album;
 use bytes::Bytes;
 
 fn loop_control(track_bytes: Bytes) {
     let device = rodio::default_output_device().unwrap();
 
-    let mut sink = playback::create_sink(track_bytes.clone(), device, 0).unwrap();
+    let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
+
     while !sink.empty() {
         let mut command = String::new();
         std::io::stdin()
@@ -36,7 +38,7 @@ fn loop_control(track_bytes: Bytes) {
                             let device = rodio::default_output_device().unwrap();
                             sink.stop();
                             sink =
-                                playback::create_sink(track_bytes.clone(), device, seek).unwrap();
+                                playback::create_sink(track_bytes.clone(), device, seek);
                         }
                         Err(_) => println!("error: invalid seek format"),
                     }
@@ -53,9 +55,26 @@ fn loop_control(track_bytes: Bytes) {
                 }
             }
 
+            "switchadvanced" => {
+                println!("switching to advanced playback system!");
+                let device = rodio::default_output_device().unwrap();
+                sink.stop();
+                sink =
+                playback_advanced::create_sink(track_bytes.clone(), device, 0).unwrap();
+            }
+
+            "switchsimple" => {
+                println!("switching to simple playback system!");
+                let device = rodio::default_output_device().unwrap();
+                sink.stop();
+                sink =
+                playback::create_sink(track_bytes.clone(), device, 0);
+            }
+
             "next" => {
                 println!("stopping current track");
                 break;
+                
             }
 
             "help" => {
@@ -68,6 +87,7 @@ fn loop_control(track_bytes: Bytes) {
             }
             _ => println!("error: unknown command `{}` type `help`", command_args[0]),
         }
+        
     }
 }
 
