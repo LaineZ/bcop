@@ -7,7 +7,6 @@ use rodio::{Decoder, Sink, Source};
 
 use crate::bop_core::bop_http_tools;
 
-
 pub async fn get_track_from_url(url: &str) -> Result<Bytes> {
     let bytes = bop_http_tools::http_request_bytes(url).await?;
     Ok(bytes)
