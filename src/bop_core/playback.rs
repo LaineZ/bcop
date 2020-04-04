@@ -4,37 +4,47 @@ use bytes::Bytes;
 use rodio::Source;
 use std::io::Cursor;
 
+use minimp3::{Error, Frame};
+
 pub async fn get_track_from_url(url: &str) -> Result<Bytes> {
     let bytes = bop_http_tools::http_request_bytes(url).await?;
     Ok(bytes)
 }
 
 pub fn create_sink(bytes: Bytes, device: rodio::Device, seek_sec: u32) -> rodio::Sink {
-    let cursor = Cursor::new(bytes);
+    let cursor = Cursor::new(bytes.clone());
+
+    // lol
+    let mut decoder_for_duration = minimp3::Decoder::new(cursor);
+
+    let mut duration: f32 = 0.0;
+    loop {
+        match decoder_for_duration.next_frame() {
+            Ok(Frame {
+                data,
+                sample_rate,
+                channels,
+                ..
+            }) => {
+                let lendata = data.len() as f32;
+                duration += (lendata / channels as f32) / sample_rate as f32;
+                //println!("sample size: {}", (lendata / channels as f32) / sample_rate as f32);
+            }
+            Err(Error::Eof) => break,
+            Err(e) => println!("error: decoding sample failed: {:?}", e),
+        }
+    }
 
     let sink = rodio::Sink::new(&device);
-
+    let cursor = Cursor::new(bytes.clone());
     let mut decoder = rodio::Decoder::new(cursor).unwrap();
 
-    match decoder.total_duration() {
-        Some(dur) => {
-            let total_dur: u32 = dur.as_secs() as u32;
-            if seek_sec < total_dur {
-                for _ in 0..(seek_sec * decoder.sample_rate()) {
-                    decoder.next();
-                }
-            } else {
-                println!("warning: ignoring seeking larger than {} secs", total_dur)
-            }
+    if duration as u32 >= seek_sec {
+        for _ in 0..(seek_sec * decoder.sample_rate()) {
+            decoder.next();
         }
-        None => {
-            println!(
-                "warning: unable to determine duration for this track, seek may crash program"
-            );
-            for _ in 0..(seek_sec * decoder.sample_rate()) {
-                decoder.next();
-            }
-        }
+    } else {
+        println!("warining: ignoring seek larger than {} secs", duration);
     }
     sink.append(decoder);
     sink

@@ -106,6 +106,7 @@ fn loop_control(track_bytes: Bytes) {
                 println!("command help:");
                 println!("`c` - closes program\nALIAS: exit");
                 println!("`p` - play/pause");
+                println!("`d` - current track duration");
                 println!("`next` - plays next track");
                 println!("`vol [number: float]` - sets volume (default: 1.0) CAUTION: values above 1.0 causes a serious clipping!");
                 println!("`seek [serconds: number]` - sets track position (in seconds)`")
