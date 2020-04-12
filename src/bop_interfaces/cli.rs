@@ -3,7 +3,8 @@ use std::time::{Duration, Instant};
 use crate::bop_core;
 use crate::bop_core::playback;
 use crate::bop_core::playback_advanced;
-use crate::model::album::Album;
+use crate::bop_core::album_parsing;
+use crate::model::album;
 use bytes::Bytes;
 
 fn loop_control(track_bytes: Bytes) {
@@ -123,41 +124,31 @@ pub async fn cli_mode(args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         .unwrap();
     for item in data.items {
         println!("loading album tracks: {} - {}", item.artist, item.title);
-        let album_page: Result<String, reqwest::Error> =
-            bop_core::http_tools::http_request(item.tralbum_url.as_str()).await;
-        match album_page {
-            Ok(value) => {
-                let album_json = bop_core::album_parsing::album_parsing(value.as_str());
-                match album_json {
-                    Some(album_value) => {
-                        let album_json_fixed = bop_core::album_parsing::fix_json(album_value);
-                        //println!("{}", album_json_fixed);
-                        let data: Album = serde_json::from_str(album_json_fixed.as_str()).unwrap();
-                        for track in data.trackinfo.unwrap() {
-                            println!("loading track: {}", track.title.unwrap());
-                            match track.file {
-                                Some(trackfile) => {
-                                    let track_bytes = bop_core::playback::get_track_from_url(
-                                        trackfile.mp3128.as_str(),
-                                    )
-                                    .await?;
-                                    println!("playing: ready to accept commands type `help` to more info!");
-                                    loop_control(track_bytes);
-                                    println!("playback stopped");
-                                }
-                                None => {
-                                    println!("warning: this cannot cannot be played because does not contain mp3 stream url!");
-                                    continue;
-                                }
-                            }
+        let album: Option<album::Album> = album_parsing::get_album(item.tralbum_url.as_str()).await;
+        match album {
+            Some(alb) => {
+                for track in alb.trackinfo.unwrap() {
+                    println!("loading track: {}", track.title.unwrap());
+                    match track.file {
+                        Some(trackfile) => {
+                            let track_bytes = bop_core::playback::get_track_from_url(
+                                trackfile.mp3128.as_str(),
+                            )
+                            .await?;
+                            println!("playing: ready to accept commands type `help` to more info!");
+                            loop_control(track_bytes);
+                            println!("playback stopped");
                         }
+                        None => {
+                            println!("warning: this cannot cannot be played because does not contain mp3 stream url!");
+                            continue;
+                        }   
                     }
-                    None => println!("unable to start playback"),
-                }
+                } 
             }
-            Err(_) => {
-                println!("error: unconvertable error detected! Exiting...");
-                std::process::exit(1);
+            None => {
+                println!("warning: encountered album error");
+                continue;
             }
         }
     }

@@ -1,4 +1,7 @@
 use crate::model::discover::DiscoverData;
+use crate::model::album::Album;
+
+use crate::bop_core::http_tools;
 
 use anyhow::Result;
 use regex::Regex;
@@ -20,13 +23,26 @@ pub fn fix_json(data: &str) -> String {
     data.into()
 }
 
-pub fn album_parsing(html_code: &str) -> Option<&str> {
+pub async fn get_album(url: &str) -> Option<Album> {
+    let page: Result<String, reqwest::Error> = http_tools::http_request(url).await;
+    match page {
+        Ok(value) => { 
+            let json = parse(value.as_str())?;
+            let data: Album = serde_json::from_str(&json).unwrap();
+            Some(data)
+        }
+        Err(_) => None,
+    }
+}
+
+pub fn parse(html_code: &str) -> Option<String> {
     let start = "var TralbumData = {";
     let stop = "};";
 
     let album_data = &html_code[html_code.find(start)? + start.len() - 1..];
     let album_data = &album_data[..=album_data.find(stop)?];
-    Some(album_data)
+    let album_data_json = fix_json(album_data);
+    Some(album_data_json)
 }
 
 pub async fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
