@@ -20,7 +20,7 @@ pub fn fix_json(data: &str) -> String {
     data.into()
 }
 
-pub fn get_album_data(html_code: &str) -> Option<&str> {
+pub fn album_parsing(html_code: &str) -> Option<&str> {
     let start = "var TralbumData = {";
     let stop = "};";
 

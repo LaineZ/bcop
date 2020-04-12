@@ -1,6 +1,6 @@
-pub mod bop_http_tools;
-pub mod get_album_data;
-pub mod get_tags;
+pub mod http_tools;
+pub mod album_parsing;
+pub mod tags;
 pub mod playback;
 pub mod playback_advanced;
 pub mod queue;

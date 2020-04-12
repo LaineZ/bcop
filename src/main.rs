@@ -4,7 +4,7 @@ mod model;
 
 use std::env;
 
-use bop_core::get_tags;
+use bop_core::tags;
 use bop_interfaces::cli;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if args.len() < 2 {
-        eprintln!("error: Invalid number of arguments supplyed. Exiting");
+        eprintln!("warning: no arguments supplyed exiting...");
         std::process::exit(1);
     }
 
@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "streamtags" => {
             println!("available tags:");
 
-            let tags = get_tags::get_tags().await?;
+            let tags = tags::get_tags().await?;
             for tag in tags {
                 println!("{}", tag)
             }
