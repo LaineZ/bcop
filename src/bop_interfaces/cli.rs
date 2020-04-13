@@ -6,10 +6,13 @@ use crate::bop_core::playback;
 use crate::bop_core::playback_advanced;
 use crate::model::album;
 use bytes::Bytes;
+use std::io::{stdout, Write};
+use crossterm::{execute, ExecutableCommand, terminal::{size}, style::{self, Colorize}};
+use crossterm::cursor;
 
 use anyhow::Result;
 
-fn loop_control(track_bytes: Bytes) {
+fn loop_control(track_bytes: Bytes) -> Result<()> {
     let device = rodio::default_output_device().unwrap();
 
     let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
@@ -18,11 +21,16 @@ fn loop_control(track_bytes: Bytes) {
     let mut paused_at: Option<Instant> = None;
     let mut pause_duration = Duration::from_secs(0);
 
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble");
+    let mut stdout = stdout();
+
+    stdout.execute(cursor::MoveTo(cols - 10,rows - 2))?;
+
     while !sink.empty() {
         let mut command = String::new();
-        std::io::stdin()
-            .read_line(&mut command)
-            .expect("Failed to read line");
+
+        std::io::stdin().read_line(&mut command)?;
+
         let command_args: Vec<&str> = command.as_str().trim().split(' ').collect();
         match command_args[0] {
             "c" => std::process::exit(0),
@@ -116,7 +124,9 @@ fn loop_control(track_bytes: Bytes) {
             }
             _ => println!("error: unknown command `{}` type `help`", command_args[0]),
         }
+        stdout.execute(style::PrintStyledContent("привет как дела?".magenta()))?;
     }
+    Ok(())
 }
 
 pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
@@ -137,7 +147,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                                 bop_core::playback::get_track_from_url(trackfile.mp3128.as_str())
                                     .await?;
                             println!("playing: ready to accept commands type `help` to more info!");
-                            loop_control(track_bytes);
+                            loop_control(track_bytes)?;
                             println!("playback stopped");
                         }
                         None => {
