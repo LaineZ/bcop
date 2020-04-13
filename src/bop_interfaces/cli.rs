@@ -1,11 +1,13 @@
 use std::time::{Duration, Instant};
 
 use crate::bop_core;
+use crate::bop_core::album_parsing;
 use crate::bop_core::playback;
 use crate::bop_core::playback_advanced;
-use crate::bop_core::album_parsing;
 use crate::model::album;
 use bytes::Bytes;
+
+use anyhow::Result;
 
 fn loop_control(track_bytes: Bytes) {
     let device = rodio::default_output_device().unwrap();
@@ -117,7 +119,7 @@ fn loop_control(track_bytes: Bytes) {
     }
 }
 
-pub async fn cli_mode(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("info: running in stream mode");
     let data = bop_core::album_parsing::get_tag_data(args[2].clone(), 5)
         .await
@@ -131,10 +133,9 @@ pub async fn cli_mode(args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     println!("loading track: {}", track.title.unwrap());
                     match track.file {
                         Some(trackfile) => {
-                            let track_bytes = bop_core::playback::get_track_from_url(
-                                trackfile.mp3128.as_str(),
-                            )
-                            .await?;
+                            let track_bytes =
+                                bop_core::playback::get_track_from_url(trackfile.mp3128.as_str())
+                                    .await?;
                             println!("playing: ready to accept commands type `help` to more info!");
                             loop_control(track_bytes);
                             println!("playback stopped");
@@ -142,9 +143,9 @@ pub async fn cli_mode(args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         None => {
                             println!("warning: this cannot cannot be played because does not contain mp3 stream url!");
                             continue;
-                        }   
+                        }
                     }
-                } 
+                }
             }
             None => {
                 println!("warning: encountered album error");

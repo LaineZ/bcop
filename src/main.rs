@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     match args[1].as_str() {
-        "stream" => cli::cli_mode(args).await?,
+        "stream" => cli::loadinterface(args).await?,
         "streamtags" => {
             println!("available tags:");
 

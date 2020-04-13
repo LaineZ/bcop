@@ -1,5 +1,5 @@
-use crate::model::discover::DiscoverData;
 use crate::model::album::Album;
+use crate::model::discover::DiscoverData;
 
 use crate::bop_core::http_tools;
 
@@ -26,7 +26,7 @@ pub fn fix_json(data: &str) -> String {
 pub async fn get_album(url: &str) -> Option<Album> {
     let page: Result<String, reqwest::Error> = http_tools::http_request(url).await;
     match page {
-        Ok(value) => { 
+        Ok(value) => {
             let json = parse(value.as_str())?;
             let data: Album = serde_json::from_str(&json).unwrap();
             Some(data)
