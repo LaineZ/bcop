@@ -11,7 +11,7 @@ use crate::bop_core::playback_advanced;
 use crate::model::album;
 use bytes::Bytes;
 use std::io::{stdout, Write, Stdout, self};
-use crossterm::{execute, ExecutableCommand, terminal::{size, ClearType}, style::{self, Colorize, Print}};
+use crossterm::{execute, ExecutableCommand, terminal::{size, enable_raw_mode, ClearType}, style::{self, Colorize, Print}};
 use crossterm::{event, cursor, QueueableCommand};
 
 use anyhow::Result;
@@ -63,7 +63,13 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
     } else {
         &stdout.execute(SetBackgroundColor(Color::Red))?;
     }
-    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat((cols as usize) - state.statusbar_text.len() - 28))));
+
+    let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
+
+    if fixed_space < 0 {
+        fixed_space = 0;
+    }
+    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat((fixed_space as usize)))));
     &stdout.execute(style::ResetColor)?;
     Ok(())
 }
@@ -91,6 +97,8 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
     stdout.queue(Clear(ClearType::All))?;
     stdout.queue(event::EnableMouseCapture)?;
 
+    enable_raw_mode()?;
+
     let tags = tags::get_tags().await?;
     let mut state = State { 
         statusbar_text: "Select tags from list pressing [Space] to load tags press enter!".to_string(), 
@@ -112,7 +120,12 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                 state.statusbar_text = format!("Page {}/{} Selected: {}/{} Selected tags will marked in red color", state.selected_page, (tags.len() / (rows - 2) as usize) as usize, state.selected_idx, (rows - 2) as usize);
 
                 if pressedkey == KeyCode::Char('c').into() {
+                   // TODO: Exit properly....
                    break;
+                }
+
+                if pressedkey == KeyCode::Char('d').into() {
+                    state.selected_tags.clear()
                 }
 
                 if pressedkey == KeyCode::Down.into() {
@@ -140,7 +153,10 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                 redraw(&mut stdout, &tags,  &mut state)?;
             }
             event::Event::Mouse(_) => { redraw(&mut stdout, &tags.clone(), &mut state)?; }
-            event::Event::Resize(_, _) => {  redraw(&mut stdout, &tags.clone(), &mut state)?; }
+            event::Event::Resize(_, _) => { 
+                redraw(&mut stdout, &tags.clone(), &mut state)?;
+                state.selected_idx = 0;
+            }
         }
     }
 
