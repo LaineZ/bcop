@@ -13,7 +13,7 @@ pub async fn get_tags() -> Result<Vec<String>> {
     let fragment = Html::parse_fragment(response.as_str());
     let selector = Selector::parse("a").unwrap();
 
-    let tags = fragment
+    let mut tags: Vec<String> = fragment
         .select(&selector)
         .filter_map(|el| {
             let value = el.value().attr("href")?;
@@ -23,6 +23,8 @@ pub async fn get_tags() -> Result<Vec<String>> {
             Some(value.replace("/tag/", ""))
         })
         .collect();
-
+    
+    tags.sort();
+    tags.dedup();
     Ok(tags)
 }
