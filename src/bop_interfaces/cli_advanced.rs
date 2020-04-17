@@ -44,7 +44,7 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &State) -> Re
     }
 
     &stdout.execute(SetBackgroundColor(Color::Blue))?;
-    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat(state.statusbar_text.len() - cols));
+    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat(state.statusbar_text.len() as u16 - cols))));
     &stdout.execute(style::ResetColor)?;
     Ok(())
 }
