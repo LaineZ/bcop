@@ -6,6 +6,7 @@ use std::env;
 
 use bop_core::tags;
 use bop_interfaces::cli;
+use bop_interfaces::cli_advanced;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -22,6 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args[1].as_str() {
         "stream" => cli::loadinterface(args).await?,
+        "cli" => cli_advanced::loadinterface(args).await?,
         "streamtags" => {
             println!("available tags:");
 

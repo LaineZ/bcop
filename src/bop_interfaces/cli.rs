@@ -6,10 +6,6 @@ use crate::bop_core::playback;
 use crate::bop_core::playback_advanced;
 use crate::model::album;
 use bytes::Bytes;
-use std::io::{stdout, Write};
-use crossterm::{execute, ExecutableCommand, terminal::{size}, style::{self, Colorize}};
-use crossterm::cursor;
-
 use anyhow::Result;
 
 fn loop_control(track_bytes: Bytes) -> Result<()> {
@@ -20,11 +16,6 @@ fn loop_control(track_bytes: Bytes) -> Result<()> {
     let mut started_at = Instant::now();
     let mut paused_at: Option<Instant> = None;
     let mut pause_duration = Duration::from_secs(0);
-
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble");
-    let mut stdout = stdout();
-
-    stdout.execute(cursor::MoveTo(cols - 10,rows - 2))?;
 
     while !sink.empty() {
         let mut command = String::new();
@@ -124,7 +115,6 @@ fn loop_control(track_bytes: Bytes) -> Result<()> {
             }
             _ => println!("error: unknown command `{}` type `help`", command_args[0]),
         }
-        stdout.execute(style::PrintStyledContent("привет как дела?".magenta()))?;
     }
     Ok(())
 }
