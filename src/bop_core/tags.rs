@@ -17,6 +17,7 @@ pub async fn get_tags() -> Result<Vec<String>> {
         .select(&selector)
         .filter_map(|el| {
             let value = el.value().attr("href")?;
+            
             if !value.starts_with("/tag/") {
                 return None;
             }

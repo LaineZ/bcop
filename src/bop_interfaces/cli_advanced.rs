@@ -8,7 +8,7 @@ use crate::bop_core;
 use crate::bop_core::album_parsing;
 use crate::bop_core::playback;
 use crate::bop_core::playback_advanced;
-use crate::model::album;
+use crate::model::{self, album};
 use bytes::Bytes;
 use std::io::{stdout, Write, Stdout, self};
 use crossterm::{execute, ExecutableCommand, terminal::{size, enable_raw_mode, ClearType}, style::{self, Colorize, Print}};
@@ -19,6 +19,12 @@ use cursor::Hide;
 use style::{SetForegroundColor, Color};
 use bop_core::tags;
 use event::{Event::{self, Key}, KeyEvent, KeyCode};
+use model::discover;
+#[derive(PartialEq)]
+enum CurrentView {
+    Albums,
+    Tags
+}
 
 
 struct State {
@@ -27,21 +33,32 @@ struct State {
     selected_idx: usize,
     selected_tags: Vec<String>,
     selected_tag_name: String,
-    selected_page: usize
+    selected_page: usize,
+    discover: Vec<discover::Item>,
+    current_view: CurrentView,
+}
+
+impl State {
+    fn switch_view(&mut self, to: CurrentView) {
+        self.selected_idx = 0;
+        self.selected_page = 0;
+        self.current_view = to
+    }
 }
 
 fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
+    let lineheight = tags.iter().max_by_key(|p| p.len()).unwrap().len() as u16;
     let pages = tags.chunks((rows - 2) as usize);
+    let album_pages = state.discover.chunks((rows - 2) as usize); 
 
     stdout.queue(Clear(ClearType::All))?;
-
 
     for (i, v) in &mut pages.into_iter().enumerate() {
         if i == state.selected_page {
             for (index, page) in v.into_iter().enumerate() {
-                if index == state.selected_idx {
+                if index == state.selected_idx && state.current_view == CurrentView::Tags {
                     &stdout.execute(SetBackgroundColor(Color::White))?;
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                     let page_str = page.to_string();
@@ -51,11 +68,35 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
                 if state.selected_tags.iter().any(|i| i==page) {
                     &stdout.execute(SetForegroundColor(Color::Red))?;
                 }
+                if state.current_view != CurrentView::Tags { &stdout.execute(SetForegroundColor(Color::Grey))?; }
 
                 &stdout.queue(cursor::MoveTo(0,(index + 1) as u16))?.queue(Print(page))?;
                 &stdout.execute(style::ResetColor)?;
             }
         }
+    }
+
+    for (i, v) in &mut album_pages.into_iter().enumerate() {
+        if i == state.selected_page {
+            for (index, page) in v.into_iter().enumerate() {
+                if index == state.selected_idx {
+                    &stdout.execute(SetBackgroundColor(Color::White))?;
+                    &stdout.execute(SetForegroundColor(Color::Black))?;
+                    //state.selected_tag_name = page_str;
+                }
+
+                if state.current_view != CurrentView::Albums { &stdout.execute(SetBackgroundColor(Color::Grey))?; }
+                
+                let formatting = format!("{} by {}", page.clone().title, page.clone().artist);
+                &stdout.queue(cursor::MoveTo(lineheight + 1,(index + 1) as u16))?.queue(Print(formatting))?;
+                &stdout.execute(style::ResetColor)?;
+            }
+        }
+    }
+
+
+    for line in 1..rows {
+        &stdout.queue(cursor::MoveTo(lineheight, line))?.queue(Print("|"))?;
     }
 
     if !state.error {
@@ -66,10 +107,12 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
 
     let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
 
+    // test usize oveflow, lol
     if fixed_space < 0 {
         fixed_space = 0;
     }
-    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat((fixed_space as usize)))));
+
+    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat(fixed_space as usize))));
     &stdout.execute(style::ResetColor)?;
     Ok(())
 }
@@ -107,6 +150,8 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
         selected_page: 0,
         selected_tags: Vec::new(),
         selected_tag_name: String::new(),
+        discover: Vec::new(),
+        current_view: CurrentView::Tags,
     };
     redraw(&mut stdout, &tags, &mut state)?;
 
@@ -117,12 +162,22 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-                state.statusbar_text = format!("Page {}/{} Selected: {}/{} Selected tags will marked in red color", state.selected_page, (tags.len() / (rows - 2) as usize) as usize, state.selected_idx, (rows - 2) as usize);
+                state.statusbar_text = format!("Page {}/{} Selected: {}/{}", state.selected_page, (tags.len() / (rows - 2) as usize) as usize, state.selected_idx, (rows - 2) as usize);
 
                 if pressedkey == KeyCode::Char('c').into() {
                    // TODO: Exit properly....
                    break;
                 }
+
+                if pressedkey == KeyCode::Enter.into() {
+                    state.switch_view(CurrentView::Albums);
+                    while state.discover.len() < (rows - 2) as usize {
+                        state.statusbar_text = format!("Discovering");
+                        let discover = album_parsing::get_tag_data(state.selected_tags.clone()[0].clone(), 1).await?.items;
+                        state.discover.extend(discover);
+                    }
+                    state.statusbar_text = format!("Done!");
+                 }
 
                 if pressedkey == KeyCode::Char('d').into() {
                     state.selected_tags.clear()
@@ -147,6 +202,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                 }
 
                 if pressedkey == KeyCode::Char(' ').into() {
+                    // TODO: if aready added - clear
                     state.selected_tags.push(state.selected_tag_name.clone());
                 }
 
