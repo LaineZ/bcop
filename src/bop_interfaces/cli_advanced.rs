@@ -94,14 +94,14 @@ impl State {
         }
     }
 
-    fn get_current_idx(self) -> usize {
+    fn get_current_idx(&self) -> usize {
         match self.current_view {
             CurrentView::Tags => self.tags.selected_idx,
             CurrentView::Albums => self.discover.selected_idx,
         }
     }
 
-    fn get_current_page(self) -> usize {
+    fn get_current_page(&self) -> usize {
         match self.current_view {
             CurrentView::Tags => self.tags.selected_page,
             CurrentView::Albums => self.discover.selected_page,
@@ -180,14 +180,17 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
     Ok(())
 }
 
-fn switch_page_up(tags: &Vec<String>,  mut state: State) {
+fn switch_page_up(tags: &Vec<String>, state: &mut State) {
+    let idx = state.get_current_idx();
+    let page = state.get_current_page();
+
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-    if state.get_current_page() < (tags.len() / (rows - 2) as usize) as usize {
-        state.set_current_view_state(state.get_current_idx(), state.get_current_page() + 1)
+    if page < (tags.len() / (rows - 2) as usize) as usize {
+        state.set_current_view_state(idx, page + 1);
     } else {
         state.error = true;
-        state.statusbar_text = "You aready scrolled to end!".to_string()
+        state.statusbar_text = "You aready scrolled to end!".to_string();
     }
 }
 
@@ -237,13 +240,13 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                  }
 
                 if pressedkey == KeyCode::Char('d').into() {
-                    state.selected_tags.clear()
+                    &state.selected_tags.clear();
                 }
 
                 if pressedkey == KeyCode::Down.into() {
                     state.set_current_view_state(state.get_current_idx() + 1, state.get_current_page());
                     if state.get_current_idx() > (rows - 3) as usize {
-                        switch_page_up(&tags, state);
+                        switch_page_up(&tags, &mut state);
                     }
                 }
 
