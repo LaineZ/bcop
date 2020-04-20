@@ -27,42 +27,105 @@ enum CurrentView {
 }
 
 
+struct ListBoxTag {
+    content: Vec<String>,
+    selected_idx: usize,
+    selected_page: usize,
+    selected_tag_name: String,
+}
+
+struct ListBoxDiscover {
+    content: Vec<discover::Item>,
+    selected_idx: usize,
+    selected_page: usize,
+}
+
 struct State {
     statusbar_text: String,
     error: bool,
-    selected_idx: usize,
-    selected_tags: Vec<String>,
-    selected_tag_name: String,
-    selected_page: usize,
-    discover: Vec<discover::Item>,
     current_view: CurrentView,
+    discover: ListBoxDiscover,
+    selected_tags: Vec<String>,
+    tags: ListBoxTag,
 }
+
+impl Default for ListBoxTag {
+    fn default() -> ListBoxTag {
+        ListBoxTag {
+            content: Vec::new(),
+            selected_idx: 0,
+            selected_page: 0,
+            selected_tag_name: String::new(),
+        }
+    }
+}
+
+impl Default for ListBoxDiscover {
+    fn default() -> ListBoxDiscover {
+        ListBoxDiscover {
+            content: Vec::new(),
+            selected_idx: 0,
+            selected_page: 0,
+        }
+    }
+}
+
 
 impl State {
     fn switch_view(&mut self, to: CurrentView) {
-        self.selected_idx = 0;
-        self.selected_page = 0;
+        self.tags.selected_idx = 0;
+        self.tags.selected_page = 0;
+        self.discover.selected_idx = 0;
+        self.discover.selected_page = 0;
         self.current_view = to
+    }
+    
+    fn set_current_view_state(&mut self, idx: usize, page: usize) {
+        match self.current_view {
+            CurrentView::Tags => {
+                self.tags.selected_idx = idx;
+                self.tags.selected_page = page;
+            }
+
+            CurrentView::Albums => {
+                self.discover.selected_idx = idx;
+                self.discover.selected_page = page;
+            }
+        }
+    }
+
+    fn get_current_idx(self) -> usize {
+        match self.current_view {
+            CurrentView::Tags => self.tags.selected_idx,
+            CurrentView::Albums => self.discover.selected_idx,
+        }
+    }
+
+    fn get_current_page(self) -> usize {
+        match self.current_view {
+            CurrentView::Tags => self.tags.selected_page,
+            CurrentView::Albums => self.discover.selected_page,
+        }
     }
 }
 
 fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-    let lineheight = tags.iter().max_by_key(|p| p.len()).unwrap().len() as u16;
-    let pages = tags.chunks((rows - 2) as usize);
-    let album_pages = state.discover.chunks((rows - 2) as usize); 
+    let lineheight = state.tags.content.iter().max_by_key(|p| p.len()).unwrap().len() as u16;
+    let pages = state.tags.content.chunks((rows - 2) as usize);
+    let album_pages = state.discover.content.chunks((rows - 2) as usize); 
 
     stdout.queue(Clear(ClearType::All))?;
 
     for (i, v) in &mut pages.into_iter().enumerate() {
-        if i == state.selected_page {
+        if i == state.tags.selected_idx {
             for (index, page) in v.into_iter().enumerate() {
-                if index == state.selected_idx && state.current_view == CurrentView::Tags {
+                if index == state.tags.selected_idx && state.current_view == CurrentView::Tags {
                     &stdout.execute(SetBackgroundColor(Color::White))?;
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                     let page_str = page.to_string();
-                    state.selected_tag_name = page_str;
+                    state.tags.selected_tag_name = page_str;
                 }
 
                 if state.selected_tags.iter().any(|i| i==page) {
@@ -77,9 +140,9 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
     }
 
     for (i, v) in &mut album_pages.into_iter().enumerate() {
-        if i == state.selected_page {
+        if i == state.discover.selected_page {
             for (index, page) in v.into_iter().enumerate() {
-                if index == state.selected_idx {
+                if index == state.discover.selected_idx {
                     &stdout.execute(SetBackgroundColor(Color::White))?;
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                     //state.selected_tag_name = page_str;
@@ -117,13 +180,11 @@ fn redraw(stdout: &mut std::io::Stdout, tags: &Vec<String>, state: &mut State) -
     Ok(())
 }
 
-fn switch_page_up(tags: &Vec<String>, state: &mut State) {
+fn switch_page_up(tags: &Vec<String>,  mut state: State) {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-    state.selected_idx = 0;
-
-    if state.selected_page < (tags.len() / (rows - 2) as usize) as usize {
-        state.selected_page += 1;
+    if state.get_current_page() < (tags.len() / (rows - 2) as usize) as usize {
+        state.set_current_view_state(state.get_current_idx(), state.get_current_page() + 1)
     } else {
         state.error = true;
         state.statusbar_text = "You aready scrolled to end!".to_string()
@@ -146,12 +207,10 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
     let mut state = State { 
         statusbar_text: "Select tags from list pressing [Space] to load tags press enter!".to_string(), 
         error: false, 
-        selected_idx: 0,
-        selected_page: 0,
-        selected_tags: Vec::new(),
-        selected_tag_name: String::new(),
-        discover: Vec::new(),
         current_view: CurrentView::Tags,
+        tags: ListBoxTag::default(),
+        selected_tags: Vec::new(),
+        discover: ListBoxDiscover::default(),
     };
     redraw(&mut stdout, &tags, &mut state)?;
 
@@ -162,8 +221,6 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-                state.statusbar_text = format!("Page {}/{} Selected: {}/{}", state.selected_page, (tags.len() / (rows - 2) as usize) as usize, state.selected_idx, (rows - 2) as usize);
-
                 if pressedkey == KeyCode::Char('c').into() {
                    // TODO: Exit properly....
                    break;
@@ -171,10 +228,10 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 if pressedkey == KeyCode::Enter.into() {
                     state.switch_view(CurrentView::Albums);
-                    while state.discover.len() < (rows - 2) as usize {
+                    while state.discover.content.len() < (rows - 2) as usize {
                         state.statusbar_text = format!("Discovering");
                         let discover = album_parsing::get_tag_data(state.selected_tags.clone()[0].clone(), 1).await?.items;
-                        state.discover.extend(discover);
+                        state.discover.content.extend(discover);
                     }
                     state.statusbar_text = format!("Done!");
                  }
@@ -184,26 +241,26 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                 }
 
                 if pressedkey == KeyCode::Down.into() {
-                    state.selected_idx += 1;
-                    if state.selected_idx > (rows - 3) as usize {
-                        switch_page_up(&tags, &mut state);
+                    state.set_current_view_state(state.get_current_idx() + 1, state.get_current_page());
+                    if state.get_current_idx() > (rows - 3) as usize {
+                        switch_page_up(&tags, state);
                     }
                 }
 
                 if pressedkey == KeyCode::Up.into() {
-                    if state.selected_idx > 0 && state.selected_idx > 0 {
-                        state.selected_idx -= 1;
+                    if state.get_current_idx() > 0 && state.get_current_idx() > 0 {
+                        state.set_current_view_state(state.get_current_idx() - 1, state.get_current_page());
                     } else {
-                        if state.selected_page > 0 {
-                            state.selected_page -= 1;
+                        if state.get_current_page() > 0 {
+                            state.set_current_view_state(state.get_current_idx(), state.get_current_page() - 1);
                         }
-                        state.selected_idx = (rows - 3) as usize;
+                        state.set_current_view_state((rows - 3) as usize, state.get_current_page());
                     }
                 }
 
                 if pressedkey == KeyCode::Char(' ').into() {
                     // TODO: if aready added - clear
-                    state.selected_tags.push(state.selected_tag_name.clone());
+                    state.selected_tags.push(state.tags.selected_tag_name.clone());
                 }
 
                 redraw(&mut stdout, &tags,  &mut state)?;
@@ -211,7 +268,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
             event::Event::Mouse(_) => { redraw(&mut stdout, &tags.clone(), &mut state)?; }
             event::Event::Resize(_, _) => { 
                 redraw(&mut stdout, &tags.clone(), &mut state)?;
-                state.selected_idx = 0;
+                state.set_current_view_state(0, state.get_current_page());
             }
         }
     }

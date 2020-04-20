@@ -1,4 +1,4 @@
-# BandcampOnlinePlayer-rs
+# BandcampOnlinePlayer Rust Edition
 **IN DEVELOPMENT!**
 
 ![Create Release](https://github.com/LaineZ/bc_rs/workflows/Create%20Release/badge.svg?event=push)
@@ -12,11 +12,11 @@ You can download latest version from "actions" menu
 ### Linux/Mac
 ```./bandcamp-online-cli stream [tag]```
 
-**Example:** 
+**Example:**
 
 ``./bandcamp-online-cli stream metal`` - plays a metal tag
 
-### Windows 
+### Windows
 
 ``bandcamp-online-cli.exe stream [tag]``
 
