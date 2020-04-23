@@ -126,6 +126,14 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     let lineheight = state.tags.content.iter().max_by_key(|p| p.len()).unwrap().len() as u16;
+
+    let lineheight_album = state.discover.content.iter().max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
+    let mut lineheight_album_int: u16 = lineheight;
+    match lineheight_album {
+        Some(value) => lineheight_album_int += format!("{} by {}", value.title, value.artist).len() as u16,
+        None => lineheight_album_int += 20,
+    }
+
     let pages = state.tags.content.chunks((rows - 2) as usize);
     let album_pages = state.discover.content.chunks((rows - 2) as usize); 
 
@@ -172,9 +180,13 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         }
     }
 
-
+    // drawing lines
     for line in 1..rows {
         &stdout.queue(cursor::MoveTo(lineheight, line))?.queue(Print("|"))?;
+    }
+
+    for line in 1..rows {
+        &stdout.queue(cursor::MoveTo(lineheight_album_int, line))?.queue(Print("|"))?;
     }
 
     if !state.error {

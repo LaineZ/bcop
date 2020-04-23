@@ -27,5 +27,8 @@ pub async fn get_tags() -> Result<Vec<String>> {
     
     tags.sort();
     tags.dedup();
+    // post processing
+    tags.retain(|x| x.chars().all(char::is_alphanumeric));
+
     Ok(tags)
 }
