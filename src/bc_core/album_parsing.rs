@@ -1,7 +1,7 @@
 use crate::model::album::Album;
 use crate::model::discover::DiscoverData;
 
-use crate::bop_core::http_tools;
+use crate::bc_core::http_tools;
 
 use anyhow::Result;
 use regex::Regex;

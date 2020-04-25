@@ -1,12 +1,12 @@
 use std::time::{Duration, Instant};
 
-use crate::bop_core;
-use crate::bop_core::album_parsing;
-use crate::bop_core::playback;
-use crate::bop_core::playback_advanced;
+use crate::bc_core;
+use crate::bc_core::album_parsing;
+use crate::bc_core::playback;
+use crate::bc_core::playback_advanced;
 use crate::model::album;
-use bytes::Bytes;
 use anyhow::Result;
+use bytes::Bytes;
 
 fn loop_control(track_bytes: Bytes) -> Result<()> {
     let device = rodio::default_output_device().unwrap();
@@ -121,7 +121,7 @@ fn loop_control(track_bytes: Bytes) -> Result<()> {
 
 pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("info: running in stream mode");
-    let data = bop_core::album_parsing::get_tag_data(args[2].clone(), 5)
+    let data = bc_core::album_parsing::get_tag_data(args[2].clone(), 5)
         .await
         .unwrap();
     for item in data.items {
@@ -134,7 +134,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                     match track.file {
                         Some(trackfile) => {
                             let track_bytes =
-                                bop_core::playback::get_track_from_url(trackfile.mp3128.as_str())
+                                bc_core::playback::get_track_from_url(trackfile.mp3128.as_str())
                                     .await?;
                             println!("playing: ready to accept commands type `help` to more info!");
                             loop_control(track_bytes)?;

@@ -5,7 +5,7 @@ use bytes::Bytes;
 use rodio::buffer::SamplesBuffer;
 use rodio::{Decoder, Sink, Source};
 
-use crate::bop_core::http_tools;
+use crate::bc_core::http_tools;
 
 pub async fn get_track_from_url(url: &str) -> Result<Bytes> {
     let bytes = http_tools::http_request_bytes(url).await?;

@@ -1,10 +1,10 @@
-mod bop_core;
+mod bc_core;
 mod bop_interfaces;
 mod model;
 
 use std::env;
 
-use bop_core::tags;
+use bc_core::tags;
 use bop_interfaces::cli;
 use bop_interfaces::cli_advanced;
 #[tokio::main]

@@ -1,25 +1,33 @@
+use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::style::SetBackgroundColor;
 use crossterm::terminal::Clear;
-use crossterm::cursor::DisableBlinking;
 use std::time::{Duration, Instant};
 
-use crate::bop_core;
-use crate::bop_core::album_parsing;
-use crate::bop_core::playback;
-use crate::bop_core::playback_advanced;
+use crate::bc_core;
+use crate::bc_core::album_parsing;
+use crate::bc_core::playback;
+use crate::bc_core::playback_advanced;
 use crate::model::{self, album};
 use bytes::Bytes;
-use std::io::{stdout, Write, Stdout, self};
-use crossterm::{execute, ExecutableCommand, terminal::{size, enable_raw_mode, ClearType}, style::{self, Colorize, Print}};
-use crossterm::{event, cursor, QueueableCommand};
+use crossterm::{cursor, event, QueueableCommand};
+use crossterm::{
+    execute,
+    style::{self, Colorize, Print},
+    terminal::{enable_raw_mode, size, ClearType},
+    ExecutableCommand,
+};
+use std::io::{self, stdout, Stdout, Write};
 
 use anyhow::Result;
+use bc_core::tags;
 use cursor::Hide;
-use style::{SetForegroundColor, Color};
-use bop_core::tags;
-use event::{Event::{self, Key}, KeyEvent, KeyCode};
+use event::{
+    Event::{self, Key},
+    KeyCode, KeyEvent,
+};
 use model::discover;
+use style::{Color, SetForegroundColor};
 #[derive(PartialEq)]
 enum CurrentView {
     Albums,
@@ -47,6 +55,7 @@ struct ListBoxQueue {
     selected_page: usize,
 }
 
+#[derive(Clone)]
 struct QueuedTrack {
     title: String,
     artist: String,
@@ -62,7 +71,7 @@ struct State {
     selected_tags: Vec<String>,
     tags: ListBoxTag,
     queue: ListBoxQueue,
-    currently_playing: usize,
+    currently_playing: QueuedTrack,
     display_tags: bool,
 }
 
@@ -76,7 +85,6 @@ impl Default for ListBoxTag {
         }
     }
 }
-
 
 impl Default for ListBoxQueue {
     fn default() -> ListBoxQueue {
@@ -99,6 +107,16 @@ impl Default for ListBoxDiscover {
     }
 }
 
+impl Default for QueuedTrack {
+    fn default() -> Self {
+        QueuedTrack {
+            title: String::new(),
+            artist: String::new(),
+            audio_url: String::new(),
+            album: String::new(),
+        }
+    }
+}
 
 impl State {
     fn switch_view(&mut self, to: CurrentView) {
@@ -108,7 +126,7 @@ impl State {
         self.discover.selected_page = 0;
         self.current_view = to
     }
-    
+
     fn set_current_view_state(&mut self, idx: usize, page: usize) {
         match self.current_view {
             CurrentView::Tags => {
@@ -152,6 +170,11 @@ impl State {
         }
     }
 
+    fn play(&self, track_bytes: Bytes) {
+        let device = rodio::default_output_device().unwrap();
+        let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
+    }
+
     fn status_bar(&mut self, message: String, is_error: bool) {
         self.error = is_error;
         self.statusbar_text = message;
@@ -160,7 +183,9 @@ impl State {
     fn draw_line(&self, stdout: &mut std::io::Stdout, height: u16) -> Result<()> {
         let (_, rows) = size().expect("Unable to get terminal size continue work is not availble!");
         for line in 1..rows {
-            &stdout.queue(cursor::MoveTo(height, line))?.queue(Print("|"))?;
+            &stdout
+                .queue(cursor::MoveTo(height, line))?
+                .queue(Print("|"))?;
         }
         Ok(())
     }
@@ -169,28 +194,45 @@ impl State {
 fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
-    let mut lineheight = state.tags.content.iter().max_by_key(|p| p.len()).unwrap().len() as u16;
-
+    let mut lineheight = state
+        .tags
+        .content
+        .iter()
+        .max_by_key(|p| p.len())
+        .unwrap()
+        .len() as u16;
 
     // TODO: Refactor
 
-    let lineheight_album = state.discover.content.iter().max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
+    let lineheight_album = state
+        .discover
+        .content
+        .iter()
+        .max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
     let mut lineheight_album_int: u16 = lineheight;
     match lineheight_album {
-        Some(value) => lineheight_album_int += format!("{} by {}", value.title, value.artist).len() as u16,
+        Some(value) => {
+            lineheight_album_int += format!("{} by {}", value.title, value.artist).len() as u16
+        }
         None => lineheight_album_int += 20,
     }
 
-    let lineheight_queue = state.queue.content.iter().max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
+    let lineheight_queue = state
+        .queue
+        .content
+        .iter()
+        .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
     let mut lineheight_queue_int: u16 = lineheight_album_int;
     match lineheight_queue {
-        Some(value) => lineheight_queue_int += format!("{} by {}", value.title, value.artist).len() as u16,
+        Some(value) => {
+            lineheight_queue_int += format!("{} by {}", value.title, value.artist).len() as u16
+        }
         None => lineheight_queue_int += 20,
     }
 
     let pages = state.tags.content.chunks((rows - 2) as usize);
     let album_pages = state.discover.content.chunks((rows - 2) as usize);
-    let queue_pages = state.queue.content.chunks((rows - 2) as usize); 
+    let queue_pages = state.queue.content.chunks((rows - 2) as usize);
 
     stdout.queue(Clear(ClearType::All))?;
 
@@ -205,13 +247,17 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                         state.tags.selected_tag_name = page_str;
                     }
 
-                    if state.selected_tags.iter().any(|i| i==page) {
+                    if state.selected_tags.iter().any(|i| i == page) {
                         &stdout.execute(SetForegroundColor(Color::Red))?;
                     }
 
-                    if state.current_view != CurrentView::Tags { &stdout.execute(SetForegroundColor(Color::Grey))?; }
+                    if state.current_view != CurrentView::Tags {
+                        &stdout.execute(SetForegroundColor(Color::Grey))?;
+                    }
 
-                    &stdout.queue(cursor::MoveTo(0,(index + 1) as u16))?.queue(Print(page))?;
+                    &stdout
+                        .queue(cursor::MoveTo(0, (index + 1) as u16))?
+                        .queue(Print(page))?;
                     &stdout.execute(style::ResetColor)?;
                 }
             }
@@ -229,11 +275,14 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     //state.selected_tag_name = page_str;
                 }
 
+                if state.current_view != CurrentView::Albums {
+                    &stdout.execute(SetForegroundColor(Color::Grey))?;
+                }
 
-                if state.current_view != CurrentView::Albums { &stdout.execute(SetForegroundColor(Color::Grey))?; }
-                
                 let formatting = format!("{} by {}", page.clone().title, page.clone().artist);
-                &stdout.queue(cursor::MoveTo(lineheight + 1,(index + 1) as u16))?.queue(Print(formatting))?;
+                &stdout
+                    .queue(cursor::MoveTo(lineheight + 1, (index + 1) as u16))?
+                    .queue(Print(formatting))?;
                 &stdout.execute(style::ResetColor)?;
             }
         }
@@ -247,11 +296,14 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                 }
 
-
-                if state.current_view != CurrentView::Queue { &stdout.execute(SetForegroundColor(Color::Grey))?; }
+                if state.current_view != CurrentView::Queue {
+                    &stdout.execute(SetForegroundColor(Color::Grey))?;
+                }
 
                 let formatting = format!("{} - {}", page.clone().title, page.clone().artist);
-                &stdout.queue(cursor::MoveTo(lineheight_album_int + 1,(index + 2) as u16))?.queue(Print(formatting))?;
+                &stdout
+                    .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 2) as u16))?
+                    .queue(Print(formatting))?;
                 &stdout.execute(style::ResetColor)?;
             }
         }
@@ -275,7 +327,11 @@ fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         fixed_space = 0;
     }
 
-    &stdout.execute(cursor::MoveTo(0,0))?.execute(Print(format!("▶ BandcampOnlinePlayer RS | {}{}", &state.statusbar_text, " ".repeat(fixed_space as usize))));
+    &stdout.execute(cursor::MoveTo(0, 0))?.execute(Print(format!(
+        "▶ BandcampOnlinePlayer RS | {}{}",
+        &state.statusbar_text,
+        " ".repeat(fixed_space as usize)
+    )));
     &stdout.execute(style::ResetColor)?;
     Ok(())
 }
@@ -296,7 +352,12 @@ async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Err
     if state.current_view == CurrentView::Albums {
         state.status_bar("Loading next page...".to_string(), false);
         state.discover.loadedpages += 1;
-        let discover = album_parsing::get_tag_data(state.selected_tags.clone()[0].clone(), state.discover.loadedpages).await?.items;
+        let discover = album_parsing::get_tag_data(
+            state.selected_tags.clone()[0].clone(),
+            state.discover.loadedpages,
+        )
+        .await?
+        .items;
         state.discover.content.extend(discover);
     }
     Ok(())
@@ -318,13 +379,13 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
     enable_raw_mode()?;
 
-    let mut state = State { 
-        statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(), 
-        error: false, 
+    let mut state = State {
+        statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
+        error: false,
         current_view: CurrentView::Tags,
         tags: ListBoxTag::default(),
         queue: ListBoxQueue::default(),
-        currently_playing: 0,
+        currently_playing: QueuedTrack::default(),
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
@@ -335,45 +396,81 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
     loop {
         match read()? {
             Key(pressedkey) => {
-
-
-                let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+                let (cols, rows) =
+                    size().expect("Unable to get terminal size continue work is not availble!");
 
                 if pressedkey == KeyCode::Char('c').into() {
-                   // TODO: Exit properly....
-                   break;
+                    // TODO: Exit properly....
+                    break;
                 }
 
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == CurrentView::Tags {
-                        state.statusbar_text = format!("Discovering");
-                        state.switch_view(CurrentView::Albums);
-                        while state.discover.content.len() < (rows - 2) as usize {
-                            state.discover.loadedpages += 1;
-                            let discover = album_parsing::get_tag_data(state.selected_tags.clone()[0].clone(), state.discover.loadedpages).await?.items;
-                            state.discover.content.extend(discover);
+                        if (state.selected_tags.len() > 0) {
+                            state.statusbar_text = format!("Discovering");
+                            state.switch_view(CurrentView::Albums);
+                            while state.discover.content.len() < (rows - 2) as usize {
+                                state.discover.loadedpages += 1;
+                                let discover = album_parsing::get_tag_data(
+                                    state.selected_tags.clone()[0].clone(),
+                                    state.discover.loadedpages,
+                                )
+                                .await?
+                                .items;
+                                state.discover.content.extend(discover);
+                            }
+                            state.statusbar_text = format!("Done!");
                         }
-                        state.statusbar_text = format!("Done!");
                     }
                     if state.current_view == CurrentView::Albums {
-                        let is_album = album_parsing::get_album(state.discover.content[state.discover.selected_idx].tralbum_url.as_str()).await;
+                        let is_album = album_parsing::get_album(
+                            state.discover.content[state.discover.selected_idx]
+                                .tralbum_url
+                                .as_str(),
+                        )
+                        .await;
 
                         match (is_album) {
                             Some(album) => {
                                 for album_track in album.trackinfo.unwrap() {
-                                    state.queue.content.push(QueuedTrack { 
-                                        album: album.current.clone().title.unwrap_or("Unknown album".to_string()), 
-                                        artist: album.current.clone().artist.unwrap_or("Unknown artist".to_string()), 
-                                        title: album_track.title.unwrap_or("Unknown track title".to_string()), 
+                                    state.queue.content.push(QueuedTrack {
+                                        album: album
+                                            .current
+                                            .clone()
+                                            .title
+                                            .unwrap_or("Unknown album".to_string()),
+                                        artist: album
+                                            .current
+                                            .clone()
+                                            .artist
+                                            .unwrap_or("Unknown artist".to_string()),
+                                        title: album_track
+                                            .title
+                                            .unwrap_or("Unknown track title".to_string()),
                                         // TODO: switch to normal error-handling and not this garbage that panic...
                                         audio_url: album_track.file.unwrap().mp3128,
                                     });
                                 }
-                            },
-                            _ => state.status_bar(format!("Something went wrong while loading {}", state.discover.content[state.discover.selected_idx].title), true),
+                            }
+                            _ => state.status_bar(
+                                format!(
+                                    "Something went wrong while loading {}",
+                                    state.discover.content[state.discover.selected_idx].title
+                                ),
+                                true,
+                            ),
                         }
                     }
-                 }
+                    if state.current_view == CurrentView::Queue {
+                        state.currently_playing =
+                            state.queue.content[state.get_current_idx()].clone();
+                        let bytes = bc_core::playback::get_track_from_url(
+                            state.currently_playing.audio_url.as_str(),
+                        )
+                        .await?;
+                        std::thread::spawn(move || {});
+                    }
+                }
 
                 if pressedkey == KeyCode::Char('d').into() {
                     &state.selected_tags.clear();
@@ -381,6 +478,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 if pressedkey == KeyCode::Char('h').into() {
                     // TODO: turn off tag view
+                    state.display_tags = !state.display_tags;
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {
@@ -391,12 +489,15 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                     if state.current_view == CurrentView::Albums {
                         &state.switch_view(CurrentView::Tags);
                     } else {
-                        &state.switch_view(CurrentView::Albums); 
+                        &state.switch_view(CurrentView::Albums);
                     };
                 }
 
                 if pressedkey == KeyCode::Down.into() {
-                    state.set_current_view_state(state.get_current_idx() + 1, state.get_current_page());
+                    state.set_current_view_state(
+                        state.get_current_idx() + 1,
+                        state.get_current_page(),
+                    );
                     if state.get_current_idx() > (rows - 3) as usize {
                         state.set_current_view_state(0, state.get_current_page());
                         switch_page_up(&mut state).await?;
@@ -405,10 +506,16 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 if pressedkey == KeyCode::Up.into() {
                     if state.get_current_idx() > 0 {
-                        state.set_current_view_state(state.get_current_idx() - 1, state.get_current_page());
+                        state.set_current_view_state(
+                            state.get_current_idx() - 1,
+                            state.get_current_page(),
+                        );
                     } else {
                         if state.get_current_page() > 0 {
-                            state.set_current_view_state(state.get_current_idx(), state.get_current_page() - 1);
+                            state.set_current_view_state(
+                                state.get_current_idx(),
+                                state.get_current_page() - 1,
+                            );
                         }
                         state.set_current_view_state((rows - 3) as usize, state.get_current_page());
                     }
@@ -416,13 +523,17 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 if pressedkey == KeyCode::Char(' ').into() {
                     // TODO: if aready added - clear
-                    state.selected_tags.push(state.tags.selected_tag_name.clone());
+                    state
+                        .selected_tags
+                        .push(state.tags.selected_tag_name.clone());
                 }
 
                 redraw(&mut stdout, &mut state)?;
             }
-            event::Event::Mouse(_) => { redraw(&mut stdout, &mut state)?; }
-            event::Event::Resize(_, _) => { 
+            event::Event::Mouse(_) => {
+                redraw(&mut stdout, &mut state)?;
+            }
+            event::Event::Resize(_, _) => {
                 redraw(&mut stdout, &mut state)?;
                 state.set_current_view_state(0, state.get_current_page());
             }
