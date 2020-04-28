@@ -1,346 +1,38 @@
 use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
-use crossterm::style::SetBackgroundColor;
 use crossterm::terminal::Clear;
 use std::time::{Duration, Instant};
 
 use crate::bc_core;
 use crate::bc_core::album_parsing;
-use crate::bc_core::playback;
 use crate::bc_core::playback_advanced;
-use crate::model::{self, album};
-use bytes::Bytes;
+
 use crossterm::{cursor, event, QueueableCommand};
 use crossterm::{
-    execute,
-    style::{self, Colorize, Print},
-    terminal::{enable_raw_mode, size, ClearType},
+    style::Print,
+    terminal::{disable_raw_mode, enable_raw_mode, size, ClearType},
     ExecutableCommand,
 };
-use std::io::{self, stdout, Stdout, Write};
+use std::{
+    io::{stdout},
+    sync::{Arc, Mutex},
+};
+
+use super::{cli_drawing::redraw, cli_structs::{
+    CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, Playback, QueuedTrack, State,
+}};
 
 use anyhow::Result;
+
 use bc_core::tags;
-use cursor::Hide;
-use event::{
-    Event::{self, Key},
-    KeyCode, KeyEvent,
-};
-use model::discover;
-use style::{Color, SetForegroundColor};
-#[derive(PartialEq)]
-enum CurrentView {
-    Albums,
-    Tags,
-    Queue,
-}
-
-struct ListBoxTag {
-    content: Vec<String>,
-    selected_idx: usize,
-    selected_page: usize,
-    selected_tag_name: String,
-}
-
-struct ListBoxDiscover {
-    content: Vec<discover::Item>,
-    selected_idx: usize,
-    selected_page: usize,
-    loadedpages: i32,
-}
-
-struct ListBoxQueue {
-    content: Vec<QueuedTrack>,
-    selected_idx: usize,
-    selected_page: usize,
-}
-
-#[derive(Clone)]
-struct QueuedTrack {
-    title: String,
-    artist: String,
-    album: String,
-    audio_url: String,
-}
-
-struct State {
-    statusbar_text: String,
-    error: bool,
-    current_view: CurrentView,
-    discover: ListBoxDiscover,
-    selected_tags: Vec<String>,
-    tags: ListBoxTag,
-    queue: ListBoxQueue,
-    currently_playing: QueuedTrack,
-    display_tags: bool,
-}
-
-impl Default for ListBoxTag {
-    fn default() -> ListBoxTag {
-        ListBoxTag {
-            content: Vec::new(),
-            selected_idx: 0,
-            selected_page: 0,
-            selected_tag_name: String::new(),
-        }
-    }
-}
-
-impl Default for ListBoxQueue {
-    fn default() -> ListBoxQueue {
-        ListBoxQueue {
-            content: Vec::new(),
-            selected_idx: 0,
-            selected_page: 0,
-        }
-    }
-}
-
-impl Default for ListBoxDiscover {
-    fn default() -> ListBoxDiscover {
-        ListBoxDiscover {
-            content: Vec::new(),
-            selected_idx: 0,
-            selected_page: 0,
-            loadedpages: 0,
-        }
-    }
-}
-
-impl Default for QueuedTrack {
-    fn default() -> Self {
-        QueuedTrack {
-            title: String::new(),
-            artist: String::new(),
-            audio_url: String::new(),
-            album: String::new(),
-        }
-    }
-}
-
-impl State {
-    fn switch_view(&mut self, to: CurrentView) {
-        self.tags.selected_idx = 0;
-        self.tags.selected_page = 0;
-        self.discover.selected_idx = 0;
-        self.discover.selected_page = 0;
-        self.current_view = to
-    }
-
-    fn set_current_view_state(&mut self, idx: usize, page: usize) {
-        match self.current_view {
-            CurrentView::Tags => {
-                self.tags.selected_idx = idx;
-                self.tags.selected_page = page;
-            }
-
-            CurrentView::Albums => {
-                self.discover.selected_idx = idx;
-                self.discover.selected_page = page;
-            }
-
-            CurrentView::Queue => {
-                self.queue.selected_idx = idx;
-                self.queue.selected_page = page;
-            }
-        }
-    }
-
-    fn get_current_idx(&self) -> usize {
-        match self.current_view {
-            CurrentView::Tags => self.tags.selected_idx,
-            CurrentView::Albums => self.discover.selected_idx,
-            CurrentView::Queue => self.queue.selected_idx,
-        }
-    }
-
-    fn get_current_page(&self) -> usize {
-        match self.current_view {
-            CurrentView::Tags => self.tags.selected_page,
-            CurrentView::Albums => self.discover.selected_page,
-            CurrentView::Queue => self.queue.selected_page,
-        }
-    }
-
-    fn get_len(&self) -> usize {
-        match self.current_view {
-            CurrentView::Tags => self.tags.content.len(),
-            CurrentView::Albums => self.discover.content.len(),
-            CurrentView::Queue => self.queue.content.len(),
-        }
-    }
-
-    fn play(&self, track_bytes: Bytes) {
-        let device = rodio::default_output_device().unwrap();
-        let mut sink = playback::create_sink(track_bytes.clone(), device, 0);
-    }
-
-    fn status_bar(&mut self, message: String, is_error: bool) {
-        self.error = is_error;
-        self.statusbar_text = message;
-    }
-
-    fn draw_line(&self, stdout: &mut std::io::Stdout, height: u16) -> Result<()> {
-        let (_, rows) = size().expect("Unable to get terminal size continue work is not availble!");
-        for line in 1..rows {
-            &stdout
-                .queue(cursor::MoveTo(height, line))?
-                .queue(Print("|"))?;
-        }
-        Ok(())
-    }
-}
-
-fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
-
-    let mut lineheight = state
-        .tags
-        .content
-        .iter()
-        .max_by_key(|p| p.len())
-        .unwrap()
-        .len() as u16;
-
-    // TODO: Refactor
-
-    let lineheight_album = state
-        .discover
-        .content
-        .iter()
-        .max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
-    let mut lineheight_album_int: u16 = lineheight;
-    match lineheight_album {
-        Some(value) => {
-            lineheight_album_int += format!("{} by {}", value.title, value.artist).len() as u16
-        }
-        None => lineheight_album_int += 20,
-    }
-
-    let lineheight_queue = state
-        .queue
-        .content
-        .iter()
-        .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
-    let mut lineheight_queue_int: u16 = lineheight_album_int;
-    match lineheight_queue {
-        Some(value) => {
-            lineheight_queue_int += format!("{} by {}", value.title, value.artist).len() as u16
-        }
-        None => lineheight_queue_int += 20,
-    }
-
-    let pages = state.tags.content.chunks((rows - 2) as usize);
-    let album_pages = state.discover.content.chunks((rows - 2) as usize);
-    let queue_pages = state.queue.content.chunks((rows - 2) as usize);
-
-    stdout.queue(Clear(ClearType::All))?;
-
-    if state.display_tags {
-        for (i, v) in &mut pages.into_iter().enumerate() {
-            if i == state.tags.selected_page {
-                for (index, page) in v.into_iter().enumerate() {
-                    if index == state.tags.selected_idx && state.current_view == CurrentView::Tags {
-                        &stdout.execute(SetBackgroundColor(Color::White))?;
-                        &stdout.execute(SetForegroundColor(Color::Black))?;
-                        let page_str = page.to_string();
-                        state.tags.selected_tag_name = page_str;
-                    }
-
-                    if state.selected_tags.iter().any(|i| i == page) {
-                        &stdout.execute(SetForegroundColor(Color::Red))?;
-                    }
-
-                    if state.current_view != CurrentView::Tags {
-                        &stdout.execute(SetForegroundColor(Color::Grey))?;
-                    }
-
-                    &stdout
-                        .queue(cursor::MoveTo(0, (index + 1) as u16))?
-                        .queue(Print(page))?;
-                    &stdout.execute(style::ResetColor)?;
-                }
-            }
-        }
-    } else {
-        lineheight = 0;
-    }
-
-    for (i, v) in &mut album_pages.into_iter().enumerate() {
-        if i == state.discover.selected_page {
-            for (index, page) in v.into_iter().enumerate() {
-                if index == state.discover.selected_idx {
-                    &stdout.execute(SetBackgroundColor(Color::White))?;
-                    &stdout.execute(SetForegroundColor(Color::Black))?;
-                    //state.selected_tag_name = page_str;
-                }
-
-                if state.current_view != CurrentView::Albums {
-                    &stdout.execute(SetForegroundColor(Color::Grey))?;
-                }
-
-                let formatting = format!("{} by {}", page.clone().title, page.clone().artist);
-                &stdout
-                    .queue(cursor::MoveTo(lineheight + 1, (index + 1) as u16))?
-                    .queue(Print(formatting))?;
-                &stdout.execute(style::ResetColor)?;
-            }
-        }
-    }
-
-    for (i, v) in &mut queue_pages.into_iter().enumerate() {
-        if i == state.queue.selected_page {
-            for (index, page) in v.into_iter().enumerate() {
-                if index == state.queue.selected_idx {
-                    &stdout.execute(SetBackgroundColor(Color::White))?;
-                    &stdout.execute(SetForegroundColor(Color::Black))?;
-                }
-
-                if state.current_view != CurrentView::Queue {
-                    &stdout.execute(SetForegroundColor(Color::Grey))?;
-                }
-
-                let formatting = format!("{} - {}", page.clone().title, page.clone().artist);
-                &stdout
-                    .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 2) as u16))?
-                    .queue(Print(formatting))?;
-                &stdout.execute(style::ResetColor)?;
-            }
-        }
-    }
-
-    // drawing lines
-    state.draw_line(stdout, lineheight)?;
-    state.draw_line(stdout, lineheight_album_int)?;
-    state.draw_line(stdout, lineheight_queue_int)?;
-
-    if !state.error {
-        &stdout.execute(SetBackgroundColor(Color::Blue))?;
-    } else {
-        &stdout.execute(SetBackgroundColor(Color::Red))?;
-    }
-
-    let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
-
-    // test usize oveflow, lol
-    if fixed_space < 0 {
-        fixed_space = 0;
-    }
-
-    &stdout.execute(cursor::MoveTo(0, 0))?.execute(Print(format!(
-        "▶ BandcampOnlinePlayer RS | {}{}",
-        &state.statusbar_text,
-        " ".repeat(fixed_space as usize)
-    )));
-    &stdout.execute(style::ResetColor)?;
-    Ok(())
-}
+use cursor::{EnableBlinking, Hide, Show};
+use event::{Event::Key, KeyCode};
 
 async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
     let idx = state.get_current_idx();
     let page = state.get_current_page();
 
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+    let (_cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     if page < (state.get_len() / (rows - 2) as usize) as usize {
         state.set_current_view_state(idx, page + 1);
@@ -363,21 +55,26 @@ async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
-pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     // init
-
-    let mut stdout = stdout();
+    let stdout = Arc::new(Mutex::new(stdout()));
 
     println!("Loading tags from bandcamp.com");
     let tags = tags::get_tags().await?;
     println!("Loading gui...");
 
-    stdout.queue(DisableBlinking)?;
-    stdout.queue(Hide)?;
-    stdout.queue(Clear(ClearType::All))?;
-    stdout.queue(event::EnableMouseCapture)?;
+    {
+        let stdout_clone = stdout.clone();
+        let mut stdout = stdout_clone.lock().unwrap();
+        stdout.queue(DisableBlinking)?;
+        stdout.queue(Hide)?;
+        stdout.queue(Clear(ClearType::All))?;
+        stdout.queue(event::EnableMouseCapture)?;
+    }
 
     enable_raw_mode()?;
+    let device = rodio::default_output_device().expect("Error opening output device!");
+    let mut sink = rodio::Sink::new(&device);
 
     let mut state = State {
         statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
@@ -390,23 +87,77 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
         discover: ListBoxDiscover::default(),
         display_tags: true,
     };
+
+    let playback = Arc::new(Mutex::new(Playback::default()));
+
     state.tags.content = tags;
-    redraw(&mut stdout, &mut state)?;
+    redraw(&mut stdout.lock().unwrap(), &mut state)?;
+
+    //let state_mut = Arc::new(Mutex::new(state.clone()));
+    {
+        let stdout = stdout.clone();
+        let playback = playback.clone();
+
+        std::thread::spawn(move || -> Result<()> {
+            let playback = playback.lock().unwrap();
+            loop {
+                std::thread::sleep(Duration::from_secs(1));
+
+                let (_cols, rows) =
+                size().expect("Unable to get terminal size continue work is not availble!");
+                let mut stdout = stdout.lock().unwrap();
+
+                if !playback.is_paused {
+                    let mut time = playback.started_at.elapsed() - playback.pause_duration;
+                    if let Some(paused_at) = playback.paused_at {
+                        time -= paused_at.elapsed();
+                    }
+
+                    let min = time.as_secs() / 60;
+                    let sec = time.as_secs() % 60;
+                    let ms = time.as_millis() % 1000;
+
+                        &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!("{}:{:02}.{:03} is pause: {}", min, sec, ms, playback.is_paused)));
+                } else {
+                    &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!("ПРОИГРЫВАТЕЛЬ НА ПАУЗЕ БЛИН {}", playback.is_paused)));
+                }
+            }
+        });
+    }
 
     loop {
+
+        {
+            let mut playback = playback.lock().unwrap();
+            if sink.empty() {
+                playback.is_paused = true;
+            } else {
+                println!("{}, {}", sink.is_paused(), playback.is_paused);
+                playback.is_paused = sink.is_paused();
+            }
+        }
+
         match read()? {
             Key(pressedkey) => {
-                let (cols, rows) =
+                let (_cols, rows) =
                     size().expect("Unable to get terminal size continue work is not availble!");
 
                 if pressedkey == KeyCode::Char('c').into() {
-                    // TODO: Exit properly....
+                    disable_raw_mode()?;
+                    {
+                        let mut stdout = stdout.lock().unwrap();
+
+                        stdout.queue(EnableBlinking)?;
+                        stdout.queue(Show)?;
+                        stdout.queue(Clear(ClearType::All))?;
+                        stdout.queue(event::DisableMouseCapture)?;
+                    }
                     break;
                 }
 
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == CurrentView::Tags {
-                        if (state.selected_tags.len() > 0) {
+                        if state.selected_tags.len() > 0 {
                             state.statusbar_text = format!("Discovering");
                             state.switch_view(CurrentView::Albums);
                             while state.discover.content.len() < (rows - 2) as usize {
@@ -430,7 +181,7 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                         )
                         .await;
 
-                        match (is_album) {
+                        match is_album {
                             Some(album) => {
                                 for album_track in album.trackinfo.unwrap() {
                                     state.queue.content.push(QueuedTrack {
@@ -468,7 +219,11 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                             state.currently_playing.audio_url.as_str(),
                         )
                         .await?;
-                        std::thread::spawn(move || {});
+                        let device =
+                            rodio::default_output_device().expect("Error opening output device!");
+                        sink = playback_advanced::create_sink(bytes, device, 0)?;
+                        playback.lock().unwrap().started_at = Instant::now();
+                        sink.play();
                     }
                 }
 
@@ -477,7 +232,6 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
                 }
 
                 if pressedkey == KeyCode::Char('h').into() {
-                    // TODO: turn off tag view
                     state.display_tags = !state.display_tags;
                 }
 
@@ -523,18 +277,27 @@ pub async fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::
 
                 if pressedkey == KeyCode::Char(' ').into() {
                     // TODO: if aready added - clear
-                    state
-                        .selected_tags
-                        .push(state.tags.selected_tag_name.clone());
+                    if state.current_view == CurrentView::Tags {
+                        state
+                            .selected_tags
+                            .push(state.tags.selected_tag_name.clone());
+                    } else {
+                        if sink.is_paused() {
+                            
+                            sink.play();
+                        } else {
+                            sink.pause();
+                        }
+                    }
                 }
 
-                redraw(&mut stdout, &mut state)?;
+                redraw(&mut stdout.lock().unwrap(), &mut state)?;
             }
             event::Event::Mouse(_) => {
-                redraw(&mut stdout, &mut state)?;
+                redraw(&mut stdout.lock().unwrap(), &mut state)?;
             }
             event::Event::Resize(_, _) => {
-                redraw(&mut stdout, &mut state)?;
+                redraw(&mut stdout.lock().unwrap(), &mut state)?;
                 state.set_current_view_state(0, state.get_current_page());
             }
         }

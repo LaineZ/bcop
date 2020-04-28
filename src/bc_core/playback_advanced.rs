@@ -5,13 +5,6 @@ use bytes::Bytes;
 use rodio::buffer::SamplesBuffer;
 use rodio::{Decoder, Sink, Source};
 
-use crate::bc_core::http_tools;
-
-pub async fn get_track_from_url(url: &str) -> Result<Bytes> {
-    let bytes = http_tools::http_request_bytes(url).await?;
-    Ok(bytes)
-}
-
 pub fn create_sink(bytes: Bytes, device: rodio::Device, seek_sec: u32) -> Result<Sink> {
     let cursor = Cursor::new(bytes);
 

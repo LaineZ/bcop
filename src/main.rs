@@ -17,8 +17,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if args.len() < 2 {
-        eprintln!("warning: no arguments supplyed exiting...");
-        std::process::exit(1);
+        eprintln!("warning: no arguments supplyed running in advanced cli mode");
+        cli_advanced::loadinterface(args.clone()).await?;
+        std::process::exit(0);
     }
 
     match args[1].as_str() {
