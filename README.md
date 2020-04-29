@@ -47,6 +47,7 @@ This a terminal based interface that uses crossplatform [crossterm]([https://git
 <kbd>d</kbd> - diselect all tags
 
 **Queue list only**
+
 <kbd>Enter</kbd> - play selected track
 
 <kbd>Space</kbd> - play/pause current track
