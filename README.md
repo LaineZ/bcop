@@ -8,13 +8,11 @@ A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ
 You can download latest version from "actions" menu
 
 ## Stream mode
-The player supports **CLI Stream mode** to play in CLI stream run command:
+The player supports **CLI Stream mode**. to play in CLI stream run command:
 ### Linux/Mac
 ```./bandcamp-online-cli stream [tag]```
 
-**Example:**
-
-``./bandcamp-online-cli stream metal`` - plays a metal tag
+**Example:** ``./bandcamp-online-cli stream metal`` - plays a metal tag
 
 ### Windows
 
@@ -23,14 +21,14 @@ The player supports **CLI Stream mode** to play in CLI stream run command:
 **Example:** ``bandcamp-online-cli.exe stream metal`` - plays a metal tag
 
 ### CLI/TUI Mode
-This a terminal based interface that uses crossplatform [crossterm]([https://github.com/crossterm-rs/crossterm) library and provides more flexible playback and queue control without noticeable performance drops
+This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library and provides more flexible playback and queue control without noticeable performance drops
 
 ### TUI Mode controls
 **Wide-working keys**
 
 <kbd>c</kbd> - closes program
 
-<kbd>h</kbd> - toogle tag list
+<kbd>h</kbd> - toggle tag list
 
 <kbd>q</kbd> - switch to queue list
 
