@@ -1,7 +1,7 @@
 use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
-use std::time::{Duration, Instant};
+use std::{sync::Arc, time::{Duration, Instant}, io::stdout};
 
 use crate::bc_core;
 use crate::bc_core::album_parsing;
@@ -13,14 +13,15 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, size, ClearType},
     ExecutableCommand,
 };
-use std::{
-    io::{stdout},
-    sync::{Arc, Mutex},
-};
 
-use super::{cli_drawing::redraw, cli_structs::{
-    CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, Playback, QueuedTrack, State,
-}};
+use parking_lot::FairMutex;
+
+use super::{
+    cli_drawing::redraw,
+    cli_structs::{
+        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, Playback, QueuedTrack, State,
+    },
+};
 
 use anyhow::Result;
 
@@ -55,9 +56,14 @@ async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
+
+fn bool_to_str(value: bool, on: &str, off: &str) -> String {
+    if (value) { on.to_string() } else { off.to_string() }
+}
+
 pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     // init
-    let stdout = Arc::new(Mutex::new(stdout()));
+    let stdout = Arc::new(FairMutex::new(stdout()));
 
     println!("Loading tags from bandcamp.com");
     let tags = tags::get_tags().await?;
@@ -65,7 +71,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
 
     {
         let stdout_clone = stdout.clone();
-        let mut stdout = stdout_clone.lock().unwrap();
+        let mut stdout = stdout_clone.lock();
         stdout.queue(DisableBlinking)?;
         stdout.queue(Hide)?;
         stdout.queue(Clear(ClearType::All))?;
@@ -82,31 +88,27 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
         current_view: CurrentView::Tags,
         tags: ListBoxTag::default(),
         queue: ListBoxQueue::default(),
-        currently_playing: QueuedTrack::default(),
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
     };
 
-    let playback = Arc::new(Mutex::new(Playback::default()));
+    let playback = Arc::new(FairMutex::new(Playback::default()));
 
     state.tags.content = tags;
-    redraw(&mut stdout.lock().unwrap(), &mut state)?;
+    redraw(&mut stdout.lock(), &mut state)?;
 
-    //let state_mut = Arc::new(Mutex::new(state.clone()));
     {
         let stdout = stdout.clone();
         let playback = playback.clone();
 
         std::thread::spawn(move || -> Result<()> {
-            let playback = playback.lock().unwrap();
             loop {
                 std::thread::sleep(Duration::from_secs(1));
 
                 let (_cols, rows) =
-                size().expect("Unable to get terminal size continue work is not availble!");
-                let mut stdout = stdout.lock().unwrap();
-
+                    size().expect("Unable to get terminal size continue work is not availble!");
+                let playback = playback.lock();
                 if !playback.is_paused {
                     let mut time = playback.started_at.elapsed() - playback.pause_duration;
                     if let Some(paused_at) = playback.paused_at {
@@ -115,26 +117,29 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
 
                     let min = time.as_secs() / 60;
                     let sec = time.as_secs() % 60;
-                    let ms = time.as_millis() % 1000;
+                    let mut stdout = stdout.lock();
 
-                        &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!("{}:{:02}.{:03} is pause: {}", min, sec, ms, playback.is_paused)));
+                    &stdout
+                        .execute(cursor::MoveTo(0, rows))?
+                        .execute(Print(format!(
+                            "{}:{:02}: {} - {}",
+                            min, sec, playback.currently_playing.artist, playback.currently_playing.title
+                        )));
                 } else {
-                    &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!("ПРОИГРЫВАТЕЛЬ НА ПАУЗЕ БЛИН {}", playback.is_paused)));
+                    let mut stdout = stdout.lock();
+                    &stdout
+                        .execute(cursor::MoveTo(0, rows))?
+                        .execute(Print("Playback is paused"));
                 }
             }
         });
     }
 
     loop {
-
-        {
-            let mut playback = playback.lock().unwrap();
-            if sink.empty() {
-                playback.is_paused = true;
-            } else {
-                println!("{}, {}", sink.is_paused(), playback.is_paused);
-                playback.is_paused = sink.is_paused();
-            }
+        if !sink.empty() {
+            let mut playback = playback.lock();
+            playback.is_paused = sink.is_paused();
+            drop(playback);
         }
 
         match read()? {
@@ -145,7 +150,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                 if pressedkey == KeyCode::Char('c').into() {
                     disable_raw_mode()?;
                     {
-                        let mut stdout = stdout.lock().unwrap();
+                        let mut stdout = stdout.lock();
 
                         stdout.queue(EnableBlinking)?;
                         stdout.queue(Show)?;
@@ -213,16 +218,16 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                         }
                     }
                     if state.current_view == CurrentView::Queue {
-                        state.currently_playing =
+                        playback.lock().currently_playing =
                             state.queue.content[state.get_current_idx()].clone();
                         let bytes = bc_core::playback::get_track_from_url(
-                            state.currently_playing.audio_url.as_str(),
+                            playback.lock().currently_playing.audio_url.as_str(),
                         )
                         .await?;
                         let device =
                             rodio::default_output_device().expect("Error opening output device!");
                         sink = playback_advanced::create_sink(bytes, device, 0)?;
-                        playback.lock().unwrap().started_at = Instant::now();
+                        playback.lock().started_at = Instant::now();
                         sink.play();
                     }
                 }
@@ -283,21 +288,27 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                             .push(state.tags.selected_tag_name.clone());
                     } else {
                         if sink.is_paused() {
-                            
+                            let mut playback = playback.lock();
+
+                            if let Some(instant) = playback.paused_at {
+                                playback.pause_duration += instant.elapsed();
+                                playback.paused_at = None;
+                            }
                             sink.play();
                         } else {
                             sink.pause();
+                            playback.lock().paused_at = Some(Instant::now());
                         }
                     }
                 }
 
-                redraw(&mut stdout.lock().unwrap(), &mut state)?;
+                redraw(&mut stdout.lock(), &mut state)?;
             }
             event::Event::Mouse(_) => {
-                redraw(&mut stdout.lock().unwrap(), &mut state)?;
+                redraw(&mut stdout.lock(), &mut state)?;
             }
             event::Event::Resize(_, _) => {
-                redraw(&mut stdout.lock().unwrap(), &mut state)?;
+                redraw(&mut stdout.lock(), &mut state)?;
                 state.set_current_view_state(0, state.get_current_page());
             }
         }

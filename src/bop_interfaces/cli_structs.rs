@@ -1,9 +1,7 @@
 use crate::model::discover;
 use anyhow::Result;
 use crossterm::{cursor, style::Print, terminal::size, QueueableCommand};
-use std::{
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 #[derive(PartialEq, Clone)]
 pub enum CurrentView {
@@ -43,11 +41,12 @@ pub struct QueuedTrack {
     pub audio_url: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Playback {
     pub started_at: Instant,
     pub paused_at: Option<Instant>,
     pub pause_duration: std::time::Duration,
+    pub currently_playing: QueuedTrack,
     pub is_paused: bool,
 }
 
@@ -57,6 +56,7 @@ impl Default for Playback {
             started_at: Instant::now(),
             paused_at: None,
             pause_duration: Duration::from_secs(0),
+            currently_playing: QueuedTrack::default(),
             is_paused: true,
         }
     }
@@ -71,7 +71,6 @@ pub struct State {
     pub selected_tags: Vec<String>,
     pub tags: ListBoxTag,
     pub queue: ListBoxQueue,
-    pub currently_playing: QueuedTrack,
     pub display_tags: bool,
 }
 

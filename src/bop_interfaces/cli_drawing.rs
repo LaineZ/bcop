@@ -3,12 +3,12 @@ use crossterm::terminal::Clear;
 
 use crossterm::{cursor, QueueableCommand};
 use crossterm::{
-    style::{self,  Print},
-    terminal::{ size, ClearType},
+    style::{self, Print},
+    terminal::{size, ClearType},
     ExecutableCommand,
 };
 
-use super::cli_structs::{CurrentView,State,};
+use super::cli_structs::{CurrentView, State};
 
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
