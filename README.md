@@ -1,5 +1,5 @@
 # BandcampOnlinePlayer Rust Edition
-**IN DEVELOPMENT!**
+**IN DEVELOPMENT! - breakable changes are inevitable**
 
 ![Create Release](https://github.com/LaineZ/bc_rs/workflows/Create%20Release/badge.svg?event=push)
 
@@ -8,7 +8,7 @@ A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ
 You can download latest version from "actions" menu
 
 ## Stream mode
-Сurrently, the player only supports **CLI Stream mode** to play in CLI stream run command:
+The player supports **CLI Stream mode** to play in CLI stream run command:
 ### Linux/Mac
 ```./bandcamp-online-cli stream [tag]```
 
@@ -22,12 +22,49 @@ You can download latest version from "actions" menu
 
 **Example:** ``bandcamp-online-cli.exe stream metal`` - plays a metal tag
 
-### CLI Commands in runtime
+### CLI/TUI Mode
+This a terminal based interface that uses crossplatform [crossterm]([https://github.com/crossterm-rs/crossterm) library and provides more flexible playback and queue control without noticeable performance drops
+
+### TUI Mode controls
+**Wide-working keys**
+
+<kbd>c</kbd> - closes program
+
+<kbd>h</kbd> - toogle tag list
+
+<kbd>q</kbd> - switch to queue list
+
+<kbd>⭾</kbd> - cycle between tags and albums list
+
+<kbd>↑</kbd> <kbd>↓</kbd> - navigation
+
+**Tags list only**
+
+<kbd>Space</kbd> - add tag
+
+<kbd>Enter</kbd> - load albums by tags
+
+<kbd>d</kbd> - diselect all tags
+
+**Queue list only**
+<kbd>Enter</kbd> - play selected track
+
+<kbd>Space</kbd> - play/pause current track
+
+**Album list only**
+
+<kbd>Enter</kbd> - add selected album to queue
+
+
+### CLI Stream Mode Commands in runtime
 
 Also, at playback you can use some commands to control playback
+
 ``c``/``exit`` - closes program
 
 ``p`` - play/pause
+
+``d`` - track duration
 
 ``next`` - next track
 
