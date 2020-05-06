@@ -1,21 +1,28 @@
 use bytes::Bytes;
+use std::io::Read;
 
-pub async fn http_request(url: &str) -> Result<String, reqwest::Error> {
-    let res = reqwest::get(url).await?;
+pub fn http_request(url: &str) -> Option<String> {
+    let response = ureq::get(url).call();
 
     //println!("info: status: {}", res.status());
 
-    let body = res.text().await?;
+    let body = response.into_string().unwrap();
 
-    Ok(body)
+    Some(body)
 }
 
-pub async fn http_request_bytes(url: &str) -> Result<Bytes, reqwest::Error> {
-    let res = reqwest::get(url).await?;
+pub fn http_request_bytes(url: &str) -> Option<Bytes> {
+    let response = ureq::get(url).call();
 
     //println!("info: status: {}", res.status());
 
-    let body = res.bytes().await?;
 
-    Ok(body)
+    let mut reader = response.into_reader();
+    let mut bytes = Vec::new();
+    reader.read_to_end(&mut bytes);
+
+
+    let bytes = Bytes::from(bytes);
+
+    Some(bytes)
 }

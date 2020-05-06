@@ -4,6 +4,7 @@ use crate::model::discover::DiscoverData;
 use crate::bc_core::http_tools;
 
 use anyhow::Result;
+use anyhow::Context;
 use regex::Regex;
 use serde_json::json;
 
@@ -23,16 +24,12 @@ pub fn fix_json(data: &str) -> String {
     data.into()
 }
 
-pub async fn get_album(url: &str) -> Option<Album> {
-    let page: Result<String, reqwest::Error> = http_tools::http_request(url).await;
-    match page {
-        Ok(value) => {
-            let json = parse(value.as_str())?;
-            let data: Album = serde_json::from_str(&json).unwrap();
-            Some(data)
-        }
-        Err(_) => None,
-    }
+pub fn get_album(url: &str) -> Option<Album> {
+    let page = http_tools::http_request(url)?;
+
+    let json = parse(page.as_str())?;
+    let data: Album = serde_json::from_str(&json).unwrap();
+    Some(data)
 }
 
 pub fn parse(html_code: &str) -> Option<String> {
@@ -45,8 +42,7 @@ pub fn parse(html_code: &str) -> Option<String> {
     Some(album_data_json)
 }
 
-pub async fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
-    let client = reqwest::Client::new();
+pub fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
 
     let request = json!({
         "filters": {
@@ -58,12 +54,17 @@ pub async fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
         "page": page
     });
 
-    let response = client
-        .post("https://bandcamp.com/api/hub/2/dig_deeper")
-        .body(request.to_string())
-        .send()
-        .await?;
+    let response = ureq::post("https://bandcamp.com/api/hub/2/dig_deeper")
+        .send_string(request.to_string().as_str());
 
-    let data = serde_json::from_str(response.text().await?.as_str())?;
+    let data = serde_json::from_str(&response.into_string()?)?;
     Ok(data)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn get_album()  {
+        assert_eq!(crate::bc_core::album_parsing::get_tag_data("metal".to_string(), 1).unwrap().ok, true)
+    }
 }

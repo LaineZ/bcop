@@ -42,27 +42,6 @@ pub struct QueuedTrack {
 }
 
 #[derive(Clone)]
-pub struct Playback {
-    pub started_at: Instant,
-    pub paused_at: Option<Instant>,
-    pub pause_duration: std::time::Duration,
-    pub currently_playing: QueuedTrack,
-    pub is_paused: bool,
-}
-
-impl Default for Playback {
-    fn default() -> Self {
-        Playback {
-            started_at: Instant::now(),
-            paused_at: None,
-            pause_duration: Duration::from_secs(0),
-            currently_playing: QueuedTrack::default(),
-            is_paused: true,
-        }
-    }
-}
-
-#[derive(Clone)]
 pub struct State {
     pub statusbar_text: String,
     pub error: bool,

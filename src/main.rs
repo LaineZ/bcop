@@ -5,30 +5,28 @@ mod model;
 use std::env;
 
 use bc_core::tags;
-use bop_interfaces::cli;
 use bop_interfaces::cli_advanced;
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     println!(
-        "BandcampOnlinePlayer by 140bpmdubstep version 0.1-alpha.rs\nCommand line: {:?}",
+        "BandcampOnlinePlayer by 140bpmdubstep version 0.2alpha.rs\nCommand line: {:?}",
         args
     );
 
     if args.len() < 2 {
         eprintln!("warning: no arguments supplyed running in advanced cli mode");
-        cli_advanced::loadinterface(args.clone()).await?;
+        cli_advanced::loadinterface(args.clone())?;
         std::process::exit(0);
     }
 
     match args[1].as_str() {
-        "stream" => cli::loadinterface(args).await?,
-        "cli" => cli_advanced::loadinterface(args).await?,
+        "cli" => cli_advanced::loadinterface(args)?,
         "streamtags" => {
             println!("available tags:");
 
-            let tags = tags::get_tags().await?;
+            let tags = tags::get_tags()?;
             for tag in tags {
                 println!("{}", tag)
             }

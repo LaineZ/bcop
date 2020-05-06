@@ -7,24 +7,20 @@ A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ
 
 You can download latest version from "actions" menu
 
-## Stream mode
-The player supports **CLI Stream mode**. to play in CLI stream run command:
-### Linux/Mac
-```./bandcamp-online-cli stream [tag]```
+### CLI/TUI Mode
+This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library
 
-**Example:** ``./bandcamp-online-cli stream metal`` - plays a metal tag
+### Running
+
+### Linux/Mac
+```./bandcamp-online-cli```
 
 ### Windows
 
 ``bandcamp-online-cli.exe stream [tag]``
 
-**Example:** ``bandcamp-online-cli.exe stream metal`` - plays a metal tag
-
-### CLI/TUI Mode
-This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library and provides more flexible playback and queue control without noticeable performance drops
-
 ### TUI Mode controls
-**Wide-working keys**
+**General keys**
 
 <kbd>c</kbd> - closes program
 
@@ -53,27 +49,6 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 **Album list only**
 
 <kbd>Enter</kbd> - add selected album to queue
-
-
-### CLI Stream Mode Commands in runtime
-
-Also, at playback you can use some commands to control playback
-
-``c``/``exit`` - closes program
-
-``p`` - play/pause
-
-``d`` - track duration
-
-``next`` - next track
-
-``vol [number: float]`` - sets volume (default: 1.0) CAUTION: values above 1.0 causes a serious clipping, also - negative values inverts track phase
-
-``seek [serconds: number]`` - sets track position (in seconds)
-
-``switchadvanced`` - switches to new playback system (enabled by default) thats playback system fast but can have short-time memory peaks around 150-180 mb
-
-``switchsimple`` - switch to old-patched playback system this playback system is clean in terms of memory but may have some perfomance issues
 
 ## Building
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command

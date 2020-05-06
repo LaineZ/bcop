@@ -5,7 +5,6 @@ use std::{sync::Arc, time::{Duration, Instant}, io::stdout};
 
 use crate::bc_core;
 use crate::bc_core::album_parsing;
-use crate::bc_core::playback_advanced;
 
 use crossterm::{cursor, event, QueueableCommand};
 use crossterm::{
@@ -19,7 +18,7 @@ use parking_lot::FairMutex;
 use super::{
     cli_drawing::redraw,
     cli_structs::{
-        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, Playback, QueuedTrack, State,
+        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State,
     },
 };
 
@@ -29,7 +28,7 @@ use bc_core::tags;
 use cursor::{EnableBlinking, Hide, Show};
 use event::{Event::Key, KeyCode};
 
-async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
+fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
     let idx = state.get_current_idx();
     let page = state.get_current_page();
 
@@ -49,24 +48,19 @@ async fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Err
             state.selected_tags.clone()[0].clone(),
             state.discover.loadedpages,
         )
-        .await?
+        ?
         .items;
         state.discover.content.extend(discover);
     }
     Ok(())
 }
 
-
-fn bool_to_str(value: bool, on: &str, off: &str) -> String {
-    if (value) { on.to_string() } else { off.to_string() }
-}
-
-pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     // init
     let stdout = Arc::new(FairMutex::new(stdout()));
 
     println!("Loading tags from bandcamp.com");
-    let tags = tags::get_tags().await?;
+    let tags = tags::get_tags()?;
     println!("Loading gui...");
 
     {
@@ -79,8 +73,6 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
     }
 
     enable_raw_mode()?;
-    let device = rodio::default_output_device().expect("Error opening output device!");
-    let mut sink = rodio::Sink::new(&device);
 
     let mut state = State {
         statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
@@ -93,55 +85,10 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
         display_tags: true,
     };
 
-    let playback = Arc::new(FairMutex::new(Playback::default()));
-
     state.tags.content = tags;
     redraw(&mut stdout.lock(), &mut state)?;
 
-    {
-        let stdout = stdout.clone();
-        let playback = playback.clone();
-
-        std::thread::spawn(move || -> Result<()> {
-            loop {
-                std::thread::sleep(Duration::from_secs(1));
-
-                let (_cols, rows) =
-                    size().expect("Unable to get terminal size continue work is not availble!");
-                let playback = playback.lock();
-                if !playback.is_paused {
-                    let mut time = playback.started_at.elapsed() - playback.pause_duration;
-                    if let Some(paused_at) = playback.paused_at {
-                        time -= paused_at.elapsed();
-                    }
-
-                    let min = time.as_secs() / 60;
-                    let sec = time.as_secs() % 60;
-                    let mut stdout = stdout.lock();
-
-                    &stdout
-                        .execute(cursor::MoveTo(0, rows))?
-                        .execute(Print(format!(
-                            "{}:{:02}: {} - {}",
-                            min, sec, playback.currently_playing.artist, playback.currently_playing.title
-                        )));
-                } else {
-                    let mut stdout = stdout.lock();
-                    &stdout
-                        .execute(cursor::MoveTo(0, rows))?
-                        .execute(Print("Playback is paused"));
-                }
-            }
-        });
-    }
-
     loop {
-        if !sink.empty() {
-            let mut playback = playback.lock();
-            playback.is_paused = sink.is_paused();
-            drop(playback);
-        }
-
         match read()? {
             Key(pressedkey) => {
                 let (_cols, rows) =
@@ -171,7 +118,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                                     state.selected_tags.clone()[0].clone(),
                                     state.discover.loadedpages,
                                 )
-                                .await?
+                                ?
                                 .items;
                                 state.discover.content.extend(discover);
                             }
@@ -184,7 +131,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                                 .tralbum_url
                                 .as_str(),
                         )
-                        .await;
+                        ;
 
                         match is_album {
                             Some(album) => {
@@ -218,17 +165,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                         }
                     }
                     if state.current_view == CurrentView::Queue {
-                        playback.lock().currently_playing =
-                            state.queue.content[state.get_current_idx()].clone();
-                        let bytes = bc_core::playback::get_track_from_url(
-                            playback.lock().currently_playing.audio_url.as_str(),
-                        )
-                        .await?;
-                        let device =
-                            rodio::default_output_device().expect("Error opening output device!");
-                        sink = playback_advanced::create_sink(bytes, device, 0)?;
-                        playback.lock().started_at = Instant::now();
-                        sink.play();
+                        // TODO: Implement playback here
                     }
                 }
 
@@ -259,7 +196,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                     );
                     if state.get_current_idx() > (rows - 3) as usize {
                         state.set_current_view_state(0, state.get_current_page());
-                        switch_page_up(&mut state).await?;
+                        switch_page_up(&mut state)?;
                     }
                 }
 
@@ -287,18 +224,7 @@ pub async fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error:
                             .selected_tags
                             .push(state.tags.selected_tag_name.clone());
                     } else {
-                        if sink.is_paused() {
-                            let mut playback = playback.lock();
-
-                            if let Some(instant) = playback.paused_at {
-                                playback.pause_duration += instant.elapsed();
-                                playback.paused_at = None;
-                            }
-                            sink.play();
-                        } else {
-                            sink.pause();
-                            playback.lock().paused_at = Some(Instant::now());
-                        }
+                        // TODO: Play pause goes here
                     }
                 }
 
