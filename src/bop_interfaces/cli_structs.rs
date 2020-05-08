@@ -1,7 +1,6 @@
 use crate::model::discover;
 use anyhow::Result;
 use crossterm::{cursor, style::Print, terminal::size, QueueableCommand};
-use std::time::{Duration, Instant};
 
 #[derive(PartialEq, Clone)]
 pub enum CurrentView {
@@ -44,6 +43,7 @@ pub struct QueuedTrack {
 #[derive(Clone)]
 pub struct State {
     pub statusbar_text: String,
+    pub bottom_text: String,
     pub error: bool,
     pub current_view: CurrentView,
     pub discover: ListBoxDiscover,
@@ -51,6 +51,7 @@ pub struct State {
     pub tags: ListBoxTag,
     pub queue: ListBoxQueue,
     pub display_tags: bool,
+    pub is_paused: bool,
 }
 
 impl Default for ListBoxTag {
@@ -158,8 +159,29 @@ impl State {
         for line in 1..rows {
             &stdout
                 .queue(cursor::MoveTo(height, line))?
-                .queue(Print("|"))?;
+                .queue(Print("┃"))?;
         }
         Ok(())
+    }
+
+    pub fn cleanup_tags(&mut self) {
+        &self.tags.content.clear();
+        self.tags.selected_idx = 0;
+        self.tags.selected_page = 0;
+        self.current_view = CurrentView::Tags;
+    }
+
+    pub fn cleanup_albums(&mut self) {
+        &self.discover.content.clear();
+        self.discover.selected_idx = 0;
+        self.discover.selected_page = 0;
+        self.current_view = CurrentView::Tags;
+    }
+
+    pub fn cleanup_queue(&mut self) {
+        &self.discover.content.clear();
+        self.discover.selected_idx = 0;
+        self.discover.selected_page = 0;
+        self.current_view = CurrentView::Albums;
     }
 }

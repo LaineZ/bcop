@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, Device, Host, SampleRate, Stream, StreamConfig, StreamError};
+use cpal::{ChannelCount, Device, SampleRate, Stream, StreamConfig, StreamError};
 
 struct TimeTracker {
     started_at: Instant,
@@ -80,7 +80,7 @@ pub enum Command {
     StreamError(StreamError),
 }
 
-struct PlayerThread {
+pub struct PlayerThread {
     cmd_tx: Sender<Command>,
     cmd_rx: Receiver<Command>,
     data_tx: Option<Sender<Vec<i16>>>,
@@ -101,7 +101,7 @@ fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
 }
 
 impl PlayerThread {
-    fn new(tx: Sender<Command>, rx: Receiver<Command>) -> Result<Self> {
+    pub fn new(tx: Sender<Command>, rx: Receiver<Command>) -> Result<Self> {
         let host = cpal::default_host();
         let device = host
             .default_output_device()
@@ -121,7 +121,7 @@ impl PlayerThread {
 
     fn recreate_stream(&mut self) -> Result<()> {
         if let Some(stream) = self.stream.take() {
-            stream.pause();
+            stream.pause()?;
         }
 
         let config = StreamConfig {
@@ -140,7 +140,6 @@ impl PlayerThread {
 
         let cmd_tx = self.cmd_tx.clone();
         let error_fn = move |e| {
-            log::error!("stream error: {}", &e);
             let _ = cmd_tx.send(Command::StreamError(e));
         };
 
@@ -172,13 +171,12 @@ impl PlayerThread {
         Ok(())
     }
 
-    fn run(mut self) -> Result<()> {
+    pub fn run(mut self) -> Result<()> {
         let mut decoder = None;
         let mut cur_url = None;
 
         loop {
             let cmd = self.cmd_rx.recv()?;
-
             match (cmd, &mut decoder, &mut self.data_tx, &mut self.stream) {
                 (Command::SwitchTrack(url), ..) => {
                     decoder = Some(load_track(&url));

@@ -4,9 +4,9 @@ use crate::model::discover::DiscoverData;
 use crate::bc_core::http_tools;
 
 use anyhow::Result;
-use anyhow::Context;
 use regex::Regex;
 use serde_json::json;
+use std::io::Write;
 
 pub fn fix_json(data: &str) -> String {
     // fix url field
@@ -28,7 +28,14 @@ pub fn get_album(url: &str) -> Option<Album> {
     let page = http_tools::http_request(url)?;
 
     let json = parse(page.as_str())?;
+
+    // just for debug
+    let mut file = std::fs::File::create("albuminfo.txt").unwrap();
+    std::fs::remove_file("albuminfo.txt").unwrap();
+    file.write_all(json.as_bytes()).unwrap();
+
     let data: Album = serde_json::from_str(&json).unwrap();
+
     Some(data)
 }
 
@@ -42,14 +49,14 @@ pub fn parse(html_code: &str) -> Option<String> {
     Some(album_data_json)
 }
 
-pub fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
+pub fn get_tag_data(tags: Vec<String>, page: i32) -> Result<DiscoverData> {
 
     let request = json!({
         "filters": {
             "format": "all",
             "location": 0,
             "sort": "pop",
-            "tags": [tags]
+            "tags": tags
         },
         "page": page
     });
@@ -65,6 +72,6 @@ pub fn get_tag_data(tags: String, page: i32) -> Result<DiscoverData> {
 mod tests {
     #[test]
     fn get_album()  {
-        assert_eq!(crate::bc_core::album_parsing::get_tag_data("metal".to_string(), 1).unwrap().ok, true)
+        assert_eq!(crate::bc_core::album_parsing::get_tag_data(vec!["metal".to_string(), "death".to_string()], 1).unwrap().ok, true)
     }
 }

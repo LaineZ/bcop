@@ -13,7 +13,33 @@ use super::cli_structs::{CurrentView, State};
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 
+
+
+pub fn draw_messagebox_wait(stdout: &mut std::io::Stdout, text: String) -> Result<()> {
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+
+    let mut len = text.chars().count();
+    
+    // padding
+    len += 2;
+
+    &stdout.execute(SetBackgroundColor(Color::Blue))?;
+    &stdout.execute(SetForegroundColor(Color::White))?;
+
+    for x in (cols / 2) as u16..len as u16 {
+        for y in 3..10
+        {
+            &stdout
+            .execute(cursor::MoveTo(x, y))?
+            .execute(Print(" "))?;
+        }
+    }
+    &stdout.execute(style::ResetColor)?;
+    Ok(())
+}
+
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
+
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     let mut lineheight = state
@@ -143,17 +169,26 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     }
 
     let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
-
     // test usize oveflow, lol
-    if fixed_space < 0 {
-        fixed_space = 0;
-    }
+    if fixed_space < 0 { fixed_space = 0; }
 
     &stdout.execute(cursor::MoveTo(0, 0))?.execute(Print(format!(
         "▶ BandcampOnlinePlayer RS | {}{}",
         &state.statusbar_text,
         " ".repeat(fixed_space as usize)
     )));
+
+    &stdout.execute(SetBackgroundColor(Color::DarkGrey))?;
+
+    let mut fixed_space: i32 = (cols as i32) - (state.bottom_text.len() as i32);
+    // test usize oveflow, lol
+    if fixed_space < 0 { fixed_space = 0; }
+
+
+    &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!(
+        "{}{}", state.bottom_text, " ".repeat(fixed_space as usize)
+    )));
     &stdout.execute(style::ResetColor)?;
+    draw_messagebox_wait(stdout, "привет".to_string())?;
     Ok(())
 }
