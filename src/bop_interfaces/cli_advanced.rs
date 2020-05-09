@@ -2,7 +2,6 @@ use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
 use std::{sync::{mpsc, Arc}, io::stdout};
-use chrono::{DateTime, Utc};
 
 use crate::bc_core;
 use crate::bc_core::album_parsing;
