@@ -2,6 +2,7 @@ use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
 use std::{sync::{mpsc, Arc}, io::stdout};
+use chrono::{DateTime, Utc};
 
 use crate::bc_core;
 use crate::bc_core::album_parsing;
@@ -16,9 +17,9 @@ use crossterm::{
 use parking_lot::FairMutex;
 
 use super::{
-    cli_drawing::{self, redraw},
+    cli_drawing::redraw,
     cli_structs::{
-        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State,
+        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State, Diagnositcs
     },
 };
 
@@ -88,6 +89,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
+        diagnostics: Diagnositcs::default(),
         is_paused: true,
     };
 
@@ -98,12 +100,15 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     let tx = cmd_tx.clone();
     let mut state = state.clone();
     let _t = std::thread::spawn(move || {
-        if let Err(_) = PlayerThread::new(tx, cmd_rx).and_then(|v| v.run()) {
+        if let Err(e) = PlayerThread::new(tx, cmd_rx).and_then(|v| v.run()) {
             state.status_bar("Player thread crashed! Please restart stream!".to_string(), true);
+            state.print_diag(format!("Player crashed: {}", e.to_string()));
         }
     });
     }
 
+
+    state.print_diag("Player started!".to_string());
 
     loop {
         match read()? {
@@ -201,6 +206,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
 
+                if pressedkey == KeyCode::Char('x').into() {
+                    state.switch_view(CurrentView::Diagnositcs);
+                }
+
                 if pressedkey == KeyCode::Char('h').into() {
                     state.display_tags = !state.display_tags;
                 }
@@ -272,6 +281,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     &stdout.lock().execute(cursor::MoveTo(0, 0))?;
                     &stdout.lock().execute(style::PrintStyledContent("terminal is too small".red()))?;
                 }
+
+                state.print_diag(format!("Redraw requested {}x{}", w, h));
             }
         }
     }

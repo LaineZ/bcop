@@ -82,6 +82,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let album_pages = state.discover.content.chunks((rows - 2) as usize);
     let queue_pages = state.queue.content.chunks((rows - 2) as usize);
 
+    let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
+
     stdout.queue(Clear(ClearType::All))?;
 
     if state.display_tags {
@@ -117,7 +119,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     for (i, v) in &mut album_pages.into_iter().enumerate() {
         if i == state.discover.selected_page {
             for (index, page) in v.into_iter().enumerate() {
-                if index == state.discover.selected_idx {
+                if index == state.discover.selected_idx && state.current_view == CurrentView::Albums {
                     &stdout.execute(SetBackgroundColor(Color::White))?;
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                     //state.selected_tag_name = page_str;
@@ -139,7 +141,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     for (i, v) in &mut queue_pages.into_iter().enumerate() {
         if i == state.queue.selected_page {
             for (index, page) in v.into_iter().enumerate() {
-                if index == state.queue.selected_idx {
+                if index == state.queue.selected_idx && state.current_view == CurrentView::Queue {
                     &stdout.execute(SetBackgroundColor(Color::White))?;
                     &stdout.execute(SetForegroundColor(Color::Black))?;
                 }
@@ -161,6 +163,27 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     state.draw_line(stdout, lineheight)?;
     state.draw_line(stdout, lineheight_album_int)?;
     state.draw_line(stdout, lineheight_queue_int)?;
+
+
+    // drawing logs window
+    if state.current_view == CurrentView::Diagnositcs {
+        stdout.queue(Clear(ClearType::All))?;
+        for (i, v) in &mut diag_pags.into_iter().enumerate() {
+            if i == state.diagnostics.selected_page {
+                for (index, page) in v.into_iter().enumerate() {
+                    if index == state.diagnostics.selected_idx {
+                        &stdout.execute(SetBackgroundColor(Color::White))?;
+                        &stdout.execute(SetForegroundColor(Color::Black))?;
+                    }
+
+                    &stdout
+                    .queue(cursor::MoveTo(0, (index + 2) as u16))?
+                    .queue(Print(page))?;
+                &stdout.execute(style::ResetColor)?;
+                }
+            }
+        }
+    }
 
     if !state.error {
         &stdout.execute(SetBackgroundColor(Color::Blue))?;
@@ -189,6 +212,6 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         "{}{}", state.bottom_text, " ".repeat(fixed_space as usize)
     )));
     &stdout.execute(style::ResetColor)?;
-    draw_messagebox_wait(stdout, "привет".to_string())?;
+    //draw_messagebox_wait(stdout, "привет".to_string())?;
     Ok(())
 }
