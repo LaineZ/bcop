@@ -1,8 +1,9 @@
 use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
-use std::{sync::{mpsc, Arc}, io::stdout};
+use std::{io::stdout, sync::Arc, time::Duration};
 
+use super::cli_drawing;
 use crate::bc_core;
 use crate::bc_core::album_parsing;
 
@@ -18,15 +19,18 @@ use parking_lot::FairMutex;
 use super::{
     cli_drawing::redraw,
     cli_structs::{
-        CurrentView, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State, Diagnositcs
+        CurrentView, Diagnositcs, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State,
     },
 };
 
 use anyhow::Result;
 
-use bc_core::{playback::{Command, PlayerThread}, tags};
+use bc_core::{
+    playback::{FormatTime, Player},
+    tags,
+};
 use cursor::{EnableBlinking, Hide, Show};
-use event::{Event::Key, KeyCode};
+use event::{poll, Event::Key, KeyCode};
 use style::Colorize;
 
 fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
@@ -45,12 +49,9 @@ fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
     if state.current_view == CurrentView::Albums {
         state.status_bar("Loading next page...".to_string(), false);
         state.discover.loadedpages += 1;
-        let discover = album_parsing::get_tag_data(
-            state.selected_tags.clone(),
-            state.discover.loadedpages,
-        )
-        ?
-        .items;
+        let discover =
+            album_parsing::get_tag_data(state.selected_tags.clone(), state.discover.loadedpages)?
+                .items;
         state.discover.content.extend(discover);
     }
     Ok(())
@@ -58,9 +59,6 @@ fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     // init
-
-    
-    let (cmd_tx, cmd_rx) = mpsc::channel();
     let stdout = Arc::new(FairMutex::new(stdout()));
 
     println!("Loading tags from bandcamp.com");
@@ -90,27 +88,44 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         display_tags: true,
         diagnostics: Diagnositcs::default(),
         is_paused: true,
+        queue_pos: 0,
     };
 
     state.tags.content = tags;
     redraw(&mut stdout.lock(), &mut state)?;
 
-    {
-    let tx = cmd_tx.clone();
-    let mut state = state.clone();
-    let _t = std::thread::spawn(move || {
-        if let Err(e) = PlayerThread::new(tx, cmd_rx).and_then(|v| v.run()) {
-            state.status_bar("Player thread crashed! Please restart stream!".to_string(), true);
-            state.print_diag(format!("Player crashed: {}", e.to_string()));
-        }
-    });
-    }
-
+    let mut player = Player::new();
 
     state.print_diag("Player started!".to_string());
 
     loop {
-        match read()? {
+        while !poll(Duration::from_millis(50))? {
+            if let Some(time) = player.get_time() {
+                let mins = state.queue.content[state.queue_pos].duration / 60.0;
+                let secs = state.queue.content[state.queue_pos].duration % 60.0;
+                state.bottom_text =
+                    format!("\r{}/{}:{} {} - {} pos: {}", FormatTime(time), mins as u32, secs as u32, state.queue.content[state.queue_pos].artist, state.queue.content[state.queue_pos].title, state.queue_pos);
+
+                if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
+                    && state.queue.content.len() - 1 > state.queue_pos
+                {
+                    state.queue_pos += 1;
+                    state.bottom_text = format!(
+                        "Loading track: {} - {}",
+                        state.queue.content[state.queue_pos].artist,
+                        state.queue.content[state.queue_pos].title
+                    );
+                    player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
+                }
+            } else {
+                state.bottom_text = "Playback stopped".to_string();
+            }
+            cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
+        }
+
+        let event = read()?;
+
+        match event {
             Key(pressedkey) => {
                 let (_cols, rows) =
                     size().expect("Unable to get terminal size continue work is not availble!");
@@ -136,8 +151,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                 let discover = album_parsing::get_tag_data(
                                     state.selected_tags.clone(),
                                     state.discover.loadedpages,
-                                )
-                                ?
+                                )?
                                 .items;
                                 state.discover.content.extend(discover);
                             }
@@ -148,8 +162,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             state.discover.content[state.discover.selected_idx]
                                 .tralbum_url
                                 .as_str(),
-                        )
-                        ;
+                        );
 
                         match is_album {
                             Some(album) => {
@@ -170,6 +183,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                             .unwrap_or("Unknown track title".to_string()),
                                         // TODO: switch to normal error-handling and not this garbage that panic...
                                         audio_url: album_track.file.unwrap().mp3128,
+                                        duration: album_track.duration.unwrap_or(0.0),
                                     });
                                 }
                             }
@@ -184,10 +198,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                     if state.current_view == CurrentView::Queue {
                         // TODO: Implement playback here
-                        cmd_tx.send(Command::SwitchTrack(
-                            state.queue.content[state.get_current_idx()].audio_url.clone(),
-                        ))?;
-                        state.is_paused = false;
+                        player.switch_track(
+                            state.queue.content[state.get_current_idx()]
+                                .audio_url
+                                .clone(),
+                        );
+                        state.queue_pos = state.get_current_idx();
                     }
                 }
 
@@ -261,8 +277,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             .push(state.tags.selected_tag_name.clone());
                     } else {
                         // TODO: Play pause goes here
-                        cmd_tx.send(Command::Pause)?;
-                        state.is_paused = true;
+                        player.set_paused(!player.is_paused());
                     }
                 }
 
@@ -278,13 +293,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 } else {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     &stdout.lock().execute(cursor::MoveTo(0, 0))?;
-                    &stdout.lock().execute(style::PrintStyledContent("terminal is too small".red()))?;
+                    &stdout
+                        .lock()
+                        .execute(style::PrintStyledContent("terminal is too small".red()))?;
                 }
 
                 state.print_diag(format!("Redraw requested {}x{}", w, h));
             }
         }
     }
-
     Ok(())
 }

@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, Device, SampleRate, Stream, StreamConfig, StreamError};
+use cpal::{ChannelCount, SampleRate, Stream, StreamConfig, StreamError};
 
 struct TimeTracker {
     started_at: Instant,
@@ -49,11 +49,15 @@ impl TimeTracker {
     }
 
     fn time(&self) -> Duration {
-        self.started_at.elapsed() - self.pause_time
+        if let Some(at) = self.paused_at {
+            self.started_at.elapsed() - self.pause_time - at.elapsed()
+        } else {
+            self.started_at.elapsed() - self.pause_time
+        }
     }
 }
 
-struct FormatTime(Duration);
+pub struct FormatTime(pub Duration);
 
 impl Display for FormatTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -70,7 +74,8 @@ fn time_to_samples(time: Duration, rate: SampleRate, channels: ChannelCount) -> 
 }
 
 #[derive(Debug)]
-pub enum Command {
+enum Command {
+    GetTime,
     SwitchTrack(String),
     Play,
     Pause,
@@ -80,13 +85,13 @@ pub enum Command {
     StreamError(StreamError),
 }
 
-pub struct PlayerThread {
-    cmd_tx: Sender<Command>,
+struct PlayerThread {
     cmd_rx: Receiver<Command>,
-    data_tx: Option<Sender<Vec<i16>>>,
+    time_tx: Sender<Option<Duration>>,
+    data_tx: Sender<Vec<i16>>,
+    decoder: Option<Decoder<Box<dyn Read>>>,
     buffer: Vec<i16>,
-    device: Device,
-    stream: Option<Stream>,
+    stream: Stream,
     samples_submitted: usize,
     tracker: TimeTracker,
 }
@@ -101,66 +106,61 @@ fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
 }
 
 impl PlayerThread {
-    pub fn new(tx: Sender<Command>, rx: Receiver<Command>) -> Result<Self> {
+    fn new(
+        cmd_tx: Sender<Command>,
+        cmd_rx: Receiver<Command>,
+        time_tx: Sender<Option<Duration>>,
+    ) -> Result<Self> {
         let host = cpal::default_host();
         let device = host
             .default_output_device()
             .ok_or_else(|| anyhow!("no output device available"))?;
-
-        Ok(Self {
-            cmd_tx: tx.clone(),
-            cmd_rx: rx,
-            data_tx: None,
-            buffer: Vec::new(),
-            device,
-            stream: None,
-            samples_submitted: 0,
-            tracker: TimeTracker::new(),
-        })
-    }
-
-    fn recreate_stream(&mut self) -> Result<()> {
-        if let Some(stream) = self.stream.take() {
-            stream.pause()?;
-        }
 
         let config = StreamConfig {
             channels: 2,
             sample_rate: SampleRate(44100),
         };
 
-        let cmd_tx = self.cmd_tx.clone();
+        let cmd_tx1 = cmd_tx.clone();
         let (data_tx, data_rx) = mpsc::channel::<Vec<i16>>();
         let data_fn = move |output: &mut [i16], _: &_| {
-            let _ = cmd_tx.send(Command::GetData(output.len()));
-            if let Ok(data) = data_rx.recv() {
-                output.copy_from_slice(&data);
+            let _ = cmd_tx1.send(Command::GetData(output.len()));
+            if let Ok(data) = data_rx.recv_timeout(Duration::from_secs(1)) {
+                if data.len() == output.len() {
+                    output.copy_from_slice(&data);
+                }
             }
         };
 
-        let cmd_tx = self.cmd_tx.clone();
         let error_fn = move |e| {
             let _ = cmd_tx.send(Command::StreamError(e));
         };
 
-        let stream = self
-            .device
-            .build_output_stream(&config, data_fn, error_fn)?;
+        let stream = device.build_output_stream(&config, data_fn, error_fn)?;
         stream.play()?;
 
-        self.stream = Some(stream);
-        self.data_tx = Some(data_tx);
-
-        Ok(())
+        Ok(Self {
+            cmd_rx,
+            time_tx,
+            data_tx,
+            decoder: None,
+            buffer: Vec::new(),
+            stream,
+            samples_submitted: 0,
+            tracker: TimeTracker::new(),
+        })
     }
 
-    fn skip_samples(&mut self, decoder: &mut Decoder<impl Read>, mut num: usize) -> Result<()> {
+    fn skip_samples(&mut self, mut num: usize) -> Result<()> {
         let count = num.min(self.buffer.len());
         self.buffer.drain(..count);
         num -= count;
 
         while num > 0 {
-            let frame = decoder.next_frame()?;
+            let frame = match self.next_frame()? {
+                Some(v) => v,
+                None => break,
+            };
             let count = num.min(frame.data.len());
             num -= count;
             if count < frame.data.len() {
@@ -171,63 +171,168 @@ impl PlayerThread {
         Ok(())
     }
 
-    pub fn run(mut self) -> Result<()> {
-        let mut decoder = None;
+    fn next_frame(&mut self) -> Result<Option<minimp3::Frame>> {
+        let decoder = match &mut self.decoder {
+            Some(v) => v,
+            None => return Ok(None),
+        };
+        match decoder.next_frame() {
+            Ok(v) => Ok(Some(v)),
+            Err(minimp3::Error::Eof) => {
+                self.decoder = None;
+                self.tracker.reset();
+                self.tracker.pause();
+                Ok(None)
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    fn run(mut self) -> Result<()> {
         let mut cur_url = None;
 
         loop {
             let cmd = self.cmd_rx.recv()?;
-            match (cmd, &mut decoder, &mut self.data_tx, &mut self.stream) {
-                (Command::SwitchTrack(url), ..) => {
-                    decoder = Some(load_track(&url));
+
+            match cmd {
+                Command::SwitchTrack(url) => {
+                    self.decoder = Some(load_track(&url));
                     cur_url = Some(url);
                     self.buffer.clear();
-                    self.recreate_stream()?;
                     self.samples_submitted = 0;
+                    self.tracker.reset();
                 }
 
-                (Command::GetData(len), Some(decoder), Some(data_tx), ..) => {
+                Command::GetData(len) => {
                     while self.buffer.len() < len {
-                        let frame = decoder.next_frame()?;
+                        let frame = match self.next_frame()? {
+                            Some(v) => v,
+                            None => {
+                                let mut rem = len - self.buffer.len();
+                                while rem > 0 {
+                                    self.buffer.push(0);
+                                    rem -= 1;
+                                }
+                                break;
+                            }
+                        };
                         self.buffer.extend_from_slice(&frame.data);
                     }
 
                     let data = self.buffer.drain(..len).collect();
                     self.samples_submitted += len;
-                    data_tx.send(data)?;
+                    self.data_tx.send(data)?;
                 }
 
-                (Command::SeekForward(time), Some(decoder), ..) => {
+                Command::SeekForward(time) => {
                     self.tracker.seek_forward(time);
                     let samples = time_to_samples(time, SampleRate(44100), 2);
-                    self.skip_samples(decoder, samples)?;
+                    self.skip_samples(samples)?;
                     self.samples_submitted += samples;
                 }
 
-                (Command::SeekBackwards(time), Some(_), ..) => {
+                Command::SeekBackwards(mut time) => {
+                    time = std::cmp::min(time, self.tracker.time());
                     self.tracker.seek_backward(time);
 
-                    decoder = Some(load_track(cur_url.as_ref().unwrap()));
+                    self.decoder = Some(load_track(cur_url.as_ref().unwrap()));
 
                     let samples =
                         time_to_samples(time, SampleRate(44100), 2).min(self.samples_submitted);
-                        
-                    self.skip_samples(decoder.as_mut().unwrap(), self.samples_submitted - samples)?;
+
+                    self.skip_samples(self.samples_submitted - samples)?;
                     self.samples_submitted -= samples;
                 }
 
-                (Command::Play, .., Some(stream)) => {
-                    stream.play()?;
+                Command::Play => {
+                    self.stream.play()?;
                     self.tracker.play();
                 }
 
-                (Command::Pause, .., Some(stream)) => {
-                    stream.pause()?;
+                Command::Pause => {
+                    self.stream.pause()?;
                     self.tracker.pause();
                 }
 
-                _ => (),
+                Command::StreamError(e) => {
+                    // TODO: Make stream error
+                }
+
+                Command::GetTime => {
+                    if self.decoder.is_some() {
+                        self.time_tx.send(Some(self.tracker.time()))?;
+                    } else {
+                        self.time_tx.send(None)?;
+                    }
+                }
             }
         }
+    }
+}
+
+pub struct Player {
+    cmd_tx: Sender<Command>,
+    time_rx: Receiver<Option<Duration>>,
+    is_paused: bool,
+}
+
+impl Player {
+    pub fn new() -> Player {
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let (time_tx, time_rx) = mpsc::channel();
+
+        let tx = cmd_tx.clone();
+        std::thread::spawn(move || {
+            if let Err(e) = PlayerThread::new(tx, cmd_rx, time_tx).and_then(|v| v.run()) {
+            }
+        });
+
+        Player {
+            cmd_tx,
+            time_rx,
+            is_paused: false,
+        }
+    }
+
+    pub fn get_time(&self) -> Option<Duration> {
+        self.cmd_tx.send(Command::GetTime).unwrap();
+        self.time_rx.recv().unwrap()
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.get_time().is_some()
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.is_paused
+    }
+
+    pub fn set_paused(&mut self, paused: bool) {
+        if self.is_paused && !paused {
+            self.play();
+        } else if !self.is_paused && paused {
+            self.pause();
+        }
+        self.is_paused = paused;
+    }
+
+    pub fn play(&mut self) {
+        self.cmd_tx.send(Command::Play).unwrap();
+    }
+
+    pub fn pause(&mut self) {
+        self.cmd_tx.send(Command::Pause).unwrap();
+    }
+
+    pub fn switch_track(&mut self, url: impl Into<String>) {
+        self.cmd_tx.send(Command::SwitchTrack(url.into())).unwrap();
+    }
+
+    pub fn seek_forward(&mut self, time: Duration) {
+        self.cmd_tx.send(Command::SeekForward(time)).unwrap();
+    }
+
+    pub fn seek_backward(&mut self, time: Duration) {
+        self.cmd_tx.send(Command::SeekBackwards(time)).unwrap();
     }
 }

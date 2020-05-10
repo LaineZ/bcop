@@ -38,6 +38,7 @@ pub struct QueuedTrack {
     pub artist: String,
     pub album: String,
     pub audio_url: String,
+    pub duration: f64,
 }
 
 #[derive(Clone)]
@@ -57,6 +58,7 @@ pub struct State {
     pub selected_tags: Vec<String>,
     pub tags: ListBoxTag,
     pub queue: ListBoxQueue,
+    pub queue_pos: usize,
     pub display_tags: bool,
     pub diagnostics: Diagnositcs,
     pub is_paused: bool,
@@ -111,6 +113,7 @@ impl Default for QueuedTrack {
             artist: String::new(),
             audio_url: String::new(),
             album: String::new(),
+            duration: 0.0,
         }
     }
 }
