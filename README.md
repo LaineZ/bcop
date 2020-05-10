@@ -34,7 +34,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 <kbd>↑</kbd> <kbd>↓</kbd> - navigation
 
-<kbd>x</kbd> - debug console (logging, diagnostics) - currently alsmost never used...
+<kbd>x</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>,<kbd>q</kbd>
 
 **Tags list only**
 
