@@ -10,6 +10,8 @@ You can download latest version from "actions" menu
 ### CLI/TUI Mode
 This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library
 
+![Screenshot](http://i.imgur.com/76lhnnP.png)
+
 ### Running
 
 ### Linux/Mac
@@ -17,7 +19,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 ### Windows
 
-``bandcamp-online-cli.exe stream [tag]``
+``bandcamp-online-cli.exe``
 
 ### TUI Mode controls
 **General keys**
@@ -31,6 +33,8 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 <kbd>⭾</kbd> - cycle between tags and albums list
 
 <kbd>↑</kbd> <kbd>↓</kbd> - navigation
+
+<kbd>x</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>,<kbd>q</kbd>
 
 **Tags list only**
 
@@ -46,9 +50,13 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 <kbd>Space</kbd> - play/pause current track
 
+<kbd>d</kbd> - clear queue
+
 **Album list only**
 
 <kbd>Enter</kbd> - add selected album to queue
+
+<kbd>d</kbd> - clear album list
 
 ## Building
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command
@@ -58,4 +66,4 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
    1. On Ubuntu you can just run that command ``sudo apt install libaudio-dev libasound2-dev``
 5. ```cargo build``` also you can add ``--release`` option to reduce binary file size and speed up tracks operations
 6. ```cd target/debug```
-7. DONE! You can run in CLI Mode by instructions above
+7. DONE! You can run in TUI Mode by instructions above
