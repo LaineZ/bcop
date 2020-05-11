@@ -62,6 +62,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
 
     // drawing
+    &stdout.lock().execute(cursor::MoveTo(0, 0))?; // Reset cursor position to fix redraw bugs in some terminals
+
 
     if state.display_tags {
         for (i, v) in &mut pages.into_iter().enumerate() {

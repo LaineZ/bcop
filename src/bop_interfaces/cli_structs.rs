@@ -1,6 +1,6 @@
 use crate::model::discover;
 use anyhow::Result;
-use crossterm::{cursor, style::Print, terminal::size, QueueableCommand};
+use crossterm::{cursor, style::Print, terminal::{Clear, size, ClearType}, QueueableCommand};
 #[derive(PartialEq, Clone)]
 pub enum CurrentView {
     Albums,
@@ -119,7 +119,7 @@ impl Default for QueuedTrack {
 }
 
 impl State {
-    pub fn switch_view(&mut self, to: CurrentView) {
+    pub fn switch_view(&mut self, stdout: &mut std::io::Stdout, to: CurrentView) -> Result<()> {
         self.tags.selected_idx = 0;
         self.tags.selected_page = 0;
 
@@ -132,10 +132,18 @@ impl State {
         self.queue.selected_idx = 0;
         self.queue.selected_page = 0;
 
-        self.current_view = to
+        self.current_view = to;
+        stdout.queue(Clear(ClearType::All))?;
+        Ok(())
     }
 
-    pub fn set_current_view_state(&mut self, idx: usize, page: usize) {
+    pub fn set_current_view_state(&mut self, stdout: &mut std::io::Stdout, idx: usize, page: usize) -> Result<()> {
+
+        // clears screen if only switches page
+        if self.get_current_page() != page {
+            &stdout.queue(Clear(ClearType::All))?;
+        } 
+
         match self.current_view {
             CurrentView::Tags => {
                 self.tags.selected_idx = idx;
@@ -157,6 +165,7 @@ impl State {
                 self.diagnostics.selected_idx = idx;
             }
         }
+        Ok(())
     }
 
     pub fn get_current_idx(&self) -> usize {
@@ -195,7 +204,7 @@ impl State {
         let (_, rows) = size().expect("Unable to get terminal size continue work is not availble!");
         for line in 1..rows {
             &stdout
-                .queue(cursor::MoveTo(height, line))?
+                .queue(cursor::MoveTo(height, line - 1))?
                 .queue(Print("┃"))?;
         }
         Ok(())

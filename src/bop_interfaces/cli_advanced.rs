@@ -33,14 +33,14 @@ use cursor::{EnableBlinking, Hide, Show};
 use event::{poll, Event::Key, KeyCode};
 use style::Colorize;
 
-fn switch_page_up(state: &mut State) -> Result<(), Box<dyn std::error::Error>> {
+fn switch_page_up(mut stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let idx = state.get_current_idx();
     let page = state.get_current_page();
 
     let (_cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     if page < (state.get_len() / (rows - 2) as usize) as usize {
-        state.set_current_view_state(idx, page + 1);
+        state.set_current_view_state(&mut stdout, idx, page + 1)?;
     } else {
         state.status_bar("You aready scrolled to end!".to_string(), true);
     }
@@ -145,7 +145,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == CurrentView::Tags {
                         if state.selected_tags.len() > 0 {
-                            state.switch_view(CurrentView::Albums);
+                            state.switch_view(&mut stdout.lock(),CurrentView::Albums);
                             while state.discover.content.len() < (rows - 2) as usize {
                                 state.discover.loadedpages += 1;
                                 let discover = album_parsing::get_tag_data(
@@ -222,7 +222,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('x').into() {
-                    state.switch_view(CurrentView::Diagnositcs);
+                    state.switch_view(&mut stdout.lock(),CurrentView::Diagnositcs);
                 }
 
                 if pressedkey == KeyCode::Char('h').into() {
@@ -230,42 +230,45 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {
-                    &state.switch_view(CurrentView::Queue);
+                    &state.switch_view(&mut stdout.lock(),CurrentView::Queue);
                 }
 
                 if pressedkey == KeyCode::Tab.into() {
                     if state.current_view == CurrentView::Albums {
-                        &state.switch_view(CurrentView::Tags);
+                        &state.switch_view(&mut stdout.lock(),CurrentView::Tags);
                     } else {
-                        &state.switch_view(CurrentView::Albums);
+                        &state.switch_view(&mut stdout.lock(),CurrentView::Albums);
                     };
                 }
 
                 if pressedkey == KeyCode::Down.into() {
                     state.set_current_view_state(
+                        &mut stdout.lock(),
                         state.get_current_idx() + 1,
                         state.get_current_page(),
-                    );
+                    )?;
                     if state.get_current_idx() > (rows - 3) as usize {
-                        state.set_current_view_state(0, state.get_current_page());
-                        switch_page_up(&mut state)?;
+                        state.set_current_view_state(&mut stdout.lock(), 0, state.get_current_page())?;
+                        switch_page_up(&mut stdout.lock(), &mut state)?;
                     }
                 }
 
                 if pressedkey == KeyCode::Up.into() {
                     if state.get_current_idx() > 0 {
                         state.set_current_view_state(
+                            &mut stdout.lock(),
                             state.get_current_idx() - 1,
                             state.get_current_page(),
-                        );
+                        )?;
                     } else {
                         if state.get_current_page() > 0 {
                             state.set_current_view_state(
+                                &mut stdout.lock(),
                                 state.get_current_idx(),
                                 state.get_current_page() - 1,
-                            );
+                            )?;
                         }
-                        state.set_current_view_state((rows - 3) as usize, state.get_current_page());
+                        state.set_current_view_state(&mut stdout.lock(),(rows - 3) as usize, state.get_current_page())?;
                     }
                 }
 
@@ -288,8 +291,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
             event::Event::Resize(w, h) => {
                 if w > 50 && h > 5 {
+                    &stdout.lock().execute(Clear(ClearType::All))?;
                     redraw(&mut stdout.lock(), &mut state)?;
-                    state.set_current_view_state(0, state.get_current_page());
+                    state.set_current_view_state(&mut stdout.lock(),0, state.get_current_page())?;
                 } else {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     &stdout.lock().execute(cursor::MoveTo(0, 0))?;
