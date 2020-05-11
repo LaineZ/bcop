@@ -19,7 +19,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 ### Windows
 
-``bandcamp-online-cli.exe stream [tag]``
+``bandcamp-online-cli.exe``
 
 ### TUI Mode controls
 **General keys**
