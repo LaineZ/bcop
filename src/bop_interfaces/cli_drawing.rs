@@ -13,6 +13,7 @@ use super::cli_structs::{CurrentView, State};
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 
+
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
@@ -59,7 +60,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
 
-    stdout.queue(Clear(ClearType::All))?;
+
+    // drawing
 
     if state.display_tags {
         for (i, v) in &mut pages.into_iter().enumerate() {
@@ -175,6 +177,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         &state.statusbar_text,
         " ".repeat(fixed_space as usize)
     )));
+    &stdout.execute(style::ResetColor)?;
     Ok(())
 }
 
