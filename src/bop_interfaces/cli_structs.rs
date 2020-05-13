@@ -210,13 +210,6 @@ impl State {
         Ok(())
     }
 
-    pub fn cleanup_tags(&mut self) {
-        &self.tags.content.clear();
-        self.tags.selected_idx = 0;
-        self.tags.selected_page = 0;
-        self.current_view = CurrentView::Tags;
-    }
-
     pub fn cleanup_albums(&mut self) {
         &self.discover.content.clear();
         self.discover.selected_idx = 0;

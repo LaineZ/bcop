@@ -155,7 +155,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == CurrentView::Tags {
                         if state.selected_tags.len() > 0 {
-                            state.switch_view(&mut stdout.lock(), CurrentView::Albums);
+                            state.switch_view(&mut stdout.lock(), CurrentView::Albums)?;
                             while state.discover.content.len() < (rows - 2) as usize {
                                 state.discover.loadedpages += 1;
                                 let discover = album_parsing::get_tag_data(

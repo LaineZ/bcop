@@ -348,7 +348,7 @@ impl Player {
 
     pub fn add_volume(&mut self, value: f32) {
         self.volume += value;
-        self.cmd_tx.send(Command::AddVolume(value));
+        self.cmd_tx.send(Command::AddVolume(value)).unwrap();
     }
 
     pub fn get_volume(&mut self) -> f32 {
