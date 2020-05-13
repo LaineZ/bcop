@@ -101,24 +101,34 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     loop {
         while !poll(Duration::from_millis(50))? {
             if let Some(time) = player.get_time() {
-                let mins = state.queue.content[state.queue_pos].duration / 60.0;
-                let secs = state.queue.content[state.queue_pos].duration % 60.0;
-                state.bottom_text =
-                    format!("\r{}/{}:{} {} - {} pos: {}", FormatTime(time), mins as u32, secs as u32, state.queue.content[state.queue_pos].artist, state.queue.content[state.queue_pos].title, state.queue_pos);
-
-                if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
-                    && state.queue.content.len() - 1 > state.queue_pos
-                {
-                    state.queue_pos += 1;
+                if state.queue.content.len() > 0 {
+                    let mins = state.queue.content[state.queue_pos].duration / 60.0;
+                    let secs = state.queue.content[state.queue_pos].duration % 60.0;
                     state.bottom_text = format!(
-                        "Loading track: {} - {}",
+                        "\r{}/{}:{} {} - {} pos: {} volume: {}%",
+                        FormatTime(time),
+                        mins as u32,
+                        secs as u32,
                         state.queue.content[state.queue_pos].artist,
-                        state.queue.content[state.queue_pos].title
+                        state.queue.content[state.queue_pos].title,
+                        state.queue_pos,
+                        (player.get_volume() * 100.0).floor()
                     );
-                    player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
+
+                    if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
+                        && state.queue.content.len() - 1 > state.queue_pos
+                    {
+                        state.queue_pos += 1;
+                        state.bottom_text = format!(
+                            "Loading track: {} - {}",
+                            state.queue.content[state.queue_pos].artist,
+                            state.queue.content[state.queue_pos].title
+                        );
+                        player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
+                    }
                 }
             } else {
-                state.bottom_text = "Playback stopped".to_string();
+                state.bottom_text = format!("stopped volume: {}%", (player.get_volume() * 100.0).floor());
             }
             cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
         }
@@ -145,7 +155,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == CurrentView::Tags {
                         if state.selected_tags.len() > 0 {
-                            state.switch_view(&mut stdout.lock(),CurrentView::Albums);
+                            state.switch_view(&mut stdout.lock(), CurrentView::Albums);
                             while state.discover.content.len() < (rows - 2) as usize {
                                 state.discover.loadedpages += 1;
                                 let discover = album_parsing::get_tag_data(
@@ -173,11 +183,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                             .clone()
                                             .title
                                             .unwrap_or("Unknown album".to_string()),
-                                        artist: album
-                                            .current
+                                        artist: state.discover.content[state.discover.selected_idx]
                                             .clone()
-                                            .artist
-                                            .unwrap_or("Unknown artist".to_string()),
+                                            .artist,
                                         title: album_track
                                             .title
                                             .unwrap_or("Unknown track title".to_string()),
@@ -208,6 +216,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('d').into() {
+                    &stdout.lock().execute(Clear(ClearType::All))?;
                     if state.current_view == CurrentView::Tags {
                         &state.selected_tags.clear();
                     }
@@ -217,12 +226,15 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
 
                     if state.current_view == CurrentView::Queue {
+                        // stop playback
+                        player.pause();
+                        player.stop();
                         state.cleanup_queue();
                     }
                 }
 
                 if pressedkey == KeyCode::Char('x').into() {
-                    state.switch_view(&mut stdout.lock(),CurrentView::Diagnositcs);
+                    state.switch_view(&mut stdout.lock(), CurrentView::Diagnositcs)?;
                 }
 
                 if pressedkey == KeyCode::Char('h').into() {
@@ -230,14 +242,23 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {
-                    &state.switch_view(&mut stdout.lock(),CurrentView::Queue);
+                    &state.switch_view(&mut stdout.lock(), CurrentView::Queue);
                 }
 
                 if pressedkey == KeyCode::Tab.into() {
-                    if state.current_view == CurrentView::Albums {
-                        &state.switch_view(&mut stdout.lock(),CurrentView::Tags);
-                    } else {
-                        &state.switch_view(&mut stdout.lock(),CurrentView::Albums);
+                    match state.current_view {
+                        CurrentView::Albums => {
+                            &state.switch_view(&mut stdout.lock(), CurrentView::Queue)
+                        }
+                        CurrentView::Tags => {
+                            &state.switch_view(&mut stdout.lock(), CurrentView::Albums)
+                        }
+                        CurrentView::Queue => {
+                            &state.switch_view(&mut stdout.lock(), CurrentView::Tags)
+                        }
+                        CurrentView::Diagnositcs => {
+                            &state.switch_view(&mut stdout.lock(), CurrentView::Tags)
+                        }
                     };
                 }
 
@@ -248,9 +269,35 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         state.get_current_page(),
                     )?;
                     if state.get_current_idx() > (rows - 3) as usize {
-                        state.set_current_view_state(&mut stdout.lock(), 0, state.get_current_page())?;
+                        state.set_current_view_state(
+                            &mut stdout.lock(),
+                            0,
+                            state.get_current_page(),
+                        )?;
                         switch_page_up(&mut stdout.lock(), &mut state)?;
                     }
+                }
+
+                if pressedkey == KeyCode::Left.into() { 
+                    state.bottom_text = "Tracking back by 5 seconds... Please wait...".to_string();
+                    player.seek_backward(Duration::from_secs(5));
+                }
+
+                if pressedkey == KeyCode::Char('w').into() {
+                    if player.get_volume() <= 1.2 {
+                        player.add_volume(0.1);
+                    }
+                }
+
+                if pressedkey == KeyCode::Char('s').into() {
+                    if player.get_volume() > 0.0 {
+                        player.add_volume(-0.1);
+                    }
+                }
+
+                if pressedkey == KeyCode::Right.into() { 
+                    state.bottom_text = "Tracking forward by 5 seconds... Please wait...".to_string();
+                    player.seek_forward(Duration::from_secs(5));
                 }
 
                 if pressedkey == KeyCode::Up.into() {
@@ -268,7 +315,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                 state.get_current_page() - 1,
                             )?;
                         }
-                        state.set_current_view_state(&mut stdout.lock(),(rows - 3) as usize, state.get_current_page())?;
+                        state.set_current_view_state(
+                            &mut stdout.lock(),
+                            (rows - 3) as usize,
+                            state.get_current_page(),
+                        )?;
                     }
                 }
 
@@ -293,7 +344,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if w > 50 && h > 5 {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     redraw(&mut stdout.lock(), &mut state)?;
-                    state.set_current_view_state(&mut stdout.lock(),0, state.get_current_page())?;
+                    state.set_current_view_state(
+                        &mut stdout.lock(),
+                        0,
+                        state.get_current_page(),
+                    )?;
                 } else {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     &stdout.lock().execute(cursor::MoveTo(0, 0))?;

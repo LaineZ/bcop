@@ -10,31 +10,43 @@ You can download latest version from "actions" menu
 ### CLI/TUI Mode
 This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library
 
-![Screenshot](http://i.imgur.com/76lhnnP.png)
-
 ### Running
 
 ### Linux/Mac
 ```./bandcamp-online-cli```
 
+![Screenshot](https://i.imgur.com/76lhnnP.png)
+
 ### Windows
 
 ``bandcamp-online-cli.exe``
 
+![ScreeshotWindows](https://i.imgur.com/NIg76L6.png)
+
 ### TUI Mode controls
 **General keys**
 
-<kbd>c</kbd> - closes program
+<kbd>C</kbd> - closes program
 
-<kbd>h</kbd> - toggle tag list
+<kbd>H</kbd> - hide/show tag list
 
-<kbd>q</kbd> - switch to queue list
+<kbd>Q</kbd> - switch to queue list
 
-<kbd>⭾</kbd> - cycle between tags and albums list
+<kbd>⭾</kbd> - cycle between views
 
 <kbd>↑</kbd> <kbd>↓</kbd> - navigation
 
-<kbd>x</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>,<kbd>q</kbd>
+<kbd>X</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>
+
+** Playback only **
+
+<kbd>←</kbd> - move track backwards by 5 secs **(SLOW)**
+
+<kbd>→</kbd> - move track forward by 5 secs
+
+<kbd>W</kbd> <kbd>S</kbd> - inrease / decrease volume by 10%
+
+
 
 **Tags list only**
 
@@ -42,7 +54,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 <kbd>Enter</kbd> - load albums by tags
 
-<kbd>d</kbd> - diselect all tags
+<kbd>D</kbd> - diselect all tags
 
 **Queue list only**
 
@@ -50,13 +62,13 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 <kbd>Space</kbd> - play/pause current track
 
-<kbd>d</kbd> - clear queue
+<kbd>D</kbd> - clear queue
 
 **Album list only**
 
 <kbd>Enter</kbd> - add selected album to queue
 
-<kbd>d</kbd> - clear album list
+<kbd>D</kbd> - clear album list
 
 ## Building
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command

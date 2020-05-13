@@ -11,12 +11,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     println!(
-        "BandcampOnlinePlayer by 140bpmdubstep version 0.2alpha.rs\nCommand line: {:?}",
+        "BandcampOnlinePlayer by 140bpmdubstep version 0.3alpha.rs\nCommand line: {:?}",
         args
     );
 
     if args.len() < 2 {
-        eprintln!("warning: no arguments supplyed running in advanced cli mode");
         cli_advanced::loadinterface(args.clone())?;
         std::process::exit(0);
     }

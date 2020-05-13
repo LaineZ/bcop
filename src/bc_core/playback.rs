@@ -79,10 +79,12 @@ enum Command {
     SwitchTrack(String),
     Play,
     Pause,
+    Stop,
     SeekForward(Duration),
     SeekBackwards(Duration),
     GetData(usize),
     StreamError(StreamError),
+    AddVolume(f32),
 }
 
 struct PlayerThread {
@@ -94,6 +96,7 @@ struct PlayerThread {
     stream: Stream,
     samples_submitted: usize,
     tracker: TimeTracker,
+    volume: f32,
 }
 
 fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
@@ -148,6 +151,7 @@ impl PlayerThread {
             stream,
             samples_submitted: 0,
             tracker: TimeTracker::new(),
+            volume: 1.0
         })
     }
 
@@ -203,6 +207,14 @@ impl PlayerThread {
                     self.tracker.reset();
                 }
 
+                Command::Stop => {
+                    cur_url = None;
+                    self.decoder = None;
+                    self.buffer.clear();
+                    self.samples_submitted = 0;
+                    self.tracker.reset();
+                }
+
                 Command::GetData(len) => {
                     while self.buffer.len() < len {
                         let frame = match self.next_frame()? {
@@ -219,7 +231,11 @@ impl PlayerThread {
                         self.buffer.extend_from_slice(&frame.data);
                     }
 
-                    let data = self.buffer.drain(..len).collect();
+                    let mut data: Vec<i16> = Vec::new();
+
+                    for sample in self.buffer.drain(..len) {
+                        data.push((sample as f32 * self.volume) as i16);
+                    }
                     self.samples_submitted += len;
                     self.data_tx.send(data)?;
                 }
@@ -258,6 +274,10 @@ impl PlayerThread {
                     // TODO: Make stream error
                 }
 
+                Command::AddVolume(value) => {
+                    self.volume += value;
+                }
+
                 Command::GetTime => {
                     if self.decoder.is_some() {
                         self.time_tx.send(Some(self.tracker.time()))?;
@@ -274,6 +294,7 @@ pub struct Player {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
     is_paused: bool,
+    volume: f32
 }
 
 impl Player {
@@ -291,6 +312,7 @@ impl Player {
             cmd_tx,
             time_rx,
             is_paused: false,
+            volume: 1.0
         }
     }
 
@@ -322,6 +344,19 @@ impl Player {
 
     pub fn pause(&mut self) {
         self.cmd_tx.send(Command::Pause).unwrap();
+    }
+
+    pub fn add_volume(&mut self, value: f32) {
+        self.volume += value;
+        self.cmd_tx.send(Command::AddVolume(value));
+    }
+
+    pub fn get_volume(&mut self) -> f32 {
+        self.volume
+    }
+
+    pub fn stop(&mut self) {
+        self.cmd_tx.send(Command::Stop).unwrap();
     }
 
     pub fn switch_track(&mut self, url: impl Into<String>) {
