@@ -14,7 +14,7 @@ use anyhow::Result;
 use style::{Color, SetForegroundColor};
 
 fn highlight_list(stdout: &mut std::io::Stdout, state: &State, index: usize, view: CurrentView) -> Result<()> {
-    if index == state.get_current_idx() && state.current_view == view {
+    if index == state.selected_position && state.current_view == view {
         &stdout.execute(SetBackgroundColor(Color::White))?;
         &stdout.execute(SetForegroundColor(Color::Black))?;
     }
@@ -50,8 +50,10 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     let lineheight_queue = state
         .queue
+        .content
         .iter()
         .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
+    
     let mut lineheight_queue_int: u16 = lineheight_album_int;
     match lineheight_queue {
         Some(value) => {
@@ -61,8 +63,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     }
     let tag_pages = state.tags.content.chunks((rows - 2) as usize);
     let album_pages = state.discover.content.chunks((rows - 2) as usize);
-    let queue_pages = state.queue.chunks((rows - 2) as usize);
-    let diag_pags = state.diagnostics.chunks((rows - 2) as usize);
+    let queue_pages = state.queue.content.chunks((rows - 2) as usize);
+    let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
 
 
     // drawing
@@ -71,10 +73,10 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     if state.display_tags {
         for (i, v) in &mut tag_pages.into_iter().enumerate() {
-            if i == state.get_current_page() {
+            if i == state.tags.selected_page {
                 for (index, page) in v.into_iter().enumerate() {
                     // this cannopt used hightlight_list function because this list is selectable
-                    if index == state.get_current_idx() && state.current_view == CurrentView::Tags {
+                    if index == state.selected_position && state.current_view == CurrentView::Tags {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
                         &stdout.execute(SetForegroundColor(Color::Black))?;
                         let page_str = page.to_string();
@@ -101,7 +103,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     }
 
     for (i, v) in &mut album_pages.into_iter().enumerate() {
-        if i == state.get_current_page() {
+        if i == state.discover.selected_page {
             for (index, page) in v.into_iter().enumerate() {
                 highlight_list(stdout, &state, index, CurrentView::Albums)?;
 
@@ -119,7 +121,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     }
 
     for (i, v) in &mut queue_pages.into_iter().enumerate() {
-        if i == state.get_current_page() {
+        if i == state.queue.selected_page {
             for (index, page) in v.into_iter().enumerate() {
                 highlight_list(stdout, &state, index, CurrentView::Queue)?;
 

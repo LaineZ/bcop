@@ -19,7 +19,7 @@ use parking_lot::FairMutex;
 use super::{
     cli_drawing::redraw,
     cli_structs::{
-        CurrentView, ListBoxDiscover, ListBoxTag, QueuedTrack, State, Position,
+        CurrentView, ListBoxDiscover, ListBoxTag, QueuedTrack, State, ListBoxQueue, ListBoxDiagnositcs,
     },
 };
 
@@ -34,7 +34,7 @@ use event::{poll, Event::Key, KeyCode};
 use style::Colorize;
 
 fn switch_page_up(mut stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-    let idx = state.get_current_idx();
+    let idx = state.selected_position;
     let page = state.get_current_page();
 
     let (_cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
@@ -82,12 +82,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         error: false,
         current_view: CurrentView::Tags,
         tags: ListBoxTag::default(),
-        queue: Vec::new(),
+        queue: ListBoxQueue::default(),
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
-        diagnostics: Vec::new(),
-        position: Position::new(),
+        diagnostics: ListBoxDiagnositcs::default(),
+        selected_position: 0,
         queue_pos: 0,
     };
 
@@ -99,32 +99,32 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     state.print_diag("Player started!".to_string());
 
     loop {
-        while !poll(Duration::from_millis(50))? {
+        while !poll(Duration::from_millis(100))? {
             if let Some(time) = player.get_time() {
-                if state.queue.len() > 0 {
-                    let mins = state.queue[state.queue_pos].duration / 60.0;
-                    let secs = state.queue[state.queue_pos].duration % 60.0;
+                if state.queue.content.len() > 0 {
+                    let mins = state.queue.content[state.queue_pos].duration / 60.0;
+                    let secs = state.queue.content[state.queue_pos].duration % 60.0;
                     state.bottom_text = format!(
                         "\r{}/{}:{} {} - {} pos: {} volume: {}%",
                         FormatTime(time),
                         mins as u32,
                         secs as u32,
-                        state.queue[state.queue_pos].artist,
-                        state.queue[state.queue_pos].title,
+                        state.queue.content[state.queue_pos].artist,
+                        state.queue.content[state.queue_pos].title,
                         state.queue_pos,
                         (player.get_volume() * 100.0).floor()
                     );
 
-                    if (state.queue[state.queue_pos].duration - time.as_secs_f64()) < 1.0
-                        && state.queue.len() - 1 > state.queue_pos
+                    if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
+                        && state.queue.content.len() - 1 > state.queue_pos
                     {
                         state.queue_pos += 1;
                         state.bottom_text = format!(
                             "Loading track: {} - {}",
-                            state.queue[state.queue_pos].artist,
-                            state.queue[state.queue_pos].title
+                            state.queue.content[state.queue_pos].artist,
+                            state.queue.content[state.queue_pos].title
                         );
-                        player.switch_track(state.queue[state.queue_pos].audio_url.clone());
+                        player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
                     }
                 }
             } else {
@@ -169,7 +169,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                     if state.current_view == CurrentView::Albums {
                         let is_album = album_parsing::get_album(
-                            state.discover.content[state.position.selected_idx]
+                            state.discover.content[state.selected_position]
                                 .tralbum_url
                                 .as_str(),
                         );
@@ -177,13 +177,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         match is_album {
                             Some(album) => {
                                 for album_track in album.trackinfo.unwrap() {
-                                    state.queue.push(QueuedTrack {
+                                    state.queue.content.push(QueuedTrack {
                                         album: album
                                             .current
                                             .clone()
                                             .title
                                             .unwrap_or("Unknown album".to_string()),
-                                        artist: state.discover.content[state.position.selected_idx]
+                                        artist: state.discover.content[state.selected_position]
                                             .clone()
                                             .artist,
                                         title: album_track
@@ -198,7 +198,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             _ => state.status_bar(
                                 format!(
                                     "Something went wrong while loading {}",
-                                    state.discover.content[state.position.selected_idx].title
+                                    state.discover.content[state.selected_position].title
                                 ),
                                 true,
                             ),
@@ -207,11 +207,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     if state.current_view == CurrentView::Queue {
                         // TODO: Implement playback here
                         player.switch_track(
-                            state.queue[state.get_current_idx()]
+                            state.queue.content[state.selected_position]
                                 .audio_url
                                 .clone(),
                         );
-                        state.queue_pos = state.get_current_idx();
+                        state.queue_pos = state.selected_position;
                     }
                 }
 
@@ -265,10 +265,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Down.into() {
                     state.set_current_view_state(
                         &mut stdout.lock(),
-                        state.get_current_idx() + 1,
+                        state.selected_position + 1,
                         state.get_current_page(),
                     )?;
-                    if state.get_current_idx() > (rows - 3) as usize {
+                    if state.selected_position > (rows - 3) as usize {
                         state.set_current_view_state(
                             &mut stdout.lock(),
                             0,
@@ -301,17 +301,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Up.into() {
-                    if state.get_current_idx() > 0 {
+                    if state.selected_position > 0 {
                         state.set_current_view_state(
                             &mut stdout.lock(),
-                            state.get_current_idx() - 1,
+                            state.selected_position - 1,
                             state.get_current_page(),
                         )?;
                     } else {
                         if state.get_current_page() > 0 {
                             state.set_current_view_state(
                                 &mut stdout.lock(),
-                                state.get_current_idx(),
+                                state.selected_position,
                                 state.get_current_page() - 1,
                             )?;
                         }

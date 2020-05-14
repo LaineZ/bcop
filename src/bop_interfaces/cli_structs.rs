@@ -11,26 +11,29 @@ pub enum CurrentView {
 
 
 #[derive(Clone)]
-pub struct Position {
-    pub selected_idx: usize,
-    pub selected_page: usize,
-}
-
-impl Position {
-    pub fn new() -> Self { Self { selected_idx: 0, selected_page: 0 } }
-}
-
-
-#[derive(Clone)]
 pub struct ListBoxTag {
     pub content: Vec<String>,
     pub selected_tag_name: String,
+    pub selected_page: usize,
 }
 
 #[derive(Clone)]
 pub struct ListBoxDiscover {
     pub content: Vec<discover::Item>,
     pub loadedpages: i32,
+    pub selected_page: usize,
+}
+
+#[derive(Clone)]
+pub struct ListBoxQueue {
+    pub content: Vec<QueuedTrack>,
+    pub selected_page: usize,
+}
+
+#[derive(Clone)]
+pub struct ListBoxDiagnositcs {
+    pub content: Vec<String>,
+    pub selected_page: usize,
 }
 
 #[derive(Clone)]
@@ -51,11 +54,11 @@ pub struct State {
     pub discover: ListBoxDiscover,
     pub selected_tags: Vec<String>,
     pub tags: ListBoxTag,
-    pub queue: Vec<QueuedTrack>,
+    pub queue: ListBoxQueue,
     pub queue_pos: usize,
     pub display_tags: bool,
-    pub diagnostics: Vec<String>,
-    pub position: Position
+    pub diagnostics: ListBoxDiagnositcs,
+    pub selected_position: usize
 }
 
 impl Default for ListBoxTag {
@@ -63,6 +66,7 @@ impl Default for ListBoxTag {
         ListBoxTag {
             content: Vec::new(),
             selected_tag_name: String::new(),
+            selected_page: 0,
         }
     }
 }
@@ -72,6 +76,25 @@ impl Default for ListBoxDiscover {
         ListBoxDiscover {
             content: Vec::new(),
             loadedpages: 0,
+            selected_page: 0,
+        }
+    }
+}
+
+impl Default for ListBoxDiagnositcs {
+    fn default() -> Self {
+        ListBoxDiagnositcs {
+            content: Vec::new(),
+            selected_page: 0,
+        }
+    }
+}
+
+impl Default for ListBoxQueue {
+    fn default() -> Self {
+        ListBoxQueue {
+            content: Vec::new(),
+            selected_page: 0,
         }
     }
 }
@@ -102,26 +125,33 @@ impl State {
             &stdout.queue(Clear(ClearType::All))?;
         }
         
-        self.position.selected_idx = idx;
-        self.position.selected_page = page;
+        self.selected_position = idx;
+
+        match self.current_view {
+            CurrentView::Albums => self.discover.selected_page = page,
+            CurrentView::Diagnositcs => self.diagnostics.selected_page = page,
+            CurrentView::Queue => self.queue.selected_page = page,
+            CurrentView::Tags => self.tags.selected_page = page
+        }
 
         Ok(())
     }
 
-    pub fn get_current_idx(&self) -> usize {
-        self.position.selected_idx
-    }
-
     pub fn get_current_page(&self) -> usize {
-        self.position.selected_page
+        match self.current_view {
+            CurrentView::Albums =>  return self.discover.selected_page,
+            CurrentView::Diagnositcs => return self.diagnostics.selected_page,
+            CurrentView::Queue => return self.queue.selected_page,
+            CurrentView::Tags => return self.tags.selected_page,
+        }
     }
 
     pub fn get_len(&self) -> usize {
         match self.current_view {
             CurrentView::Tags => self.tags.content.len(),
             CurrentView::Albums => self.discover.content.len(),
-            CurrentView::Queue => self.queue.len(),
-            CurrentView::Diagnositcs => { self.diagnostics.len() },
+            CurrentView::Queue => self.queue.content.len(),
+            CurrentView::Diagnositcs => { self.diagnostics.content.len() },
         }
     }
 
@@ -142,17 +172,19 @@ impl State {
 
     pub fn cleanup_albums(&mut self) {
         &self.discover.content.clear();
-        self.position = Position::new();
+        self.discover.selected_page = 0;
+        self.selected_position = 0;
         self.current_view = CurrentView::Tags;
     }
 
     pub fn cleanup_queue(&mut self) {
-        &self.queue.clear();
-        self.position = Position::new();
+        &self.queue.content.clear();
+        self.queue.selected_page = 0;
+        self.selected_position = 0;
         self.current_view = CurrentView::Albums;
     }
 
     pub fn print_diag(&mut self, message: String) {
-        self.diagnostics.push(format!("[{:?}] {}", std::time::Instant::now(), message));
+        self.diagnostics.content.push(format!("[{:?}] {}", std::time::Instant::now(), message));
     }
 }
