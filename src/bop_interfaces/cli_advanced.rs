@@ -19,7 +19,7 @@ use parking_lot::FairMutex;
 use super::{
     cli_drawing::redraw,
     cli_structs::{
-        CurrentView, Diagnositcs, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack, State,
+        CurrentView, ListBoxDiscover, ListBoxTag, QueuedTrack, State, Position,
     },
 };
 
@@ -82,12 +82,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         error: false,
         current_view: CurrentView::Tags,
         tags: ListBoxTag::default(),
-        queue: ListBoxQueue::default(),
+        queue: Vec::new(),
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
-        diagnostics: Diagnositcs::default(),
-        is_paused: true,
+        diagnostics: Vec::new(),
+        position: Position::new(),
         queue_pos: 0,
     };
 
@@ -101,30 +101,30 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     loop {
         while !poll(Duration::from_millis(50))? {
             if let Some(time) = player.get_time() {
-                if state.queue.content.len() > 0 {
-                    let mins = state.queue.content[state.queue_pos].duration / 60.0;
-                    let secs = state.queue.content[state.queue_pos].duration % 60.0;
+                if state.queue.len() > 0 {
+                    let mins = state.queue[state.queue_pos].duration / 60.0;
+                    let secs = state.queue[state.queue_pos].duration % 60.0;
                     state.bottom_text = format!(
                         "\r{}/{}:{} {} - {} pos: {} volume: {}%",
                         FormatTime(time),
                         mins as u32,
                         secs as u32,
-                        state.queue.content[state.queue_pos].artist,
-                        state.queue.content[state.queue_pos].title,
+                        state.queue[state.queue_pos].artist,
+                        state.queue[state.queue_pos].title,
                         state.queue_pos,
                         (player.get_volume() * 100.0).floor()
                     );
 
-                    if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
-                        && state.queue.content.len() - 1 > state.queue_pos
+                    if (state.queue[state.queue_pos].duration - time.as_secs_f64()) < 1.0
+                        && state.queue.len() - 1 > state.queue_pos
                     {
                         state.queue_pos += 1;
                         state.bottom_text = format!(
                             "Loading track: {} - {}",
-                            state.queue.content[state.queue_pos].artist,
-                            state.queue.content[state.queue_pos].title
+                            state.queue[state.queue_pos].artist,
+                            state.queue[state.queue_pos].title
                         );
-                        player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
+                        player.switch_track(state.queue[state.queue_pos].audio_url.clone());
                     }
                 }
             } else {
@@ -169,7 +169,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                     if state.current_view == CurrentView::Albums {
                         let is_album = album_parsing::get_album(
-                            state.discover.content[state.discover.selected_idx]
+                            state.discover.content[state.position.selected_idx]
                                 .tralbum_url
                                 .as_str(),
                         );
@@ -177,13 +177,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         match is_album {
                             Some(album) => {
                                 for album_track in album.trackinfo.unwrap() {
-                                    state.queue.content.push(QueuedTrack {
+                                    state.queue.push(QueuedTrack {
                                         album: album
                                             .current
                                             .clone()
                                             .title
                                             .unwrap_or("Unknown album".to_string()),
-                                        artist: state.discover.content[state.discover.selected_idx]
+                                        artist: state.discover.content[state.position.selected_idx]
                                             .clone()
                                             .artist,
                                         title: album_track
@@ -198,7 +198,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             _ => state.status_bar(
                                 format!(
                                     "Something went wrong while loading {}",
-                                    state.discover.content[state.discover.selected_idx].title
+                                    state.discover.content[state.position.selected_idx].title
                                 ),
                                 true,
                             ),
@@ -207,7 +207,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     if state.current_view == CurrentView::Queue {
                         // TODO: Implement playback here
                         player.switch_track(
-                            state.queue.content[state.get_current_idx()]
+                            state.queue[state.get_current_idx()]
                                 .audio_url
                                 .clone(),
                         );
