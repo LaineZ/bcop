@@ -42,6 +42,7 @@ pub struct QueuedTrack {
     pub artist: String,
     pub album: String,
     pub audio_url: String,
+    pub album_url: String,
     pub duration: f64,
 }
 
@@ -106,6 +107,7 @@ impl Default for QueuedTrack {
             artist: String::new(),
             audio_url: String::new(),
             album: String::new(),
+            album_url: String::new(),
             duration: 0.0,
         }
     }

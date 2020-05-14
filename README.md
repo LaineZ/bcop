@@ -5,6 +5,8 @@
 
 A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written in Rust!
 
+A simple client for bandcamp.com that's allows listen albums from tags much easier; and provides features like play queue, low memory/cpu usage rather than browser, etc.
+
 You can download latest version from "actions" menu
 
 ### CLI/TUI Mode
@@ -13,9 +15,12 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 ### Running
 
 ### Linux/Mac
+
+Works on any Linux with ALSA-compitable sound card but CI-Builds and future release builds supports **only amd64** architecture. If you want run this on i386, arm64, armhf, ... you need compile it youself
+
 ```./bandcamp-online-cli```
 
-![Screenshot](https://i.imgur.com/76lhnnP.png)
+![Screenshot](http://i.imgur.com/jKar1mc.png)
 
 ### Windows
 
@@ -46,7 +51,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 
 <kbd>W</kbd> <kbd>S</kbd> - inrease / decrease volume by 10%
 
-
+<kbd>O</kbd> - open current playing album URL in browser
 
 **Tags list only**
 
@@ -76,6 +81,9 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 3. ```cd bc_rs```
 4. If you run on Linux you need install these audio libs: ``libaudio`` and ``libasound2``
    1. On Ubuntu you can just run that command ``sudo apt install libaudio-dev libasound2-dev``
-5. ```cargo build``` also you can add ``--release`` option to reduce binary file size and speed up tracks operations
-6. ```cd target/debug```
+5. ```cargo build``` also you can add ``--release`` option to reduce binary file size and speed up tracks operations. but debug-builds compiles faster
+6. ```cd target/debug``` or ```cd target/release``` if you run with ``--release`` option
 7. DONE! You can run in TUI Mode by instructions above
+
+## Notice
+This application **DOES NOT** provide any ways to **DOWNLOAD** music on computer. it's just make easier stream/play music from site and finding cool tracks =)

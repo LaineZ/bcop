@@ -2,6 +2,7 @@ use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
 use std::{io::stdout, sync::Arc, time::Duration};
+use webbrowser;
 
 use super::cli_drawing;
 use crate::bc_core;
@@ -176,7 +177,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                         match is_album {
                             Some(album) => {
+                                
+                                let album_url = album.clone().url.unwrap_or("https://ipotekin.bandcamp.com/".to_string());
+
                                 for album_track in album.trackinfo.unwrap() {
+
                                     state.queue.content.push(QueuedTrack {
                                         album: album
                                             .current
@@ -191,6 +196,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                             .unwrap_or("Unknown track title".to_string()),
                                         // TODO: switch to normal error-handling and not this garbage that panic...
                                         audio_url: album_track.file.unwrap().mp3128,
+                                        album_url: album_url.clone(),
                                         duration: album_track.duration.unwrap_or(0.0),
                                     });
                                 }
@@ -235,6 +241,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                 if pressedkey == KeyCode::Char('x').into() {
                     state.switch_view(&mut stdout.lock(), CurrentView::Diagnositcs)?;
+                }
+
+                if pressedkey == KeyCode::Char('o').into() {
+                    webbrowser::open(&state.queue.content[state.queue_pos].album_url);
+                    // TODO: Add if error
                 }
 
                 if pressedkey == KeyCode::Char('h').into() {
@@ -285,13 +296,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                 if pressedkey == KeyCode::Char('w').into() {
                     if player.get_volume() <= 1.2 {
-                        player.add_volume(0.1);
+                        player.add_volume(0.01);
                     }
                 }
 
                 if pressedkey == KeyCode::Char('s').into() {
                     if player.get_volume() > 0.0 {
-                        player.add_volume(-0.1);
+                        player.add_volume(-0.01);
                     }
                 }
 
