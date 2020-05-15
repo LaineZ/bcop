@@ -20,7 +20,7 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 
 ```./bandcamp-online-cli```
 
-![Screenshot](http://i.imgur.com/jKar1mc.png)
+![Screenshot](https://i.imgur.com/jKar1mc.png)
 
 ### Windows
 
