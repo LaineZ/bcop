@@ -9,7 +9,8 @@ use scraper::Html;
 use scraper::Selector;
 
 pub fn get_tags() -> Result<Vec<String>> {
-    let response = bc_core::http_tools::http_request("https://bandcamp.com/tags").ok_or_else(|| anyhow::anyhow!("пока"))?;
+    let response = bc_core::http_tools::http_request("https://bandcamp.com/tags")
+        .ok_or_else(|| anyhow::anyhow!("пока"))?;
     let fragment = Html::parse_fragment(response.as_str());
     let selector = Selector::parse("a").unwrap();
 

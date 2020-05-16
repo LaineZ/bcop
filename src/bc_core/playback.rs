@@ -1,14 +1,15 @@
 use std::fmt::{self, Display};
 use std::io::Read;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, SampleRate, Stream, StreamConfig, StreamError};
-use log::{info, trace, warn, error};
+use cpal::{ChannelCount, SampleRate, Stream, StreamConfig};
 
 struct TimeTracker {
     started_at: Instant,
@@ -83,19 +84,21 @@ enum Command {
     Stop,
     SeekForward(Duration),
     SeekBackwards(Duration),
-    GetData(usize),
-    StreamError(StreamError),
     AddVolume(f32),
+}
+
+struct Buffer {
+    frames: Mutex<Vec<Vec<i16>>>,
+    remaining_samples: AtomicUsize,
+    submitted_samples: AtomicUsize,
 }
 
 struct PlayerThread {
     cmd_rx: Receiver<Command>,
     time_tx: Sender<Option<Duration>>,
-    data_tx: Sender<Vec<i16>>,
+    buffer: Arc<Buffer>,
     decoder: Option<Decoder<Box<dyn Read>>>,
-    buffer: Vec<i16>,
     stream: Stream,
-    samples_submitted: usize,
     tracker: TimeTracker,
     volume: f32,
 }
@@ -110,11 +113,9 @@ fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
 }
 
 impl PlayerThread {
-    fn new(
-        cmd_tx: Sender<Command>,
-        cmd_rx: Receiver<Command>,
-        time_tx: Sender<Option<Duration>>,
-    ) -> Result<Self> {
+    fn new(cmd_rx: Receiver<Command>, time_tx: Sender<Option<Duration>>) -> Result<Self> {
+        log::info!("Starting player thread");
+
         let host = cpal::default_host();
         let device = host
             .default_output_device()
@@ -125,21 +126,52 @@ impl PlayerThread {
             sample_rate: SampleRate(44100),
         };
 
-        info!("Creating stream on {} with {} sample rate", device.name().unwrap_or("Device name not found".to_string()), config.sample_rate.0);
+        let device_name = device.name().unwrap_or("Device name not found".to_string());
+        log::info!(
+            "Creating stream on {} with {} sample rate",
+            device_name,
+            config.sample_rate.0
+        );
 
-        let cmd_tx1 = cmd_tx.clone();
-        let (data_tx, data_rx) = mpsc::channel::<Vec<i16>>();
+        let buffer = Arc::new(Buffer {
+            frames: Mutex::new(Vec::new()),
+            remaining_samples: AtomicUsize::new(0),
+            submitted_samples: AtomicUsize::new(0),
+        });
+
+        let buf = buffer.clone();
         let data_fn = move |output: &mut [i16], _: &_| {
-            let _ = cmd_tx1.send(Command::GetData(output.len()));
-            if let Ok(data) = data_rx.recv_timeout(Duration::from_secs(1)) {
-                if data.len() == output.len() {
-                    output.copy_from_slice(&data);
+            let total = output.len();
+            let mut filled = 0;
+
+            let skip = buf.remaining_samples.load(Ordering::SeqCst) == 0;
+
+            if !skip {
+                let mut frames = buf.frames.lock().unwrap();
+                while !(frames.is_empty() || filled == total) {
+                    let frame = &mut frames[0];
+                    let len = frame.len().min(total - filled);
+                    output[filled..][..len].copy_from_slice(&frame[..len]);
+                    filled += len;
+                    if len == frame.len() {
+                        frames.remove(0);
+                    } else {
+                        frame.drain(..len);
+                    }
                 }
             }
+
+            while filled < total {
+                output[filled] = 0;
+                filled += 1;
+            }
+
+            buf.submitted_samples.fetch_add(total, Ordering::SeqCst);
+            buf.remaining_samples.fetch_sub(filled, Ordering::SeqCst);
         };
 
         let error_fn = move |e| {
-            let _ = cmd_tx.send(Command::StreamError(e));
+            log::error!("Stream error: {}", e);
         };
 
         let stream = device.build_output_stream(&config, data_fn, error_fn)?;
@@ -148,32 +180,52 @@ impl PlayerThread {
         Ok(Self {
             cmd_rx,
             time_tx,
-            data_tx,
+            buffer,
             decoder: None,
-            buffer: Vec::new(),
             stream,
-            samples_submitted: 0,
             tracker: TimeTracker::new(),
-            volume: 1.0
+            volume: 1.0,
         })
     }
 
     fn skip_samples(&mut self, mut num: usize) -> Result<()> {
-        let count = num.min(self.buffer.len());
-        self.buffer.drain(..count);
-        num -= count;
+        let skipping = num;
+        self.buffer.remaining_samples.store(0, Ordering::SeqCst);
+
+        let mut frames = self.buffer.frames.lock().unwrap();
+
+        while !(frames.is_empty() || num == 0) {
+            let frame = &mut frames[0];
+            let count = num.min(frame.len());
+            frame.drain(..count);
+            if count == frame.len() {
+                frames.remove(0);
+            }
+            num -= count;
+        }
+
+        drop(frames);
 
         while num > 0 {
-            let frame = match self.next_frame()? {
+            let mut frame = match self.next_frame()? {
                 Some(v) => v,
                 None => break,
             };
             let count = num.min(frame.data.len());
+            frame.data.drain(..count);
             num -= count;
             if count < frame.data.len() {
-                self.buffer.extend_from_slice(&frame.data[count..]);
+                let mut frames = self.buffer.frames.lock().unwrap();
+                self.buffer
+                    .remaining_samples
+                    .store(frame.data.len(), Ordering::SeqCst);
+                frames.push(frame.data);
             }
         }
+
+        self.buffer
+            .submitted_samples
+            .fetch_add(skipping, Ordering::SeqCst);
 
         Ok(())
     }
@@ -195,72 +247,73 @@ impl PlayerThread {
         }
     }
 
+    fn reset(&mut self) {
+        self.decoder = None;
+        self.buffer.frames.lock().unwrap().clear();
+        self.buffer.submitted_samples.store(0, Ordering::SeqCst);
+        self.buffer.remaining_samples.store(0, Ordering::SeqCst);
+        self.tracker.reset();
+    }
+
     fn run(mut self) -> Result<()> {
         let mut cur_url = None;
 
         loop {
-            let cmd = self.cmd_rx.recv()?;
+            let timeout = Duration::from_millis(10);
 
+            let cmd = match self.cmd_rx.recv_timeout(timeout) {
+                Ok(c) => c,
+                Err(RecvTimeoutError::Timeout) => {
+                    if let Some(frame) = self.next_frame()? {
+                        let len = frame.data.len();
+                        self.buffer.frames.lock().unwrap().push(frame.data);
+                        self.buffer
+                            .remaining_samples
+                            .fetch_add(len, Ordering::SeqCst);
+                    }
+                    continue;
+                }
+                _ => continue,
+            };
             match cmd {
                 Command::SwitchTrack(url) => {
+                    log::info!("Loading track {}", &url);
+                    self.reset();
                     self.decoder = Some(load_track(&url));
                     cur_url = Some(url);
-                    self.buffer.clear();
-                    self.samples_submitted = 0;
-                    self.tracker.reset();
                 }
 
                 Command::Stop => {
                     cur_url = None;
-                    self.decoder = None;
-                    self.buffer.clear();
-                    self.samples_submitted = 0;
-                    self.tracker.reset();
-                }
-
-                Command::GetData(len) => {
-                    while self.buffer.len() < len {
-                        let frame = match self.next_frame()? {
-                            Some(v) => v,
-                            None => {
-                                let mut rem = len - self.buffer.len();
-                                while rem > 0 {
-                                    self.buffer.push(0);
-                                    rem -= 1;
-                                }
-                                break;
-                            }
-                        };
-                        self.buffer.extend_from_slice(&frame.data);
-                    }
-
-                    let mut data: Vec<i16> = Vec::new();
-
-                    for sample in self.buffer.drain(..len) {
-                        data.push((sample as f32 * self.volume) as i16);
-                    }
-                    self.samples_submitted += len;
-                    self.data_tx.send(data)?;
+                    self.reset();
                 }
 
                 Command::SeekForward(time) => {
+                    if cur_url.is_none() {
+                        continue;
+                    }
+
                     self.tracker.seek_forward(time);
                     let samples = time_to_samples(time, SampleRate(44100), 2);
                     self.skip_samples(samples)?;
-                    self.samples_submitted += samples;
                 }
 
                 Command::SeekBackwards(mut time) => {
+                    if cur_url.is_none() {
+                        continue;
+                    }
+
                     time = std::cmp::min(time, self.tracker.time());
                     self.tracker.seek_backward(time);
 
                     self.decoder = Some(load_track(cur_url.as_ref().unwrap()));
 
-                    let samples =
-                        time_to_samples(time, SampleRate(44100), 2).min(self.samples_submitted);
-
-                    self.skip_samples(self.samples_submitted - samples)?;
-                    self.samples_submitted -= samples;
+                    let submitted = self.buffer.submitted_samples.load(Ordering::SeqCst);
+                    let samples = time_to_samples(time, SampleRate(44100), 2).min(submitted);
+                    self.skip_samples(submitted - samples)?;
+                    self.buffer
+                        .submitted_samples
+                        .store(submitted - samples, Ordering::SeqCst);
                 }
 
                 Command::Play => {
@@ -271,11 +324,6 @@ impl PlayerThread {
                 Command::Pause => {
                     self.stream.pause()?;
                     self.tracker.pause();
-                }
-
-                Command::StreamError(e) => {
-                    // TODO: Make stream error
-                    error!("Playback stream error: {}", e);
                 }
 
                 Command::AddVolume(value) => {
@@ -298,7 +346,7 @@ pub struct Player {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
     is_paused: bool,
-    volume: f32
+    volume: f32,
 }
 
 impl Player {
@@ -306,17 +354,20 @@ impl Player {
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let (time_tx, time_rx) = mpsc::channel();
 
-        let tx = cmd_tx.clone();
-        std::thread::spawn(move || {
-            if let Err(e) = PlayerThread::new(tx, cmd_rx, time_tx).and_then(|v| v.run()) {
-            }
-        });
+        std::thread::Builder::new()
+            .name("player".into())
+            .spawn(move || {
+                if let Err(e) = PlayerThread::new(cmd_rx, time_tx).and_then(|v| v.run()) {
+                    log::error!("{}", e);
+                }
+            })
+            .unwrap();
 
         Player {
             cmd_tx,
             time_rx,
             is_paused: false,
-            volume: 1.0
+            volume: 1.0,
         }
     }
 

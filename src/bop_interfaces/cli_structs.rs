@@ -1,14 +1,18 @@
 use crate::model::discover;
 use anyhow::Result;
-use crossterm::{cursor, style::Print, terminal::{Clear, size, ClearType}, QueueableCommand};
+use crossterm::{
+    cursor,
+    style::Print,
+    terminal::{size, Clear, ClearType},
+    QueueableCommand,
+};
 #[derive(PartialEq, Clone)]
 pub enum CurrentView {
     Albums,
     Tags,
     Queue,
-    Diagnositcs
+    Diagnositcs,
 }
-
 
 #[derive(Clone)]
 pub struct ListBoxTag {
@@ -59,7 +63,7 @@ pub struct State {
     pub queue_pos: usize,
     pub display_tags: bool,
     pub diagnostics: ListBoxDiagnositcs,
-    pub selected_position: usize
+    pub selected_position: usize,
 }
 
 impl Default for ListBoxTag {
@@ -120,20 +124,24 @@ impl State {
         Ok(())
     }
 
-    pub fn set_current_view_state(&mut self, stdout: &mut std::io::Stdout, idx: usize, page: usize) -> Result<()> {
-
+    pub fn set_current_view_state(
+        &mut self,
+        stdout: &mut std::io::Stdout,
+        idx: usize,
+        page: usize,
+    ) -> Result<()> {
         // clears screen if only switches page
         if self.get_current_page() != page {
             &stdout.queue(Clear(ClearType::All))?;
         }
-        
+
         self.selected_position = idx;
 
         match self.current_view {
             CurrentView::Albums => self.discover.selected_page = page,
             CurrentView::Diagnositcs => self.diagnostics.selected_page = page,
             CurrentView::Queue => self.queue.selected_page = page,
-            CurrentView::Tags => self.tags.selected_page = page
+            CurrentView::Tags => self.tags.selected_page = page,
         }
 
         Ok(())
@@ -141,7 +149,7 @@ impl State {
 
     pub fn get_current_page(&self) -> usize {
         match self.current_view {
-            CurrentView::Albums =>  return self.discover.selected_page,
+            CurrentView::Albums => return self.discover.selected_page,
             CurrentView::Diagnositcs => return self.diagnostics.selected_page,
             CurrentView::Queue => return self.queue.selected_page,
             CurrentView::Tags => return self.tags.selected_page,
@@ -153,7 +161,7 @@ impl State {
             CurrentView::Tags => self.tags.content.len(),
             CurrentView::Albums => self.discover.content.len(),
             CurrentView::Queue => self.queue.content.len(),
-            CurrentView::Diagnositcs => { self.diagnostics.content.len() },
+            CurrentView::Diagnositcs => self.diagnostics.content.len(),
         }
     }
 
@@ -187,6 +195,8 @@ impl State {
     }
 
     pub fn print_diag(&mut self, message: String) {
-        self.diagnostics.content.push(format!("[{:?}] {}", std::time::Instant::now(), message));
+        self.diagnostics
+            .content
+            .push(format!("[{:?}] {}", std::time::Instant::now(), message));
     }
 }

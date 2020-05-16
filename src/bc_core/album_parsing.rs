@@ -50,7 +50,6 @@ pub fn parse(html_code: &str) -> Option<String> {
 }
 
 pub fn get_tag_data(tags: Vec<String>, page: i32) -> Result<DiscoverData> {
-
     let request = json!({
         "filters": {
             "format": "all",
@@ -71,7 +70,15 @@ pub fn get_tag_data(tags: Vec<String>, page: i32) -> Result<DiscoverData> {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn get_album()  {
-        assert_eq!(crate::bc_core::album_parsing::get_tag_data(vec!["metal".to_string(), "death".to_string()], 1).unwrap().ok, true)
+    fn get_album() {
+        assert_eq!(
+            crate::bc_core::album_parsing::get_tag_data(
+                vec!["metal".to_string(), "death".to_string()],
+                1
+            )
+            .unwrap()
+            .ok,
+            true
+        )
     }
 }

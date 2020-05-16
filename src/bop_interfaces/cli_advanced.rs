@@ -20,7 +20,8 @@ use parking_lot::FairMutex;
 use super::{
     cli_drawing::redraw,
     cli_structs::{
-        CurrentView, ListBoxDiscover, ListBoxTag, QueuedTrack, State, ListBoxQueue, ListBoxDiagnositcs,
+        CurrentView, ListBoxDiagnositcs, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack,
+        State,
     },
 };
 
@@ -129,7 +130,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
             } else {
-                state.bottom_text = format!("stopped volume: {}%", (player.get_volume() * 100.0).floor());
+                state.bottom_text =
+                    format!("stopped volume: {}%", (player.get_volume() * 100.0).floor());
             }
             cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
         }
@@ -177,11 +179,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                         match is_album {
                             Some(album) => {
-                                
-                                let album_url = album.clone().url.unwrap_or("https://ipotekin.bandcamp.com/".to_string());
+                                let album_url = album
+                                    .clone()
+                                    .url
+                                    .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
 
                                 for album_track in album.trackinfo.unwrap() {
-
                                     state.queue.content.push(QueuedTrack {
                                         album: album
                                             .current
@@ -289,7 +292,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
 
-                if pressedkey == KeyCode::Left.into() { 
+                if pressedkey == KeyCode::Left.into() {
                     state.bottom_text = "Tracking back by 5 seconds... Please wait...".to_string();
                     player.seek_backward(Duration::from_secs(5));
                 }
@@ -306,8 +309,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
 
-                if pressedkey == KeyCode::Right.into() { 
-                    state.bottom_text = "Tracking forward by 5 seconds... Please wait...".to_string();
+                if pressedkey == KeyCode::Right.into() {
+                    state.bottom_text =
+                        "Tracking forward by 5 seconds... Please wait...".to_string();
                     player.seek_forward(Duration::from_secs(5));
                 }
 
