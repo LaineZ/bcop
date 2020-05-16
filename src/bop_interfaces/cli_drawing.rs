@@ -13,7 +13,12 @@ use super::cli_structs::{CurrentView, State};
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 
-fn highlight_list(stdout: &mut std::io::Stdout, state: &State, index: usize, view: CurrentView) -> Result<()> {
+fn highlight_list(
+    stdout: &mut std::io::Stdout,
+    state: &State,
+    index: usize,
+    view: CurrentView,
+) -> Result<()> {
     if index == state.selected_position && state.current_view == view {
         &stdout.execute(SetBackgroundColor(Color::White))?;
         &stdout.execute(SetForegroundColor(Color::Black))?;
@@ -22,7 +27,6 @@ fn highlight_list(stdout: &mut std::io::Stdout, state: &State, index: usize, vie
 }
 
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     let mut lineheight = state
@@ -53,7 +57,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         .content
         .iter()
         .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
-    
+
     let mut lineheight_queue_int: u16 = lineheight_album_int;
     match lineheight_queue {
         Some(value) => {
@@ -66,10 +70,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let queue_pages = state.queue.content.chunks((rows - 2) as usize);
     let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
 
-
     // drawing
     &stdout.lock().execute(cursor::MoveTo(0, 0))?; // Reset cursor position to fix redraw bugs in some terminals
-
 
     if state.display_tags {
         for (i, v) in &mut tag_pages.into_iter().enumerate() {
@@ -143,7 +145,6 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     state.draw_line(stdout, lineheight_album_int)?;
     state.draw_line(stdout, lineheight_queue_int)?;
 
-
     // drawing logs window
     if state.current_view == CurrentView::Diagnositcs {
         stdout.queue(Clear(ClearType::All))?;
@@ -153,9 +154,9 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     highlight_list(stdout, &state, index, CurrentView::Diagnositcs)?;
 
                     &stdout
-                    .queue(cursor::MoveTo(0, (index + 2) as u16))?
-                    .queue(Print(page))?;
-                &stdout.execute(style::ResetColor)?;
+                        .queue(cursor::MoveTo(0, (index + 2) as u16))?
+                        .queue(Print(page))?;
+                    &stdout.execute(style::ResetColor)?;
                 }
             }
         }
@@ -169,7 +170,9 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
     // test usize oveflow, lol
-    if fixed_space < 0 { fixed_space = 0; }
+    if fixed_space < 0 {
+        fixed_space = 0;
+    }
 
     &stdout.execute(cursor::MoveTo(0, 0))?.execute(Print(format!(
         "▶ BandcampOnlinePlayer RS | {}{}",
@@ -180,17 +183,23 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     Ok(())
 }
 
-pub fn redraw_bottom_bar(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> { 
+pub fn redraw_bottom_bar(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
 
     let mut fixed_space: i32 = (cols as i32) - (state.bottom_text.len() as i32);
     // test usize oveflow, lol
-    if fixed_space < 0 { fixed_space = 0; }
+    if fixed_space < 0 {
+        fixed_space = 0;
+    }
 
     &stdout.execute(SetBackgroundColor(Color::DarkGrey))?;
-    &stdout.execute(cursor::MoveTo(0, rows))?.execute(Print(format!(
-        "{}{}", state.bottom_text, " ".repeat(fixed_space as usize)
-    )));
+    &stdout
+        .execute(cursor::MoveTo(0, rows))?
+        .execute(Print(format!(
+            "{}{}",
+            state.bottom_text,
+            " ".repeat(fixed_space as usize)
+        )));
     &stdout.execute(style::ResetColor)?;
     Ok(())
 }

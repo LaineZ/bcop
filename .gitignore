@@ -2,3 +2,4 @@
 **/*.rs.bk
 *.txt
 *.json
+*.log
