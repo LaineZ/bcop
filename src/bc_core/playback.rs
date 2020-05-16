@@ -5,11 +5,11 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, SampleRate, Stream, StreamConfig};
+use cpal::{ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig};
 
 struct TimeTracker {
     started_at: Instant,
@@ -121,18 +121,45 @@ impl PlayerThread {
         let device = host
             .default_output_device()
             .ok_or_else(|| anyhow!("no output device available"))?;
+        let device_name = device.name().unwrap_or("unknown".to_string());
+        log::info!("Audio device: {}", device_name);
 
         let config = StreamConfig {
             channels: 2,
             sample_rate: SampleRate(44100),
         };
 
-        let device_name = device.name().unwrap_or("unknown".to_string());
-        log::info!(
-            "Creating stream; sample rate: {}; device: {}",
-            config.sample_rate.0,
-            device_name,
-        );
+        let supported_configs = device
+            .supported_output_configs()
+            .context("Can't querying device configs")?;
+        log::info!("Supported configurations:");
+        let mut selected = None;
+        let mut format = SampleFormat::I16;
+        for (i, config) in supported_configs.enumerate() {
+            let (min, max) = (config.min_sample_rate().0, config.max_sample_rate().0);
+            let cur_format = config.sample_format();
+            log::info!(
+                " - {:2}. channels: {}; min samplerate: {}; max: {}; {:?}",
+                i,
+                config.channels(),
+                min,
+                max,
+                cur_format,
+            );
+
+            if min <= 44100 && 44100 <= max && config.channels() == 2 {
+                if selected.is_none() || cur_format == SampleFormat::I16 {
+                    format = config.sample_format();
+                    selected = Some(i);
+                }
+            }
+        }
+
+        if let Some(v) = selected {
+            log::info!("Selected configuration {}", v);
+        } else {
+            log::info!("Device not supported");
+        }
 
         let buffer = Arc::new(Buffer {
             frames: Mutex::new(Vec::new()),
@@ -140,8 +167,7 @@ impl PlayerThread {
             submitted_samples: AtomicUsize::new(0),
         });
 
-        let buf = buffer.clone();
-        let data_fn = move |output: &mut [i16], _: &_| {
+        fn data_fn<T: Sample>(output: &mut [T], buf: &Buffer) {
             let total = output.len();
             let mut filled = 0;
 
@@ -158,7 +184,9 @@ impl PlayerThread {
                 while !(frames.is_empty() || filled == total) {
                     let frame = &mut frames[0];
                     let len = frame.len().min(total - filled);
-                    output[filled..][..len].copy_from_slice(&frame[..len]);
+                    for i in 0..len {
+                        output[filled + i] = Sample::from(&frame[i])
+                    }
                     filled += len;
                     if len == frame.len() {
                         frames.remove(0);
@@ -169,7 +197,7 @@ impl PlayerThread {
             }
 
             while filled < total {
-                output[filled] = 0;
+                output[filled] = Sample::from(&0.0);
                 filled += 1;
             }
 
@@ -181,7 +209,18 @@ impl PlayerThread {
             log::error!("Stream error: {}", e);
         };
 
-        let stream = device.build_output_stream(&config, data_fn, error_fn)?;
+        let b = buffer.clone();
+        let stream = match format {
+            SampleFormat::I16 => {
+                device.build_output_stream(&config, move |v, _| data_fn::<i16>(v, &b), error_fn)?
+            }
+            SampleFormat::U16 => {
+                device.build_output_stream(&config, move |v, _| data_fn::<u16>(v, &b), error_fn)?
+            }
+            SampleFormat::F32 => {
+                device.build_output_stream(&config, move |v, _| data_fn::<f32>(v, &b), error_fn)?
+            }
+        };
         stream.play()?;
 
         Ok(Self {
