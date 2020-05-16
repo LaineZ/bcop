@@ -127,11 +127,11 @@ impl PlayerThread {
             sample_rate: SampleRate(44100),
         };
 
-        let device_name = device.name().unwrap_or("Device name not found".to_string());
+        let device_name = device.name().unwrap_or("unknown".to_string());
         log::info!(
-            "Creating stream on {} with {} sample rate",
+            "Creating stream; sample rate: {}; device: {}",
+            config.sample_rate.0,
             device_name,
-            config.sample_rate.0
         );
 
         let buffer = Arc::new(Buffer {
@@ -148,7 +148,13 @@ impl PlayerThread {
             let skip = buf.remaining_samples.load(Ordering::SeqCst) == 0;
 
             if !skip {
-                let mut frames = buf.frames.lock().unwrap();
+                let mut frames = match buf.frames.lock() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        log::error!("{}", e);
+                        return;
+                    }
+                };
                 while !(frames.is_empty() || filled == total) {
                     let frame = &mut frames[0];
                     let len = frame.len().min(total - filled);
@@ -194,7 +200,8 @@ impl PlayerThread {
         let skipping = num;
         self.buffer.remaining_samples.store(0, Ordering::SeqCst);
 
-        let mut frames = self.buffer.frames.lock().unwrap();
+        let mutex = &self.buffer.frames;
+        let mut frames = mutex.lock().map_err(|_| anyhow!("Can't lock mutex"))?;
 
         while !(frames.is_empty() || num == 0) {
             let frame = &mut frames[0];
@@ -217,7 +224,8 @@ impl PlayerThread {
             frame.data.drain(..count);
             num -= count;
             if count < frame.data.len() {
-                let mut frames = self.buffer.frames.lock().unwrap();
+                let mutex = &self.buffer.frames;
+                let mut frames = mutex.lock().map_err(|_| anyhow!("Can't lock mutex"))?;
                 self.buffer
                     .remaining_samples
                     .store(frame.data.len(), Ordering::SeqCst);
@@ -249,7 +257,9 @@ impl PlayerThread {
 
     fn reset(&mut self) {
         self.decoder = None;
-        self.buffer.frames.lock().unwrap().clear();
+        if let Ok(mut frames) = self.buffer.frames.lock() {
+            frames.clear();
+        }
         self.buffer.submitted_samples.store(0, Ordering::SeqCst);
         self.buffer.remaining_samples.store(0, Ordering::SeqCst);
         self.tracker.reset();
@@ -275,7 +285,9 @@ impl PlayerThread {
                 Err(RecvTimeoutError::Timeout) => {
                     if let Some(frame) = self.next_frame()? {
                         let len = frame.data.len();
-                        self.buffer.frames.lock().unwrap().push(frame.data);
+                        if let Ok(mut frames) = self.buffer.frames.lock() {
+                            frames.push(frame.data);
+                        }
                         self.buffer
                             .remaining_samples
                             .fetch_add(len, Ordering::SeqCst);
@@ -372,7 +384,7 @@ impl Player {
                     log::error!("{}", e);
                 }
             })
-            .unwrap();
+            .expect("Can't spawn thread");
 
         Player {
             cmd_tx,
@@ -382,9 +394,24 @@ impl Player {
         }
     }
 
+    fn send(&self, cmd: Command) {
+        if self.cmd_tx.send(cmd).is_err() {
+            log::error!("Player thread is dead");
+        }
+    }
+
     pub fn get_time(&self) -> Option<Duration> {
-        self.cmd_tx.send(Command::GetTime).unwrap();
-        self.time_rx.recv().unwrap()
+        let res = self
+            .cmd_tx
+            .send(Command::GetTime)
+            .ok()
+            .and_then(|_| self.time_rx.recv().ok());
+        if let Some(r) = res {
+            r
+        } else {
+            log::error!("Can't get time: player thread is dead");
+            None
+        }
     }
 
     pub fn is_playing(&self) -> bool {
@@ -405,16 +432,16 @@ impl Player {
     }
 
     pub fn play(&mut self) {
-        self.cmd_tx.send(Command::Play).unwrap();
+        self.send(Command::Play);
     }
 
     pub fn pause(&mut self) {
-        self.cmd_tx.send(Command::Pause).unwrap();
+        self.send(Command::Pause);
     }
 
     pub fn add_volume(&mut self, value: f32) {
         self.volume += value;
-        self.cmd_tx.send(Command::AddVolume(value)).unwrap();
+        self.send(Command::AddVolume(value));
     }
 
     pub fn get_volume(&mut self) -> f32 {
@@ -422,18 +449,18 @@ impl Player {
     }
 
     pub fn stop(&mut self) {
-        self.cmd_tx.send(Command::Stop).unwrap();
+        self.send(Command::Stop);
     }
 
     pub fn switch_track(&mut self, url: impl Into<String>) {
-        self.cmd_tx.send(Command::SwitchTrack(url.into())).unwrap();
+        self.send(Command::SwitchTrack(url.into()));
     }
 
     pub fn seek_forward(&mut self, time: Duration) {
-        self.cmd_tx.send(Command::SeekForward(time)).unwrap();
+        self.send(Command::SeekForward(time));
     }
 
     pub fn seek_backward(&mut self, time: Duration) {
-        self.cmd_tx.send(Command::SeekBackwards(time)).unwrap();
+        self.send(Command::SeekBackwards(time));
     }
 }
