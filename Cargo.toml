@@ -17,6 +17,8 @@ minimp3 = "0.3.5"
 crossterm = "0.17.4"
 parking_lot = "0.10"
 webbrowser = "0.5.2"
+log = "0.4.8"
+simple-logging = "2.0.2"
 [dependencies.cpal]
 git = "https://github.com/RustAudio/cpal.git"
 rev = "fe22704d4adc2795f33f2e298c5450ece476d58c"

@@ -8,6 +8,7 @@ use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{ChannelCount, SampleRate, Stream, StreamConfig, StreamError};
+use log::{info, trace, warn, error};
 
 struct TimeTracker {
     started_at: Instant,
@@ -123,6 +124,8 @@ impl PlayerThread {
             channels: 2,
             sample_rate: SampleRate(44100),
         };
+
+        info!("Creating stream on {} with {} sample rate", device.name().unwrap_or("Device name not found".to_string()), config.sample_rate.0);
 
         let cmd_tx1 = cmd_tx.clone();
         let (data_tx, data_rx) = mpsc::channel::<Vec<i16>>();
@@ -272,6 +275,7 @@ impl PlayerThread {
 
                 Command::StreamError(e) => {
                     // TODO: Make stream error
+                    error!("Playback stream error: {}", e);
                 }
 
                 Command::AddVolume(value) => {
