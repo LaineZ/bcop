@@ -101,6 +101,7 @@ struct PlayerThread {
     stream: Stream,
     tracker: TimeTracker,
     volume: f32,
+    is_playing: bool,
 }
 
 fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
@@ -185,6 +186,7 @@ impl PlayerThread {
             stream,
             tracker: TimeTracker::new(),
             volume: 1.0,
+            is_playing: true,
         })
     }
 
@@ -239,8 +241,6 @@ impl PlayerThread {
             Ok(v) => Ok(Some(v)),
             Err(minimp3::Error::Eof) => {
                 self.decoder = None;
-                self.tracker.reset();
-                self.tracker.pause();
                 Ok(None)
             }
             Err(e) => Err(e.into()),
@@ -253,6 +253,7 @@ impl PlayerThread {
         self.buffer.submitted_samples.store(0, Ordering::SeqCst);
         self.buffer.remaining_samples.store(0, Ordering::SeqCst);
         self.tracker.reset();
+        self.is_playing = false;
     }
 
     fn run(mut self) -> Result<()> {
@@ -260,6 +261,14 @@ impl PlayerThread {
 
         loop {
             let timeout = Duration::from_millis(10);
+
+            if self.decoder.is_none() {
+                // track almost ended
+                if self.buffer.remaining_samples.load(Ordering::SeqCst) == 0 {
+                    // track ended
+                    self.reset();
+                }
+            }
 
             let cmd = match self.cmd_rx.recv_timeout(timeout) {
                 Ok(c) => c,
@@ -275,11 +284,13 @@ impl PlayerThread {
                 }
                 _ => continue,
             };
+
             match cmd {
                 Command::SwitchTrack(url) => {
                     log::info!("Loading track {}", &url);
                     self.reset();
                     self.decoder = Some(load_track(&url));
+                    self.is_playing = true;
                     cur_url = Some(url);
                 }
 
@@ -331,7 +342,7 @@ impl PlayerThread {
                 }
 
                 Command::GetTime => {
-                    if self.decoder.is_some() {
+                    if self.is_playing {
                         self.time_tx.send(Some(self.tracker.time()))?;
                     } else {
                         self.time_tx.send(None)?;
