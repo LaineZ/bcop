@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 use std::io::Read;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering, AtomicU16};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -84,13 +84,14 @@ enum Command {
     Stop,
     SeekForward(Duration),
     SeekBackwards(Duration),
-    AddVolume(f32),
+    AddVolume(u16),
 }
 
 struct Buffer {
     frames: Mutex<Vec<Vec<i16>>>,
     remaining_samples: AtomicUsize,
     submitted_samples: AtomicUsize,
+    volume: AtomicU16,
 }
 
 struct PlayerThread {
@@ -100,7 +101,6 @@ struct PlayerThread {
     decoder: Option<Decoder<Box<dyn Read>>>,
     stream: Stream,
     tracker: TimeTracker,
-    volume: f32,
     is_playing: bool,
 }
 
@@ -165,6 +165,7 @@ impl PlayerThread {
             frames: Mutex::new(Vec::new()),
             remaining_samples: AtomicUsize::new(0),
             submitted_samples: AtomicUsize::new(0),
+            volume: AtomicU16::new(100)
         });
 
         fn data_fn<T: Sample>(output: &mut [T], buf: &Buffer) {
@@ -185,6 +186,7 @@ impl PlayerThread {
                     let frame = &mut frames[0];
                     let len = frame.len().min(total - filled);
                     for i in 0..len {
+                        frame[i] = (frame[i] as f32 * (buf.volume.load(Ordering::Relaxed) as f32) / 327.68) as i16;
                         output[filled + i] = Sample::from(&frame[i])
                     }
                     filled += len;
@@ -230,7 +232,6 @@ impl PlayerThread {
             decoder: None,
             stream,
             tracker: TimeTracker::new(),
-            volume: 1.0,
             is_playing: true,
         })
     }
@@ -389,7 +390,7 @@ impl PlayerThread {
                 }
 
                 Command::AddVolume(value) => {
-                    self.volume += value;
+                    self.buffer.volume.fetch_add(value, Ordering::Relaxed);
                 }
 
                 Command::GetTime => {
@@ -408,7 +409,7 @@ pub struct Player {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
     is_paused: bool,
-    volume: f32,
+    volume: u16,
 }
 
 impl Player {
@@ -429,7 +430,7 @@ impl Player {
             cmd_tx,
             time_rx,
             is_paused: false,
-            volume: 1.0,
+            volume: 100,
         }
     }
 
@@ -478,12 +479,12 @@ impl Player {
         self.send(Command::Pause);
     }
 
-    pub fn add_volume(&mut self, value: f32) {
-        self.volume += value;
-        self.send(Command::AddVolume(value));
+    pub fn add_volume(&mut self, value: i16) {
+        self.volume += value as u16;
+        self.send(Command::AddVolume(value as u16));
     }
 
-    pub fn get_volume(&mut self) -> f32 {
+    pub fn get_volume(&mut self) -> u16 {
         self.volume
     }
 

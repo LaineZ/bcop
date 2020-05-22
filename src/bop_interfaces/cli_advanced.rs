@@ -114,7 +114,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         state.queue.content[state.queue_pos].artist,
                         state.queue.content[state.queue_pos].title,
                         state.queue_pos,
-                        (player.get_volume() * 100.0).floor()
+                        (player.get_volume())
                     );
 
                     if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
@@ -131,7 +131,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
             } else {
                 state.bottom_text =
-                    format!("stopped volume: {}%", (player.get_volume() * 100.0).floor());
+                    format!("stopped volume: {}%", (player.get_volume()));
             }
             cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
         }
@@ -298,14 +298,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('w').into() {
-                    if player.get_volume() <= 1.2 {
-                        player.add_volume(0.01);
+                    if player.get_volume() <= 100 {
+                        player.add_volume(1);
                     }
                 }
 
                 if pressedkey == KeyCode::Char('s').into() {
-                    if player.get_volume() > 0.0 {
-                        player.add_volume(-0.01);
+                    if player.get_volume() > 100 {
+                        player.add_volume(-1);
                     }
                 }
 
