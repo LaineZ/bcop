@@ -101,7 +101,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     state.print_diag("Player started!".to_string());
 
     loop {
-        while !poll(Duration::from_millis(100))? {
+        while !poll(Duration::from_millis(16))? {
             if let Some(time) = player.get_time() {
                 if state.queue.content.len() > 0 {
                     let mins = state.queue.content[state.queue_pos].duration / 60.0;

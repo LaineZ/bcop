@@ -67,15 +67,17 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
 
     let mut lineheight_queue_int: u16 = lineheight_album_int;
+
     match lineheight_queue {
         Some(value) => {
             lineheight_queue_int += truncate(format!("{} - {}", value.title, value.artist),cols / COLS_COUNT).len() as u16
         }
         None => lineheight_queue_int += 20,
     }
+
     let tag_pages = state.tags.content.chunks((rows - 2) as usize);
     let album_pages = state.discover.content.chunks((rows - 2) as usize);
-    let queue_pages = state.queue.content.chunks((rows - 2) as usize);
+    let queue_pages = state.queue.content.chunks((rows - 3) as usize);
     let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
 
     // drawing
