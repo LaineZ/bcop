@@ -13,6 +13,8 @@ use super::cli_structs::{CurrentView, State};
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 
+const COLS_COUNT: u16 = 3;
+
 fn highlight_list(
     stdout: &mut std::io::Stdout,
     state: &State,
@@ -24,6 +26,11 @@ fn highlight_list(
         &stdout.execute(SetForegroundColor(Color::Black))?;
     }
     Ok(())
+}
+
+
+fn truncate(s: String, max_width: u16) -> String {
+    s.chars().take(max_width as usize).collect()
 }
 
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
@@ -45,9 +52,10 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         .iter()
         .max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
     let mut lineheight_album_int: u16 = lineheight;
+
     match lineheight_album {
         Some(value) => {
-            lineheight_album_int += format!("{} by {}", value.title, value.artist).len() as u16
+            lineheight_album_int += truncate(format!("{} by {}", value.title, value.artist),cols / COLS_COUNT).len() as u16
         }
         None => lineheight_album_int += 20,
     }
@@ -61,7 +69,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let mut lineheight_queue_int: u16 = lineheight_album_int;
     match lineheight_queue {
         Some(value) => {
-            lineheight_queue_int += format!("{} by {}", value.title, value.artist).len() as u16
+            lineheight_queue_int += truncate(format!("{} - {}", value.title, value.artist),cols / COLS_COUNT).len() as u16
         }
         None => lineheight_queue_int += 20,
     }
@@ -95,7 +103,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
                     &stdout
                         .queue(cursor::MoveTo(0, (index + 1) as u16))?
-                        .queue(Print(page))?;
+                        .queue(Print(truncate(page.to_string(), cols / COLS_COUNT)))?;
                     &stdout.execute(style::ResetColor)?;
                 }
             }
@@ -113,7 +121,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Grey))?;
                 }
 
-                let formatting = format!("{} by {}", page.clone().title, page.clone().artist);
+                let formatting = truncate(format!("{} by {}", page.clone().title, page.clone().artist), cols / COLS_COUNT);
                 &stdout
                     .queue(cursor::MoveTo(lineheight + 1, (index + 1) as u16))?
                     .queue(Print(formatting))?;
@@ -131,7 +139,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Grey))?;
                 }
 
-                let formatting = format!("{} - {}", page.clone().title, page.clone().artist);
+                let formatting = truncate(format!("{} - {}", page.clone().title, page.clone().artist), cols / COLS_COUNT);
                 &stdout
                     .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 2) as u16))?
                     .queue(Print(formatting))?;
