@@ -172,6 +172,8 @@ impl PlayerThread {
             let total = output.len();
             let mut filled = 0;
 
+            //log::info!("Volume: {}", (buf.volume.load(Ordering::Relaxed) as f32) / 327.68);
+
             let skip = buf.remaining_samples.load(Ordering::SeqCst) == 0;
 
             if !skip {
@@ -390,7 +392,8 @@ impl PlayerThread {
                 }
 
                 Command::AddVolume(value) => {
-                    self.buffer.volume.fetch_add(value, Ordering::Relaxed);
+                    log::info!("Volume set: increase: {} volume: {}", value, self.buffer.volume.load(Ordering::Relaxed));
+                    self.buffer.volume.store(value, Ordering::Relaxed);
                 }
 
                 Command::GetTime => {
@@ -479,9 +482,16 @@ impl Player {
         self.send(Command::Pause);
     }
 
-    pub fn add_volume(&mut self, value: i16) {
-        self.volume += value as u16;
-        self.send(Command::AddVolume(value as u16));
+    pub fn increase_volume(&mut self, value: u16) {
+        self.volume += value;
+        self.send(Command::AddVolume(self.volume));
+    }
+
+    pub fn decrease_volume(&mut self, value: u16) {
+        if self.volume as i16 - value as i16 >= 0 {
+            self.volume -= value;
+            self.send(Command::AddVolume(self.volume));
+        }
     }
 
     pub fn get_volume(&mut self) -> u16 {

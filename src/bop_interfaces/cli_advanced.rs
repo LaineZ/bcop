@@ -130,8 +130,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
             } else {
-                state.bottom_text =
-                    format!("stopped volume: {}%", (player.get_volume()));
+                state.bottom_text = format!("stopped volume: {}%", (player.get_volume()));
             }
             cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
         }
@@ -298,15 +297,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('w').into() {
-                    if player.get_volume() <= 100 {
-                        player.add_volume(1);
+                    if player.get_volume() < 99 {
+                        player.increase_volume(1);
                     }
                 }
 
                 if pressedkey == KeyCode::Char('s').into() {
-                    if player.get_volume() > 100 {
-                        player.add_volume(-1);
-                    }
+                    player.decrease_volume(1);
                 }
 
                 if pressedkey == KeyCode::Right.into() {
