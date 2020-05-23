@@ -17,10 +17,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .start()
         .unwrap();
 
-    println!("BandcampOnlinePlayer by 140bpmdubstep version 0.3alpha.rs");
+    println!("BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version 0.4alpha.rs");
 
     log::info!(
-        "BandcampOnlinePlayer by 140bpmdubstep version 0.3alpha.rs Command line: {:?}",
+        "BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version 0.4alpha.rs Command line: {:?}",
         args
     );
 

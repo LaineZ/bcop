@@ -353,7 +353,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 redraw(&mut stdout.lock(), &mut state)?;
             }
             event::Event::Resize(w, h) => {
-                if w > 50 && h > 5 {
+                if w > 50 && h > 10 {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     redraw(&mut stdout.lock(), &mut state)?;
                     state.set_current_view_state(
@@ -368,8 +368,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         .lock()
                         .execute(style::PrintStyledContent("terminal is too small".red()))?;
                 }
-
-                state.print_diag(format!("Redraw requested {}x{}", w, h));
             }
         }
     }
