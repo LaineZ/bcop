@@ -7,6 +7,9 @@ use std::env;
 use bc_core::tags;
 use bop_interfaces::cli_advanced;
 
+
+const version: &str = "0.5alpha";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
@@ -17,11 +20,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .start()
         .unwrap();
 
-    println!("BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version 0.4alpha.rs");
+    println!("BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version {}", version);
 
     log::info!(
-        "BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version 0.4alpha.rs Command line: {:?}",
-        args
+        "BandcampOnlinePlayer by 140bpmdubstep and LeshaInc version {} Command line: {:?}",
+        version, args
     );
 
     if args.len() < 2 {
