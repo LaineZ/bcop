@@ -42,7 +42,7 @@ jobs:
       shell: bash
 
     - name: Install deps (Linux)
-      run: sudo apt update && sudo apt install libaudio-dev libasound2-dev xorg-dev
+      run: sudo apt update && sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev
       if: matrix.os == 'ubuntu-latest'
 
     - name: Install Rust (macos)
