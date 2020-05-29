@@ -31,11 +31,13 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 ### TUI Mode controls
 **General keys**
 
-<kbd>C</kbd> - closes program
+<kbd>Esc</kbd> - closes program
 
 <kbd>H</kbd> - hide/show tag list
 
 <kbd>Q</kbd> - switch to queue list
+
+<kbd>C</kbd> - add album/track to queue by URL from clipboard
 
 <kbd>⭾</kbd> - cycle between views
 

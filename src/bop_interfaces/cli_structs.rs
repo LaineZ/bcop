@@ -64,6 +64,7 @@ pub struct State {
     pub display_tags: bool,
     pub diagnostics: ListBoxDiagnositcs,
     pub selected_position: usize,
+    pub shuffle: bool,
 }
 
 impl Default for ListBoxTag {
@@ -171,7 +172,8 @@ impl State {
     }
 
     pub fn draw_line(&self, stdout: &mut std::io::Stdout, height: u16) -> Result<()> {
-        let (_, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+        let (_, rows) =
+            size().expect("Unable to get terminal size continue work is not available!");
         for line in 1..rows {
             &stdout
                 .queue(cursor::MoveTo(height, line - 1))?

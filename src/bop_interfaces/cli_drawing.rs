@@ -28,13 +28,12 @@ fn highlight_list(
     Ok(())
 }
 
-
 fn truncate(s: String, max_width: u16) -> String {
     s.chars().take(max_width as usize).collect()
 }
 
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
     let mut lineheight = state
         .tags
@@ -55,7 +54,11 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     match lineheight_album {
         Some(value) => {
-            lineheight_album_int += truncate(format!("{} by {}", value.title, value.artist),cols / COLS_COUNT).len() as u16
+            lineheight_album_int += truncate(
+                format!("{} by {}", value.title, value.artist),
+                cols / COLS_COUNT,
+            )
+            .len() as u16
         }
         None => lineheight_album_int += 20,
     }
@@ -70,7 +73,11 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 
     match lineheight_queue {
         Some(value) => {
-            lineheight_queue_int += truncate(format!("{} - {}", value.title, value.artist),cols / COLS_COUNT).len() as u16
+            lineheight_queue_int += truncate(
+                format!("{} - {}", value.title, value.artist),
+                cols / COLS_COUNT,
+            )
+            .len() as u16
         }
         None => lineheight_queue_int += 20,
     }
@@ -114,6 +121,8 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         lineheight = 0;
     }
 
+
+    // discover
     for (i, v) in &mut album_pages.into_iter().enumerate() {
         if i == state.discover.selected_page {
             for (index, page) in v.into_iter().enumerate() {
@@ -123,7 +132,10 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Grey))?;
                 }
 
-                let formatting = truncate(format!("{} by {}", page.clone().title, page.clone().artist), cols / COLS_COUNT);
+                let formatting = truncate(
+                    format!("{} by {}", page.clone().title, page.clone().artist),
+                    cols / COLS_COUNT,
+                );
                 &stdout
                     .queue(cursor::MoveTo(lineheight + 1, (index + 1) as u16))?
                     .queue(Print(formatting))?;
@@ -132,6 +144,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         }
     }
 
+    // queue
     for (i, v) in &mut queue_pages.into_iter().enumerate() {
         if i == state.queue.selected_page {
             for (index, page) in v.into_iter().enumerate() {
@@ -141,7 +154,17 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Grey))?;
                 }
 
-                let formatting = truncate(format!("{} - {}", page.clone().title, page.clone().artist), cols / COLS_COUNT);
+                let current_idx =  index + (i * v.len());
+
+                let formatting = truncate(
+                    format!("{} - {}", page.clone().title, page.clone().artist),
+                    cols / COLS_COUNT,
+                );
+
+                if current_idx == state.queue_pos {
+                    &stdout.execute(SetForegroundColor(Color::Blue))?;
+                }
+
                 &stdout
                     .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 2) as u16))?
                     .queue(Print(formatting))?;
@@ -194,7 +217,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 }
 
 pub fn redraw_bottom_bar(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not availble!");
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
     let mut fixed_space: i32 = (cols as i32) - (state.bottom_text.len() as i32);
     // test usize oveflow, lol

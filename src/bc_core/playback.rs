@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 use std::io::Read;
-use std::sync::atomic::{AtomicUsize, Ordering, AtomicU16};
+use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -165,7 +165,7 @@ impl PlayerThread {
             frames: Mutex::new(Vec::new()),
             remaining_samples: AtomicUsize::new(0),
             submitted_samples: AtomicUsize::new(0),
-            volume: AtomicU16::new(100)
+            volume: AtomicU16::new(100),
         });
 
         fn data_fn<T: Sample>(output: &mut [T], buf: &Buffer) {
@@ -188,7 +188,8 @@ impl PlayerThread {
                     let frame = &mut frames[0];
                     let len = frame.len().min(total - filled);
                     for i in 0..len {
-                        frame[i] = (frame[i] as f32 * (buf.volume.load(Ordering::Relaxed) as f32) / 327.68) as i16;
+                        frame[i] = (frame[i] as f32 * (buf.volume.load(Ordering::Relaxed) as f32)
+                            / 327.68) as i16;
                         output[filled + i] = Sample::from(&frame[i])
                     }
                     filled += len;
@@ -392,7 +393,11 @@ impl PlayerThread {
                 }
 
                 Command::AddVolume(value) => {
-                    log::info!("Volume set: increase: {} volume: {}", value, self.buffer.volume.load(Ordering::Relaxed));
+                    log::info!(
+                        "Volume set: increase: {} volume: {}",
+                        value,
+                        self.buffer.volume.load(Ordering::Relaxed)
+                    );
                     self.buffer.volume.store(value, Ordering::Relaxed);
                 }
 
