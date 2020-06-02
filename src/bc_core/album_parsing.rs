@@ -6,7 +6,6 @@ use crate::bc_core::http_tools;
 use anyhow::Result;
 use regex::Regex;
 use serde_json::json;
-use std::io::Write;
 
 pub fn fix_json(data: &str) -> String {
     // fix url field
@@ -30,9 +29,11 @@ pub fn get_album(url: &str) -> Option<Album> {
     let json = parse(page.as_str())?;
 
     // just for debug
+    /*
     let mut file = std::fs::File::create("albuminfo.txt").unwrap();
     std::fs::remove_file("albuminfo.txt").unwrap();
     file.write_all(json.as_bytes()).unwrap();
+    */
 
     let data: Album = serde_json::from_str(&json).unwrap();
 

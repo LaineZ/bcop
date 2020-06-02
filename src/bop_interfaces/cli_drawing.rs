@@ -32,6 +32,14 @@ fn truncate(s: String, max_width: u16) -> String {
     s.chars().take(max_width as usize).collect()
 }
 
+pub fn run_string(s: String, max_width: usize, current_offset: usize) -> String {
+    if s.len() > max_width {
+        s.chars().skip(current_offset).take(max_width).collect()
+    } else {
+        s
+    }
+}
+
 pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
@@ -121,7 +129,6 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         lineheight = 0;
     }
 
-
     // discover
     for (i, v) in &mut album_pages.into_iter().enumerate() {
         if i == state.discover.selected_page {
@@ -154,7 +161,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                     &stdout.execute(SetForegroundColor(Color::Grey))?;
                 }
 
-                let current_idx =  index + (i * v.len());
+                let current_idx = index + (i * v.len());
 
                 let formatting = truncate(
                     format!("{} - {}", page.clone().title, page.clone().artist),
@@ -166,7 +173,7 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
                 }
 
                 &stdout
-                    .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 2) as u16))?
+                    .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 1) as u16))?
                     .queue(Print(formatting))?;
                 &stdout.execute(style::ResetColor)?;
             }

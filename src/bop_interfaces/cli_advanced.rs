@@ -9,8 +9,8 @@ use crate::bc_core;
 use crate::bc_core::album_parsing;
 use rand::prelude::*;
 
-use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
+use clipboard::ClipboardProvider;
 
 use crossterm::{cursor, event, QueueableCommand};
 use crossterm::{
@@ -41,7 +41,10 @@ use style::Colorize;
 
 macro_rules! block {
     ($xs:block) => {
-        loop { let _ = $xs; break; }
+        loop {
+            let _ = $xs;
+            break;
+        }
     };
 }
 
@@ -101,7 +104,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         selected_tags: Vec::new(),
         discover: ListBoxDiscover::default(),
         display_tags: true,
-        shuffle: false, 
+        shuffle: false,
         diagnostics: ListBoxDiagnositcs::default(),
         selected_position: 0,
         queue_pos: 0,
@@ -112,24 +115,56 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     let mut player = Player::new();
 
+    let mut running_text_offset: usize = 0;
+
     state.print_diag("Player started!".to_string());
 
     loop {
         // 60 FPS rendering, lol
-        while !poll(Duration::from_millis(16))? {
-            let ctrl_text = format!("vol: {}% shuffle: {}", player.get_volume(), state.shuffle);
+        while !poll(Duration::from_millis(250))? {
+            let ctrl_text = format!(
+                "volume: {}% shuffle: {}",
+                player.get_volume(),
+                state.shuffle
+            );
+
+            let (cols, rows) =
+            size().expect("Unable to get terminal size continue work is not available!");    
 
             if let Some(time) = player.get_time() {
                 if state.queue.content.len() > 0 {
                     let mins = state.queue.content[state.queue_pos].duration / 60.0;
                     let secs = state.queue.content[state.queue_pos].duration % 60.0;
+
+                    let track_title_base = format!("{} - {}", state.queue.content[state.queue_pos].artist,
+                    state.queue.content[state.queue_pos].title);
+
+                    if track_title_base.len() >= running_text_offset {
+                        running_text_offset += 1;
+                    } else {
+                        running_text_offset = 0;
+                    }
+
+                    log::info!("{} {}", track_title_base.len(), running_text_offset);
+
+                    let mut split_size: usize = 0;
+                    
+                    if track_title_base.len() > (cols / 2) as usize
+                    {
+                        split_size = (cols / 2) as usize;
+                    }
+
+                    let track_title = cli_drawing::run_string(track_title_base, (cols / 2) as usize, running_text_offset);
+                    let whitespace = " ".repeat(split_size.checked_sub(track_title.len() - 1).unwrap_or(0));
+
+                    //log::info!("{}", track_title); 
                     state.bottom_text = format!(
-                        "\r{}/{}:{} {} - {} pos: {} {}",
+                        "\r{}/{}:{} {}{}pos: {} {}",
                         FormatTime(time),
                         mins as u32,
                         secs as u32,
-                        state.queue.content[state.queue_pos].artist,
-                        state.queue.content[state.queue_pos].title,
+                        track_title,
+                        whitespace,
                         state.queue_pos,
                         ctrl_text
                     );
@@ -153,7 +188,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
             } else {
-                state.bottom_text = format!("stopped {}", ctrl_text);
+                state.bottom_text = format!("⯀ {}", ctrl_text);
             }
             cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
         }
@@ -213,23 +248,29 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                     .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
 
                                 for album_track in album.trackinfo.unwrap() {
-                                    state.queue.content.push(QueuedTrack {
-                                        album: album
-                                            .current
-                                            .clone()
-                                            .title
-                                            .unwrap_or("Unknown album".to_string()),
-                                        artist: state.discover.content[state.selected_position]
-                                            .clone()
-                                            .artist,
-                                        title: album_track
-                                            .title
-                                            .unwrap_or("Unknown track title".to_string()),
-                                        // TODO: switch to normal error-handling and not this garbage that panic...
-                                        audio_url: album_track.file.unwrap().mp3128,
-                                        album_url: album_url.clone(),
-                                        duration: album_track.duration.unwrap_or(0.0),
-                                    });
+                                    match album_track.file.clone() {
+                                        Some(album_url) => {
+                                            state.queue.content.push(QueuedTrack {
+                                                album: album
+                                                    .current
+                                                    .clone()
+                                                    .title
+                                                    .unwrap_or("Unknown album".to_string()),
+                                                artist: state.discover.content
+                                                    [state.selected_position]
+                                                    .clone()
+                                                    .artist,
+                                                title: album_track
+                                                    .title
+                                                    .unwrap_or("Unknown track title".to_string()),
+                                                // TODO: switch to normal error-handling and not this garbage that panic...
+                                                audio_url: album_track.file.unwrap().mp3128,
+                                                album_url: album_url.mp3128,
+                                                duration: album_track.duration.unwrap_or(0.0),
+                                            });
+                                        }
+                                        None => {}
+                                    }
                                 }
                             }
                             _ => state.status_bar(
@@ -252,7 +293,25 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
 
-                if pressedkey == KeyCode::Char('d').into() {
+                if pressedkey == KeyCode::Delete.into() {
+                    &stdout.lock().execute(Clear(ClearType::All))?;
+                    if state.current_view == CurrentView::Tags {
+                        &state.selected_tags.clear();
+                    }
+
+                    if state.current_view == CurrentView::Albums {
+                        state.cleanup_albums();
+                    }
+
+                    if state.current_view == CurrentView::Queue {
+                        // stop playback
+                        player.pause();
+                        player.stop();
+                        state.cleanup_queue();
+                    }
+                }
+
+                if pressedkey == KeyCode::Char('D').into() {
                     &stdout.lock().execute(Clear(ClearType::All))?;
                     if state.current_view == CurrentView::Tags {
                         &state.selected_tags.clear();
@@ -282,6 +341,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     state.shuffle = !state.shuffle;
                 }
 
+                if pressedkey == KeyCode::Char('e').into() {
+                    player.stop();
+                }
+
                 if pressedkey == KeyCode::Char('c').into() {
                     let mut ctx: ClipboardContext = ClipboardProvider::new()?;
 
@@ -289,20 +352,22 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     match content {
                         Ok(clipboard) => {
                             block!({
-                            if !clipboard.contains("bandcamp.com") {
-                               state.status_bar(String::from("Clipboard contains non-bandcamp URL!"), true);
-                               break;
-                            }
+                                if !clipboard.contains("bandcamp.com") {
+                                    state.status_bar(
+                                        String::from("Clipboard contains non-bandcamp URL!"),
+                                        true,
+                                    );
+                                    break;
+                                }
 
-                            let is_album = album_parsing::get_album(clipboard.as_str());
-    
-                            match is_album {
+                                let is_album = album_parsing::get_album(clipboard.as_str());
+
+                                match is_album {
                                 Some(album) => {
                                     let album_url = album
                                         .clone()
                                         .url
                                         .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
-    
                                     for album_track in album.trackinfo.unwrap() {
                                         state.queue.content.push(QueuedTrack {
                                             album: album
@@ -329,10 +394,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                     true,
                                 ),
                             }
-                        });
+                            });
                         }
                         Err(_) => {
-                            state.status_bar(String::from("Clipboard contains invalid data!"), true);
+                            state
+                                .status_bar(String::from("Clipboard contains invalid data!"), true);
                         }
                     }
                 }
@@ -420,11 +486,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Home.into() {
-                    state.set_current_view_state(
-                        &mut stdout.lock(),
-                        0,
-                        0,
-                    )?;
+                    state.set_current_view_state(&mut stdout.lock(), 0, 0)?;
                 }
 
                 if pressedkey == KeyCode::End.into() {
