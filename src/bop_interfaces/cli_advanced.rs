@@ -323,7 +323,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Char('e').into() {
                     player.stop();
                 }
-
+                
                 if pressedkey == KeyCode::Char('c').into() {
                     let mut ctx: ClipboardContext = ClipboardProvider::new()?;
 
@@ -348,21 +348,23 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                         .url
                                         .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
                                     for album_track in album.trackinfo.unwrap() {
+                                        let artist = album.current.clone().artist.unwrap_or("Unknown artist".to_string());
+                                        let title = album_track.title.unwrap_or("Unknown track title".to_string());
+
                                         state.queue.push(QueuedTrack {
                                             album: album
                                                 .current
                                                 .clone()
                                                 .title
                                                 .unwrap_or("Unknown album".to_string()),
-                                            artist: album.current.clone().artist.unwrap_or("Unknown artist".to_string()),
-                                            title: album_track
-                                                .title
-                                                .unwrap_or("Unknown track title".to_string()),
+                                            artist: artist.clone(),
+                                            title: title.clone(),
                                             // TODO: switch to normal error-handling and not this garbage that panic...
                                             audio_url: album_track.file.ok_or_else(|| anyhow::anyhow!("Failed to get mp3 link!"))?.mp3128,
                                             album_url: album_url.clone(),
                                             duration: album_track.duration.unwrap_or(0.0),
                                         });
+                                        listboxes[LIST_BOX_QUEUE].add(format!("{} - {}", artist.clone(), title.clone()));
                                     }
                                 }
                                 _ => state.status_bar(

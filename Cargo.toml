@@ -1,7 +1,7 @@
 [package]
 name = "bandcamp-online-cli"
-version = "0.5.1"
-authors = ["140bpmdubstep <laineprikol@gmail.com>", "LeshaInc"]
+version = "0.5.2"
+authors = ["140bpmdubstep", "LeshaInc"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
