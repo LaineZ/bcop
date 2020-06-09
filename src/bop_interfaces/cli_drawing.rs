@@ -197,6 +197,7 @@ pub fn redraw_bottom_bar(stdout: &mut std::io::Stdout, state: &mut State) -> Res
         .unwrap_or(0);
 
     &stdout.execute(SetBackgroundColor(Color::DarkGrey))?;
+    &stdout.execute(SetForegroundColor(Color::White))?;
     &stdout
         .execute(cursor::MoveTo(0, rows))?
         .execute(Print(format!(

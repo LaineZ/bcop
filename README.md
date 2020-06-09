@@ -45,9 +45,7 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 
 <kbd>PageUp</kbd> <kbd>PageDown</kbd> - scroll pages
 
-<kbd>X</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>
-
-** Playback only **
+**Playback only**
 
 <kbd>←</kbd> - move track backwards by 5 secs
 
@@ -57,13 +55,15 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 
 <kbd>O</kbd> - open current playing album URL in browser
 
+<kbd>Delete</kbd> - clear selected list
+
 **Tags list only**
 
 <kbd>Space</kbd> - add tag
 
 <kbd>Enter</kbd> - load albums by tags
 
-<kbd>D</kbd> - diselect all tags
+<kbd>Delete</kbd> - diselect all tags
 
 **Queue list only**
 
@@ -71,13 +71,9 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 
 <kbd>Space</kbd> - play/pause current track
 
-<kbd>D</kbd> - clear queue
-
 **Album list only**
 
 <kbd>Enter</kbd> - add selected album to queue
-
-<kbd>D</kbd> - clear album list
 
 ## Building
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command
