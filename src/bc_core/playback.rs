@@ -66,8 +66,7 @@ impl Display for FormatTime {
         let total_secs = self.0.as_secs();
         let mins = total_secs / 60;
         let secs = total_secs % 60;
-        let micros = self.0.subsec_micros();
-        write!(f, "{:02}:{:02}.{:06}", mins, secs, micros)
+        write!(f, "{:02}:{:02}", mins, secs)
     }
 }
 

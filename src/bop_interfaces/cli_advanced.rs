@@ -1,7 +1,7 @@
 use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
-use std::{io::stdout, sync::Arc, time::Duration};
+use std::{io::stdout, sync::{Mutex, Arc}, time::Duration};
 use webbrowser;
 
 use super::cli_drawing;
@@ -19,25 +19,26 @@ use crossterm::{
     ExecutableCommand,
 };
 
-use parking_lot::FairMutex;
-
 use super::{
     cli_drawing::redraw,
-    cli_structs::{
-        CurrentView, ListBoxDiagnositcs, ListBoxDiscover, ListBoxQueue, ListBoxTag, QueuedTrack,
-        State,
-    },
+    cli_structs::{QueuedTrack, State, },
 };
 
 use anyhow::Result;
 
 use bc_core::{
     playback::{FormatTime, Player},
-    tags,
 };
 use cursor::{EnableBlinking, Hide, Show};
 use event::{poll, Event::Key, KeyCode};
 use style::Colorize;
+use cli_drawing::ListBox;
+
+const COLS_COUNT: u16 = 2;
+
+const LIST_BOX_TAGS: usize = 0;
+const LIST_BOX_DISCOVER: usize = 1;
+const LIST_BOX_QUEUE: usize = 2;
 
 macro_rules! block {
     ($xs:block) => {
@@ -48,76 +49,60 @@ macro_rules! block {
     };
 }
 
-fn switch_page_up(mut stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
-    let idx = state.selected_position;
-    let page = state.get_current_page();
-
-    let (_cols, rows) =
-        size().expect("Unable to get terminal size continue work is not available!");
-
-    if page < (state.get_len() / (rows - 2) as usize) as usize {
-        state.set_current_view_state(&mut stdout, idx, page + 1)?;
-    } else {
-        state.status_bar("You aready scrolled to end!".to_string(), true);
-    }
-
-    // stream loading
-    if state.current_view == CurrentView::Albums {
-        state.status_bar("Loading next page...".to_string(), false);
-        state.discover.loadedpages += 1;
-        let discover =
-            album_parsing::get_tag_data(state.selected_tags.clone(), state.discover.loadedpages)?
-                .items;
-        state.discover.content.extend(discover);
-    }
-    Ok(())
-}
-
 pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     // init
-    let stdout = Arc::new(FairMutex::new(stdout()));
+    let stdout = Arc::new(Mutex::new(stdout()));
 
-    println!("Loading tags from bandcamp.com");
-    let mut tags = tags::get_tags()?;
-    // fixes weird bug with empty 0 index...
-    tags.remove(0);
+    let (cols, rows) =
+    size().expect("Unable to get terminal size continue work is not available!"); 
+
+    log::info!("Detected terminal size {}x{}", cols, rows);
+
+    let tags = include_str!("tags.list").split("\n").map(|s| s.trim().to_string()).collect();
     println!("Loading gui...");
 
     {
         let stdout_clone = stdout.clone();
-        let mut stdout = stdout_clone.lock();
+        let mut stdout = stdout_clone.lock().unwrap();
         stdout.queue(DisableBlinking)?;
         stdout.queue(Hide)?;
         stdout.queue(Clear(ClearType::All))?;
         //stdout.queue(event::EnableMouseCapture)?;
     }
 
-    enable_raw_mode()?;
+    enable_raw_mode()?;  
 
     let mut state = State {
         statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
         bottom_text: "Nothing...".to_string(),
         error: false,
-        current_view: CurrentView::Tags,
-        tags: ListBoxTag::default(),
-        queue: ListBoxQueue::default(),
-        selected_tags: Vec::new(),
-        discover: ListBoxDiscover::default(),
-        display_tags: true,
         shuffle: false,
-        diagnostics: ListBoxDiagnositcs::default(),
+        current_view: LIST_BOX_TAGS,
+        selected_tags: Vec::new(),
+        discover: Vec::new(),
+        queue: Vec::new(),
         selected_position: 0,
         queue_pos: 0,
     };
 
-    state.tags.content = tags;
-    redraw(&mut stdout.lock(), &mut state)?;
+    let mut listboxes = Vec::new();
+
+    // init listboxes (PLEASE KEEP ORDER WITH CONSTANTS)
+    // tags
+    listboxes.push(ListBox::new(15, rows - 1,0, true));
+    // discover
+    listboxes.push(ListBox::new(cols / COLS_COUNT, rows - 1, listboxes[LIST_BOX_TAGS].width + 2, false));
+    // queue
+    listboxes.push(ListBox::new(cols / COLS_COUNT, rows - 1,  (listboxes[LIST_BOX_DISCOVER].width) + 2, false));
+
+    // push default tags 
+
+    listboxes[LIST_BOX_TAGS].add_range(tags);
+    redraw(&mut stdout.lock().unwrap(), &state, &mut listboxes)?;
 
     let mut player = Player::new();
 
     let mut running_text_offset: usize = 0;
-
-    state.print_diag("Player started!".to_string());
 
     loop {
         // 60 FPS rendering, lol
@@ -128,24 +113,22 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 state.shuffle
             );
 
-            let (cols, rows) =
+            let (cols, _rows) =
             size().expect("Unable to get terminal size continue work is not available!");    
 
             if let Some(time) = player.get_time() {
-                if state.queue.content.len() > 0 {
-                    let mins = state.queue.content[state.queue_pos].duration / 60.0;
-                    let secs = state.queue.content[state.queue_pos].duration % 60.0;
+                if !listboxes[LIST_BOX_QUEUE].is_empty() {
+                    let mins = state.queue[state.queue_pos].duration / 60.0;
+                    let secs = state.queue[state.queue_pos].duration % 60.0;
 
-                    let track_title_base = format!("{} - {}", state.queue.content[state.queue_pos].artist,
-                    state.queue.content[state.queue_pos].title);
+                    let track_title_base = format!("{} - {} ", state.queue[state.queue_pos].artist,
+                    state.queue[state.queue_pos].title);
 
                     if track_title_base.len() >= running_text_offset {
                         running_text_offset += 1;
                     } else {
                         running_text_offset = 0;
                     }
-
-                    log::info!("{} {}", track_title_base.len(), running_text_offset);
 
                     let mut split_size: usize = 0;
                     
@@ -155,11 +138,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
 
                     let track_title = cli_drawing::run_string(track_title_base, (cols / 2) as usize, running_text_offset);
-                    let whitespace = " ".repeat(split_size.checked_sub(track_title.len() - 1).unwrap_or(0));
+                    let whitespace = " ".repeat(split_size.checked_sub(track_title.len()).unwrap_or(0));
 
                     //log::info!("{}", track_title); 
                     state.bottom_text = format!(
-                        "\r{}/{}:{} {}{}pos: {} {}",
+                        "\r{}/{:02}:{:02} {} {} pos: {} {}",
                         FormatTime(time),
                         mins as u32,
                         secs as u32,
@@ -169,35 +152,35 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         ctrl_text
                     );
 
-                    if (state.queue.content[state.queue_pos].duration - time.as_secs_f64()) < 1.0
-                        && state.queue.content.len() - 1 > state.queue_pos
+                    if (state.queue[state.queue_pos].duration - time.as_secs_f64()) < 1.0
+                        && state.queue.len() - 1 > state.queue_pos
                     {
                         if !state.shuffle {
                             state.queue_pos += 1;
                         } else {
                             let mut rng = rand::thread_rng();
-                            state.queue_pos = rng.gen_range(0, state.queue.content.len());
+                            state.queue_pos = rng.gen_range(0, state.queue.len());
                         }
 
                         state.bottom_text = format!(
                             "Loading track: {} - {}",
-                            state.queue.content[state.queue_pos].artist,
-                            state.queue.content[state.queue_pos].title
+                            state.queue[state.queue_pos].artist,
+                            state.queue[state.queue_pos].title
                         );
-                        player.switch_track(state.queue.content[state.queue_pos].audio_url.clone());
+                        player.switch_track(state.queue[state.queue_pos].audio_url.clone());
                     }
                 }
             } else {
                 state.bottom_text = format!("⯀ {}", ctrl_text);
             }
-            cli_drawing::redraw_bottom_bar(&mut stdout.lock(), &mut state)?;
+            cli_drawing::redraw_bottom_bar(&mut stdout.lock().unwrap(), &mut state)?;
         }
 
         let event = read()?;
 
         if state.error {
             state.status_bar(String::new(), false);
-            redraw(&mut stdout.lock(), &mut state)?;
+            redraw(&mut stdout.lock().unwrap(), &mut state, &mut listboxes)?;
         }
 
         match event {
@@ -208,7 +191,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Esc.into() {
                     disable_raw_mode()?;
                     {
-                        let mut stdout = stdout.lock();
+                        let mut stdout = stdout.lock().unwrap();
 
                         stdout.queue(EnableBlinking)?;
                         stdout.queue(Show)?;
@@ -218,24 +201,28 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Enter.into() {
-                    if state.current_view == CurrentView::Tags {
+                    if state.current_view == LIST_BOX_TAGS {
                         if state.selected_tags.len() > 0 {
-                            while state.discover.content.len() < (rows - 2) as usize {
-                                state.discover.loadedpages += 1;
+                            let mut loadedpages = 1;
+                            while state.discover.len() <= (rows - 2) as usize {
+                                loadedpages += 1;
+                                log::info!("Loading discover: {}", loadedpages);
                                 let discover = album_parsing::get_tag_data(
                                     state.selected_tags.clone(),
-                                    state.discover.loadedpages,
+                                    loadedpages,
                                 )?
                                 .items;
-                                state.discover.content.extend(discover);
+                                state.discover.extend(discover);
                             }
 
-                            state.switch_view(&mut stdout.lock(), CurrentView::Albums)?;
+                            for item in state.discover.iter() {
+                                listboxes[LIST_BOX_DISCOVER].add(format!("{} - {}", item.artist, item.title));
+                            }
                         }
                     }
-                    if state.current_view == CurrentView::Albums {
+                    if state.current_view == LIST_BOX_DISCOVER {
                         let is_album = album_parsing::get_album(
-                            state.discover.content[state.selected_position]
+                            state.discover[listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)]
                                 .tralbum_url
                                 .as_str(),
                         );
@@ -250,14 +237,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                 for album_track in album.trackinfo.unwrap() {
                                     match album_track.file.clone() {
                                         Some(album_url) => {
-                                            state.queue.content.push(QueuedTrack {
+                                            let pushed_track = QueuedTrack {
                                                 album: album
                                                     .current
                                                     .clone()
                                                     .title
                                                     .unwrap_or("Unknown album".to_string()),
-                                                artist: state.discover.content
-                                                    [state.selected_position]
+                                                artist: state.discover
+                                                    [listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)]
                                                     .clone()
                                                     .artist,
                                                 title: album_track
@@ -267,7 +254,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                                 audio_url: album_track.file.unwrap().mp3128,
                                                 album_url: album_url.mp3128,
                                                 duration: album_track.duration.unwrap_or(0.0),
-                                            });
+                                            };
+                                            state.queue.push(pushed_track.clone());
+                                            listboxes[LIST_BOX_QUEUE].add(format!("{} - {}", pushed_track.artist, pushed_track.title));
                                         }
                                         None => {}
                                     }
@@ -276,16 +265,15 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             _ => state.status_bar(
                                 format!(
                                     "Something went wrong while loading {}",
-                                    state.discover.content[state.selected_position].title
+                                    state.discover[listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)].title
                                 ),
                                 true,
                             ),
                         }
                     }
-                    if state.current_view == CurrentView::Queue {
-                        // TODO: Implement playback here
+                    if state.current_view == LIST_BOX_QUEUE {
                         player.switch_track(
-                            state.queue.content[state.selected_position]
+                            state.queue[state.selected_position]
                                 .audio_url
                                 .clone(),
                         );
@@ -294,47 +282,38 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Delete.into() {
-                    &stdout.lock().execute(Clear(ClearType::All))?;
-                    if state.current_view == CurrentView::Tags {
-                        &state.selected_tags.clear();
-                    }
+                    &stdout.lock().unwrap().execute(Clear(ClearType::All))?;
 
-                    if state.current_view == CurrentView::Albums {
-                        state.cleanup_albums();
-                    }
+                    match state.current_view {
+                        LIST_BOX_TAGS => {
+                            &state.selected_tags.clear();
+                        }
 
-                    if state.current_view == CurrentView::Queue {
+                        LIST_BOX_QUEUE => {
+                            player.pause();
+                            player.stop();
+                            listboxes[LIST_BOX_QUEUE].clear();
+                        }
+
+                        
+                        LIST_BOX_DISCOVER => {
+                            listboxes[state.current_view].clear();
+                            state.discover.clear();
+                        }
+
+                        _ => {
+                            listboxes[state.current_view].clear();
+                        }
+                    }
+                    if state.current_view == LIST_BOX_QUEUE {
                         // stop playback
                         player.pause();
                         player.stop();
-                        state.cleanup_queue();
                     }
-                }
-
-                if pressedkey == KeyCode::Char('D').into() {
-                    &stdout.lock().execute(Clear(ClearType::All))?;
-                    if state.current_view == CurrentView::Tags {
-                        &state.selected_tags.clear();
-                    }
-
-                    if state.current_view == CurrentView::Albums {
-                        state.cleanup_albums();
-                    }
-
-                    if state.current_view == CurrentView::Queue {
-                        // stop playback
-                        player.pause();
-                        player.stop();
-                        state.cleanup_queue();
-                    }
-                }
-
-                if pressedkey == KeyCode::Char('x').into() {
-                    state.switch_view(&mut stdout.lock(), CurrentView::Diagnositcs)?;
                 }
 
                 if pressedkey == KeyCode::Char('o').into() {
-                    webbrowser::open(&state.queue.content[state.queue_pos].album_url)?;
+                    webbrowser::open(&state.queue[state.queue_pos].album_url)?;
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {
@@ -369,7 +348,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                         .url
                                         .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
                                     for album_track in album.trackinfo.unwrap() {
-                                        state.queue.content.push(QueuedTrack {
+                                        state.queue.push(QueuedTrack {
                                             album: album
                                                 .current
                                                 .clone()
@@ -403,44 +382,42 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                 }
 
-                if pressedkey == KeyCode::Char('h').into() {
-                    state.display_tags = !state.display_tags;
-                }
-
                 if pressedkey == KeyCode::Char('q').into() {
-                    &state.switch_view(&mut stdout.lock(), CurrentView::Queue);
+                    state.current_view = LIST_BOX_QUEUE;
                 }
 
                 if pressedkey == KeyCode::Tab.into() {
-                    match state.current_view {
-                        CurrentView::Albums => {
-                            &state.switch_view(&mut stdout.lock(), CurrentView::Queue)
-                        }
-                        CurrentView::Tags => {
-                            &state.switch_view(&mut stdout.lock(), CurrentView::Albums)
-                        }
-                        CurrentView::Queue => {
-                            &state.switch_view(&mut stdout.lock(), CurrentView::Tags)
-                        }
-                        CurrentView::Diagnositcs => {
-                            &state.switch_view(&mut stdout.lock(), CurrentView::Tags)
-                        }
-                    };
+                    if listboxes.len() - 1 == state.current_view {
+                        state.current_view = 0;
+                    } else {
+                        state.current_view += 1;
+                    }
+
+                    listboxes[LIST_BOX_DISCOVER].focused = false;
+                    listboxes[LIST_BOX_TAGS].focused = false;
+                    listboxes[LIST_BOX_QUEUE].focused = false;
+
+                    listboxes[state.current_view].focused = true;
+                }
+
+                
+                if pressedkey == KeyCode::Up.into() {
+                    // TODO: up scrolling
+                    if state.selected_position > 0 {
+                        state.selected_position -= 1;
+                    } else {
+                        listboxes[state.current_view].switch_page_down(&mut stdout.lock().unwrap())?;
+                        state.selected_position = listboxes[state.current_view].height as usize - 2;
+                    }
                 }
 
                 if pressedkey == KeyCode::Down.into() {
-                    state.set_current_view_state(
-                        &mut stdout.lock(),
-                        state.selected_position + 1,
-                        state.get_current_page(),
-                    )?;
-                    if state.selected_position > (rows - 3) as usize {
-                        state.set_current_view_state(
-                            &mut stdout.lock(),
-                            0,
-                            state.get_current_page(),
-                        )?;
-                        switch_page_up(&mut stdout.lock(), &mut state)?;
+                    // TODO: Sroll down
+                    if state.selected_position < listboxes[state.current_view].height as usize - 2 {
+                        state.selected_position += 1;
+                    } else {
+                        listboxes[state.current_view].switch_page_up(&mut stdout.lock().unwrap())?;
+                        state.selected_position = 0;
                     }
                 }
 
@@ -466,91 +443,41 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::PageUp.into() {
-                    if state.get_current_page() > 0 {
-                        state.set_current_view_state(
-                            &mut stdout.lock(),
-                            0,
-                            state.get_current_page() - 1,
-                        )?;
-                    }
+                    listboxes[state.current_view].switch_page_down(&mut stdout.lock().unwrap())?;
                 }
 
                 if pressedkey == KeyCode::PageDown.into() {
-                    if state.get_current_page() < (state.get_len() / (rows - 2) as usize) as usize {
-                        state.set_current_view_state(
-                            &mut stdout.lock(),
-                            0,
-                            state.get_current_page() + 1,
-                        )?;
-                    }
-                }
-
-                if pressedkey == KeyCode::Home.into() {
-                    state.set_current_view_state(&mut stdout.lock(), 0, 0)?;
-                }
-
-                if pressedkey == KeyCode::End.into() {
-                    state.set_current_view_state(
-                        &mut stdout.lock(),
-                        0,
-                        (state.get_len() / (rows - 2) as usize) as usize,
-                    )?;
-                }
-
-                if pressedkey == KeyCode::Up.into() {
-                    if state.selected_position > 0 {
-                        state.set_current_view_state(
-                            &mut stdout.lock(),
-                            state.selected_position - 1,
-                            state.get_current_page(),
-                        )?;
-                    } else {
-                        if state.get_current_page() > 0 {
-                            state.set_current_view_state(
-                                &mut stdout.lock(),
-                                state.selected_position,
-                                state.get_current_page() - 1,
-                            )?;
-                        }
-                        state.set_current_view_state(
-                            &mut stdout.lock(),
-                            (rows - 3) as usize,
-                            state.get_current_page(),
-                        )?;
-                    }
+                    listboxes[state.current_view].switch_page_up(&mut stdout.lock().unwrap())?;
                 }
 
                 if pressedkey == KeyCode::Char(' ').into() {
                     // TODO: if aready added - clear
-                    if state.current_view == CurrentView::Tags {
-                        state
-                            .selected_tags
-                            .push(state.tags.selected_tag_name.clone());
+                    if state.current_view == LIST_BOX_TAGS {
+                        state.selected_tags.push(listboxes[LIST_BOX_TAGS].get_selected_item(state.selected_position));
                     } else {
                         // TODO: Play pause goes here
                         player.set_paused(!player.is_paused());
                     }
                 }
 
-                redraw(&mut stdout.lock(), &mut state)?;
+                redraw(&mut stdout.lock().unwrap(), &mut state, &mut listboxes)?;
             }
             event::Event::Mouse(_) => {
-                redraw(&mut stdout.lock(), &mut state)?;
+                redraw(&mut stdout.lock().unwrap(), &mut state, &mut listboxes)?;
             }
             event::Event::Resize(w, h) => {
                 if w > 50 && h > 10 {
-                    &stdout.lock().execute(Clear(ClearType::All))?;
-                    redraw(&mut stdout.lock(), &mut state)?;
-                    state.set_current_view_state(
-                        &mut stdout.lock(),
-                        0,
-                        state.get_current_page(),
-                    )?;
+                    listboxes[LIST_BOX_DISCOVER].clone().resize(15, rows - 1,0);
+                    listboxes[LIST_BOX_DISCOVER].clone().resize(cols / COLS_COUNT, rows - 1, listboxes[LIST_BOX_TAGS].width + 2);
+                    listboxes[LIST_BOX_QUEUE].clone().resize(cols / COLS_COUNT, rows - 1,  listboxes[LIST_BOX_DISCOVER].width + 2);
+
+                    &stdout.lock().unwrap().execute(Clear(ClearType::All))?;
+                    redraw(&mut stdout.lock().unwrap(), &mut state, &mut listboxes)?;
                 } else {
-                    &stdout.lock().execute(Clear(ClearType::All))?;
-                    &stdout.lock().execute(cursor::MoveTo(0, 0))?;
+                    &stdout.lock().unwrap().execute(Clear(ClearType::All))?;
+                    &stdout.lock().unwrap().execute(cursor::MoveTo(0, 0))?;
                     &stdout
-                        .lock()
+                        .lock().unwrap()
                         .execute(style::PrintStyledContent("terminal is too small".red()))?;
                 }
             }

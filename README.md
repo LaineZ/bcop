@@ -43,11 +43,13 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 
 <kbd>↑</kbd> <kbd>↓</kbd> - navigation
 
+<kbd>PageUp</kbd> <kbd>PageDown</kbd> - scroll pages
+
 <kbd>X</kbd> - debug console (logging, diagnostics) - currently alsmost never used... to exit press any key that switches view <kbd>⭾</kbd>
 
 ** Playback only **
 
-<kbd>←</kbd> - move track backwards by 5 secs **(SLOW)**
+<kbd>←</kbd> - move track backwards by 5 secs
 
 <kbd>→</kbd> - move track forward by 5 secs
 
@@ -81,10 +83,10 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command
 2. ```git clone https://github.com/LaineZ/bc_rs.git```
 3. ```cd bc_rs```
-4. If you run on Linux you need install these audio libs: ``libaudio`` and ``libasound2``
-   1. On Ubuntu you can just run that command ``sudo apt install libaudio-dev libasound2-dev``
-5. ```cargo build``` also you can add ``--release`` option to reduce binary file size and speed up tracks operations. but debug-builds compiles faster
-6. ```cd target/debug``` or ```cd target/release``` if you run with ``--release`` option
+4. If you run on Linux you need install these audio libs: ``libaudio``, ``libasound2``, ``libxcb-shape0-dev``, ``libxcb-xfixes0-dev``
+   1. On Ubuntu/Debian you can just run that command ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
+5. ```cargo build --release```
+6. ```cd target/release```
 7. DONE! You can run in TUI Mode by instructions above
 
 ## Notice

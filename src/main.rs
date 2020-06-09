@@ -3,8 +3,6 @@ mod bop_interfaces;
 mod model;
 
 use std::env;
-
-use bc_core::tags;
 use bop_interfaces::cli_advanced;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -37,19 +35,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args[1].as_str() {
         "cli" => cli_advanced::loadinterface(args)?,
-        "streamtags" => {
-            println!("available tags:");
-
-            let tags = tags::get_tags()?;
-            for tag in tags {
-                println!("{}", tag)
-            }
-        }
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
             println!("Allowed options:");
-            println!("stream [tag] - plays in commandline mode tracks from specified tag");
-            println!("streamtags - show all most popular tags");
+            println!("cli - TUI player mode");
         }
     }
     Ok(())

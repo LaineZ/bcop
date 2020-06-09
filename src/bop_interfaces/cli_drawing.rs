@@ -1,31 +1,137 @@
 use crossterm::style::SetBackgroundColor;
-use crossterm::terminal::Clear;
-
 use crossterm::{cursor, QueueableCommand};
 use crossterm::{
     style::{self, Print},
-    terminal::{size, ClearType},
+    terminal::size,
     ExecutableCommand,
 };
 
-use super::cli_structs::{CurrentView, State};
+use super::cli_structs::State;
 
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
+const PROGRAM_NAME: &str = "▶ BandcampOnlinePlayer RS | ";
 
-const COLS_COUNT: u16 = 3;
+fn draw_optimized(stdout: &mut std::io::Stdout, text: String, x: u16, y: u16) -> Result<()> {
+    &stdout.queue(cursor::MoveTo(x, y))?;
+    &stdout.queue(Print(text))?;
+    Ok(())
+}
 
-fn highlight_list(
-    stdout: &mut std::io::Stdout,
-    state: &State,
-    index: usize,
-    view: CurrentView,
-) -> Result<()> {
-    if index == state.selected_position && state.current_view == view {
-        &stdout.execute(SetBackgroundColor(Color::White))?;
-        &stdout.execute(SetForegroundColor(Color::Black))?;
+fn clear_sqr(stdout: &mut std::io::Stdout, x: u16, y: u16, w: u16, h: u16) -> Result<()> {
+    for xc in x..w {
+        for yc in y..h {
+            &stdout.queue(cursor::MoveTo(xc, yc))?;
+            &stdout.queue(Print(" "))?;
+        }
     }
     Ok(())
+}
+
+#[derive(Clone)]
+pub struct ListBox {
+    pub display: Vec<String>,
+    pub page: usize,
+    pub width: u16,
+    pub height: u16,
+    pub x: u16,
+    pub focused: bool,
+}
+
+impl ListBox {
+    pub fn new(width: u16, height: u16, x: u16, focused: bool) -> Self {
+        Self {
+            display: Vec::new(),
+            page: 0,
+            width,
+            height,
+            focused,
+            x,
+        }
+    }
+
+    pub fn add(&mut self, value: String) {
+        self.display.push(value);
+    }
+
+    pub fn add_range(&mut self, value: Vec<String>) {
+        self.display.extend(value);
+    }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.display.len() == 0
+    }
+
+    pub fn resize(&mut self, w: u16, h: u16, x: u16) {
+        self.width = w;
+        self.height = h;
+        self.x = x;
+    }
+
+    pub fn get_page_count(&mut self) -> usize {
+        self.display.chunks((self.height - 2) as usize).len()
+    }
+
+    pub fn switch_page_up(&mut self, mut stdout: &mut std::io::Stdout) -> Result<()> {
+        if self.page < self.get_page_count() {
+            clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
+            self.page += 1;
+        }
+        Ok(())
+    }
+
+    pub fn switch_page_down(&mut self, mut stdout: &mut std::io::Stdout) -> Result<()> {
+        if self.page > 0 {
+            clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
+            self.page -= 1;
+        }
+        Ok(())
+    }
+
+    pub fn get_selected_item(&mut self, pos: usize) -> String {
+        self.display[(pos + (self.page * self.height as usize))
+            .checked_sub(1)
+            .unwrap_or(0)]
+        .clone()
+    }
+
+    pub fn remove(&mut self, value: String) {
+        self.display.retain(|x| x == &value);
+    }
+
+    pub fn clear(&mut self) {
+        self.display.clear();
+    }
+
+    pub fn sel_idx_glob(&mut self, pos: usize) -> usize {
+        pos + (self.page * self.height as usize)
+    }
+
+    pub fn draw(&mut self, mut stdout: &mut std::io::Stdout, state: &State) -> Result<()> {
+        // drawing
+        let splited_pags = self.display.chunks((self.height - 1) as usize);
+
+        for i in 1..self.height {
+            &stdout.execute(cursor::MoveTo(self.width + 1, i));
+            &stdout.execute(Print("|"));
+        }
+
+        for (i, v) in &mut splited_pags.into_iter().enumerate() {
+            if i == self.page {
+                for (index, page) in v.into_iter().enumerate() {
+                    if index == state.selected_position && self.focused {
+                        &stdout.execute(SetBackgroundColor(Color::White))?;
+                        &stdout.execute(SetForegroundColor(Color::Black))?;
+                    }
+                    let text = truncate(page.to_string(), self.width);
+                    draw_optimized(&mut stdout, text, self.x, (index + 1) as u16)?;
+                    &stdout.execute(style::ResetColor)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 fn truncate(s: String, max_width: u16) -> String {
@@ -40,166 +146,25 @@ pub fn run_string(s: String, max_width: usize, current_offset: usize) -> String 
     }
 }
 
-pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
+pub fn redraw(
+    mut stdout: &mut std::io::Stdout,
+    state: &State,
+    listboxes: &mut std::vec::Vec<ListBox>,
+) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
+    &stdout.lock().execute(cursor::MoveTo(0, 0))?;
 
-    let mut lineheight = state
-        .tags
-        .content
-        .iter()
-        .max_by_key(|p| p.len())
-        .unwrap()
-        .len() as u16;
-
-    // TODO: Refactor
-
-    let lineheight_album = state
-        .discover
-        .content
-        .iter()
-        .max_by_key(|p| format!("{} by {}", p.title, p.artist).len());
-    let mut lineheight_album_int: u16 = lineheight;
-
-    match lineheight_album {
-        Some(value) => {
-            lineheight_album_int += truncate(
-                format!("{} by {}", value.title, value.artist),
-                cols / COLS_COUNT,
-            )
-            .len() as u16
-        }
-        None => lineheight_album_int += 20,
-    }
-
-    let lineheight_queue = state
-        .queue
-        .content
-        .iter()
-        .max_by_key(|p| format!("{} - {}", p.title, p.artist).len());
-
-    let mut lineheight_queue_int: u16 = lineheight_album_int;
-
-    match lineheight_queue {
-        Some(value) => {
-            lineheight_queue_int += truncate(
-                format!("{} - {}", value.title, value.artist),
-                cols / COLS_COUNT,
-            )
-            .len() as u16
-        }
-        None => lineheight_queue_int += 20,
-    }
-
-    let tag_pages = state.tags.content.chunks((rows - 2) as usize);
-    let album_pages = state.discover.content.chunks((rows - 2) as usize);
-    let queue_pages = state.queue.content.chunks((rows - 3) as usize);
-    let diag_pags = state.diagnostics.content.chunks((rows - 2) as usize);
-
-    // drawing
-    &stdout.lock().execute(cursor::MoveTo(0, 0))?; // Reset cursor position to fix redraw bugs in some terminals
-
-    if state.display_tags {
-        for (i, v) in &mut tag_pages.into_iter().enumerate() {
-            if i == state.tags.selected_page {
-                for (index, page) in v.into_iter().enumerate() {
-                    // this cannopt used hightlight_list function because this list is selectable
-                    if index == state.selected_position && state.current_view == CurrentView::Tags {
-                        &stdout.execute(SetBackgroundColor(Color::White))?;
-                        &stdout.execute(SetForegroundColor(Color::Black))?;
-                        let page_str = page.to_string();
-                        state.tags.selected_tag_name = page_str;
-                    }
-
-                    if state.selected_tags.iter().any(|i| i == page) {
-                        &stdout.execute(SetForegroundColor(Color::Red))?;
-                    }
-
-                    if state.current_view != CurrentView::Tags {
-                        &stdout.execute(SetForegroundColor(Color::Grey))?;
-                    }
-
-                    &stdout
-                        .queue(cursor::MoveTo(0, (index + 1) as u16))?
-                        .queue(Print(truncate(page.to_string(), cols / COLS_COUNT)))?;
-                    &stdout.execute(style::ResetColor)?;
-                }
-            }
-        }
-    } else {
-        lineheight = 0;
-    }
-
-    // discover
-    for (i, v) in &mut album_pages.into_iter().enumerate() {
-        if i == state.discover.selected_page {
-            for (index, page) in v.into_iter().enumerate() {
-                highlight_list(stdout, &state, index, CurrentView::Albums)?;
-
-                if state.current_view != CurrentView::Albums {
-                    &stdout.execute(SetForegroundColor(Color::Grey))?;
-                }
-
-                let formatting = truncate(
-                    format!("{} by {}", page.clone().title, page.clone().artist),
-                    cols / COLS_COUNT,
-                );
-                &stdout
-                    .queue(cursor::MoveTo(lineheight + 1, (index + 1) as u16))?
-                    .queue(Print(formatting))?;
-                &stdout.execute(style::ResetColor)?;
-            }
-        }
-    }
-
-    // queue
-    for (i, v) in &mut queue_pages.into_iter().enumerate() {
-        if i == state.queue.selected_page {
-            for (index, page) in v.into_iter().enumerate() {
-                highlight_list(stdout, &state, index, CurrentView::Queue)?;
-
-                if state.current_view != CurrentView::Queue {
-                    &stdout.execute(SetForegroundColor(Color::Grey))?;
-                }
-
-                let current_idx = index + (i * v.len());
-
-                let formatting = truncate(
-                    format!("{} - {}", page.clone().title, page.clone().artist),
-                    cols / COLS_COUNT,
-                );
-
-                if current_idx == state.queue_pos {
-                    &stdout.execute(SetForegroundColor(Color::Blue))?;
-                }
-
-                &stdout
-                    .queue(cursor::MoveTo(lineheight_album_int + 1, (index + 1) as u16))?
-                    .queue(Print(formatting))?;
-                &stdout.execute(style::ResetColor)?;
-            }
-        }
-    }
-
-    // drawing lines
-    state.draw_line(stdout, lineheight)?;
-    state.draw_line(stdout, lineheight_album_int)?;
-    state.draw_line(stdout, lineheight_queue_int)?;
-
-    // drawing logs window
-    if state.current_view == CurrentView::Diagnositcs {
-        stdout.queue(Clear(ClearType::All))?;
-        for (i, v) in &mut diag_pags.into_iter().enumerate() {
-            if i == state.get_current_page() {
-                for (index, page) in v.into_iter().enumerate() {
-                    highlight_list(stdout, &state, index, CurrentView::Diagnositcs)?;
-
-                    &stdout
-                        .queue(cursor::MoveTo(0, (index + 2) as u16))?
-                        .queue(Print(page))?;
-                    &stdout.execute(style::ResetColor)?;
-                }
-            }
-        }
+    for (i, lists) in listboxes.iter_mut().enumerate() {
+        /*
+        log::info!(
+            "drawn listbox: {}x{}: {} x: {}",
+            lists.width,
+            lists.height,
+            i,
+            lists.x
+        );
+        */
+        lists.draw(&mut stdout, state)?;
     }
 
     if !state.error {
@@ -208,14 +173,15 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
         &stdout.execute(SetBackgroundColor(Color::Red))?;
     }
 
-    let mut fixed_space: i32 = (cols as i32) - (state.statusbar_text.len() as i32) - 28;
-    // test usize oveflow, lol
-    if fixed_space < 0 {
-        fixed_space = 0;
-    }
+    let fixed_space = (cols as usize)
+        .checked_sub(state.statusbar_text.len())
+        .unwrap_or(0)
+        .checked_sub(PROGRAM_NAME.chars().count())
+        .unwrap_or(0);
 
     &stdout.execute(cursor::MoveTo(0, 0))?.execute(Print(format!(
-        "▶ BandcampOnlinePlayer RS | {}{}",
+        "{}{}{}",
+        PROGRAM_NAME,
         &state.statusbar_text,
         " ".repeat(fixed_space as usize)
     )));
@@ -226,11 +192,9 @@ pub fn redraw(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
 pub fn redraw_bottom_bar(stdout: &mut std::io::Stdout, state: &mut State) -> Result<()> {
     let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
-    let mut fixed_space: i32 = (cols as i32) - (state.bottom_text.len() as i32);
-    // test usize oveflow, lol
-    if fixed_space < 0 {
-        fixed_space = 0;
-    }
+    let fixed_space = (cols as usize)
+        .checked_sub(state.bottom_text.len())
+        .unwrap_or(0);
 
     &stdout.execute(SetBackgroundColor(Color::DarkGrey))?;
     &stdout
