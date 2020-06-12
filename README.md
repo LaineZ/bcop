@@ -1,14 +1,14 @@
 # BandcampOnlinePlayer Rust Edition
 **IN DEVELOPMENT! - breakable changes are inevitable**
 
-![Create Release](https://github.com/LaineZ/bc_rs/workflows/Download/badge.svg?event=push)
+![CI Build](https://github.com/LaineZ/bc_rs/workflows/CI%20Build/badge.svg)
 
 
 A next crossplatform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written in Rust!
 
 A simple client for bandcamp.com that's allows listen albums from tags much easier; and provides features like play queue, low memory/cpu usage rather than browser, etc.
 
-You can download latest version from "actions" menu
+You can download latest version from "actions" menu:
 https://github.com/LaineZ/bc_rs/actions
 
 ### CLI/TUI Mode
@@ -19,6 +19,7 @@ This a terminal based interface that uses cross-platform [crossterm]([https://gi
 ### Linux/Mac
 
 Works on any Linux with ALSA-compitable sound card but CI-Builds and future release builds supports **only amd64** architecture. If you want run this on i386, arm64, armhf, ... you need compile it youself.
+
 ```./bandcamp-online-cli```
 
 ![Screenshot](https://i.imgur.com/jKar1mc.png)
