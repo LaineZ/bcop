@@ -123,7 +123,7 @@ impl ListBox {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
                         &stdout.execute(SetForegroundColor(Color::Black))?;
                     }
-                    let text = truncate(page.to_string(), self.width);
+                    let text = truncate(page.to_string(), self.width - 1);
                     draw_optimized(&mut stdout, text, self.x, (index + 1) as u16)?;
                     &stdout.execute(style::ResetColor)?;
                 }
@@ -151,10 +151,10 @@ pub fn redraw(
     state: &State,
     listboxes: &mut std::vec::Vec<ListBox>,
 ) -> Result<()> {
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
+    let (cols, _rows) = size().expect("Unable to get terminal size continue work is not available!");
     &stdout.lock().execute(cursor::MoveTo(0, 0))?;
 
-    for (i, lists) in listboxes.iter_mut().enumerate() {
+    for (_, lists) in listboxes.iter_mut().enumerate() {
         /*
         log::info!(
             "drawn listbox: {}x{}: {} x: {}",

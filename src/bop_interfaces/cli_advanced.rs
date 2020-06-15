@@ -1,7 +1,11 @@
 use crossterm::cursor::DisableBlinking;
 use crossterm::event::read;
 use crossterm::terminal::Clear;
-use std::{io::stdout, sync::{Mutex, Arc}, time::Duration};
+use std::{
+    io::stdout,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use webbrowser;
 
 use super::cli_drawing;
@@ -21,18 +25,16 @@ use crossterm::{
 
 use super::{
     cli_drawing::redraw,
-    cli_structs::{QueuedTrack, State, },
+    cli_structs::{QueuedTrack, State},
 };
 
 use anyhow::Result;
 
-use bc_core::{
-    playback::{FormatTime, Player},
-};
+use bc_core::playback::{FormatTime, Player};
+use cli_drawing::ListBox;
 use cursor::{EnableBlinking, Hide, Show};
 use event::{poll, Event::Key, KeyCode};
 use style::Colorize;
-use cli_drawing::ListBox;
 
 const COLS_COUNT: u16 = 2;
 
@@ -53,12 +55,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     // init
     let stdout = Arc::new(Mutex::new(stdout()));
 
-    let (cols, rows) =
-    size().expect("Unable to get terminal size continue work is not available!"); 
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
     log::info!("Detected terminal size {}x{}", cols, rows);
 
-    let tags = include_str!("tags.list").split("\n").map(|s| s.trim().to_string()).collect();
+    let tags = include_str!("tags.list")
+        .split("\n")
+        .map(|s| s.trim().to_string())
+        .collect();
     println!("Loading gui...");
 
     {
@@ -70,7 +74,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         //stdout.queue(event::EnableMouseCapture)?;
     }
 
-    enable_raw_mode()?;  
+    enable_raw_mode()?;
 
     let mut state = State {
         statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
@@ -89,16 +93,28 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     // init listboxes (PLEASE KEEP ORDER WITH CONSTANTS)
     // tags
-    listboxes.push(ListBox::new(15, rows - 1,0, true));
+    listboxes.push(ListBox::new(15, rows - 1, 0, true));
     // discover
-    listboxes.push(ListBox::new(cols / COLS_COUNT, rows - 1, listboxes[LIST_BOX_TAGS].width + 2, false));
+    listboxes.push(ListBox::new(
+        cols / COLS_COUNT,
+        rows - 1,
+        listboxes[LIST_BOX_TAGS].width + 2,
+        false,
+    ));
     // queue
-    listboxes.push(ListBox::new(cols / COLS_COUNT, rows - 1,  (listboxes[LIST_BOX_DISCOVER].width) + 2, false));
+    listboxes.push(ListBox::new(
+        cols / COLS_COUNT,
+        rows - 1,
+        (listboxes[LIST_BOX_DISCOVER].width) + 2,
+        false,
+    ));
 
-    // push default tags 
+    // push default tags
 
     listboxes[LIST_BOX_TAGS].add_range(tags);
     redraw(&mut stdout.lock().unwrap(), &state, &mut listboxes)?;
+
+    let mut loadedpages = 1;
 
     let mut player = Player::new();
 
@@ -114,15 +130,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             );
 
             let (cols, _rows) =
-            size().expect("Unable to get terminal size continue work is not available!");    
+                size().expect("Unable to get terminal size continue work is not available!");
 
             if let Some(time) = player.get_time() {
                 if !listboxes[LIST_BOX_QUEUE].is_empty() {
                     let mins = state.queue[state.queue_pos].duration / 60.0;
                     let secs = state.queue[state.queue_pos].duration % 60.0;
 
-                    let track_title_base = format!("{} - {} ", state.queue[state.queue_pos].artist,
-                    state.queue[state.queue_pos].title);
+                    let track_title_base = format!(
+                        "{} - {} ",
+                        state.queue[state.queue_pos].artist, state.queue[state.queue_pos].title
+                    );
 
                     if track_title_base.len() >= running_text_offset {
                         running_text_offset += 1;
@@ -131,16 +149,20 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
 
                     let mut split_size: usize = 0;
-                    
-                    if track_title_base.len() > (cols / 2) as usize
-                    {
+
+                    if track_title_base.len() > (cols / 2) as usize {
                         split_size = (cols / 2) as usize;
                     }
 
-                    let track_title = cli_drawing::run_string(track_title_base, (cols / 2) as usize, running_text_offset);
-                    let whitespace = " ".repeat(split_size.checked_sub(track_title.len()).unwrap_or(0));
+                    let track_title = cli_drawing::run_string(
+                        track_title_base,
+                        (cols / 2) as usize,
+                        running_text_offset,
+                    );
+                    let whitespace =
+                        " ".repeat(split_size.checked_sub(track_title.len()).unwrap_or(0));
 
-                    //log::info!("{}", track_title); 
+                    //log::info!("{}", track_title);
                     state.bottom_text = format!(
                         "\r{}/{:02}:{:02} {} {} pos: {} {}",
                         FormatTime(time),
@@ -164,8 +186,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                         state.bottom_text = format!(
                             "Loading track: {} - {}",
-                            state.queue[state.queue_pos].artist,
-                            state.queue[state.queue_pos].title
+                            state.queue[state.queue_pos].artist, state.queue[state.queue_pos].title
                         );
                         player.switch_track(state.queue[state.queue_pos].audio_url.clone());
                     }
@@ -203,7 +224,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Enter.into() {
                     if state.current_view == LIST_BOX_TAGS {
                         if state.selected_tags.len() > 0 {
-                            let mut loadedpages = 1;
                             while state.discover.len() <= (rows - 2) as usize {
                                 loadedpages += 1;
                                 log::info!("Loading discover: {}", loadedpages);
@@ -216,24 +236,21 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             }
 
                             for item in state.discover.iter() {
-                                listboxes[LIST_BOX_DISCOVER].add(format!("{} - {}", item.artist, item.title));
+                                listboxes[LIST_BOX_DISCOVER]
+                                    .add(format!("{} - {}", item.artist, item.title));
                             }
                         }
                     }
                     if state.current_view == LIST_BOX_DISCOVER {
                         let is_album = album_parsing::get_album(
-                            state.discover[listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)]
-                                .tralbum_url
-                                .as_str(),
+                            state.discover[listboxes[LIST_BOX_DISCOVER]
+                                .sel_idx_glob(state.selected_position)]
+                            .tralbum_url
+                            .as_str(),
                         );
 
                         match is_album {
                             Some(album) => {
-                                let album_url = album
-                                    .clone()
-                                    .url
-                                    .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
-
                                 for album_track in album.trackinfo.unwrap() {
                                     match album_track.file.clone() {
                                         Some(album_url) => {
@@ -243,10 +260,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                                     .clone()
                                                     .title
                                                     .unwrap_or("Unknown album".to_string()),
-                                                artist: state.discover
-                                                    [listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)]
-                                                    .clone()
-                                                    .artist,
+                                                artist: state.discover[listboxes
+                                                    [LIST_BOX_DISCOVER]
+                                                    .sel_idx_glob(state.selected_position)]
+                                                .clone()
+                                                .artist,
                                                 title: album_track
                                                     .title
                                                     .unwrap_or("Unknown track title".to_string()),
@@ -256,7 +274,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                                 duration: album_track.duration.unwrap_or(0.0),
                                             };
                                             state.queue.push(pushed_track.clone());
-                                            listboxes[LIST_BOX_QUEUE].add(format!("{} - {}", pushed_track.artist, pushed_track.title));
+                                            listboxes[LIST_BOX_QUEUE].add(format!(
+                                                "{} - {}",
+                                                pushed_track.artist, pushed_track.title
+                                            ));
                                         }
                                         None => {}
                                     }
@@ -265,18 +286,16 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             _ => state.status_bar(
                                 format!(
                                     "Something went wrong while loading {}",
-                                    state.discover[listboxes[LIST_BOX_DISCOVER].sel_idx_glob(state.selected_position)].title
+                                    state.discover[listboxes[LIST_BOX_DISCOVER]
+                                        .sel_idx_glob(state.selected_position)]
+                                    .title
                                 ),
                                 true,
                             ),
                         }
                     }
                     if state.current_view == LIST_BOX_QUEUE {
-                        player.switch_track(
-                            state.queue[state.selected_position]
-                                .audio_url
-                                .clone(),
-                        );
+                        player.switch_track(state.queue[state.selected_position].audio_url.clone());
                         state.queue_pos = state.selected_position;
                     }
                 }
@@ -295,7 +314,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             listboxes[LIST_BOX_QUEUE].clear();
                         }
 
-                        
                         LIST_BOX_DISCOVER => {
                             listboxes[state.current_view].clear();
                             state.discover.clear();
@@ -323,7 +341,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Char('e').into() {
                     player.stop();
                 }
-                
+
                 if pressedkey == KeyCode::Char('c').into() {
                     let mut ctx: ClipboardContext = ClipboardProvider::new()?;
 
@@ -402,13 +420,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     listboxes[state.current_view].focused = true;
                 }
 
-                
                 if pressedkey == KeyCode::Up.into() {
                     // TODO: up scrolling
                     if state.selected_position > 0 {
                         state.selected_position -= 1;
                     } else {
-                        listboxes[state.current_view].switch_page_down(&mut stdout.lock().unwrap())?;
+                        listboxes[state.current_view]
+                            .switch_page_down(&mut stdout.lock().unwrap())?;
                         state.selected_position = listboxes[state.current_view].height as usize - 2;
                     }
                 }
@@ -418,8 +436,25 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     if state.selected_position < listboxes[state.current_view].height as usize - 2 {
                         state.selected_position += 1;
                     } else {
-                        listboxes[state.current_view].switch_page_up(&mut stdout.lock().unwrap())?;
+                        listboxes[state.current_view]
+                            .switch_page_up(&mut stdout.lock().unwrap())?;
                         state.selected_position = 0;
+                        if loadedpages > 0 && state.current_view == LIST_BOX_DISCOVER {
+                            loadedpages += 1;
+
+                            log::info!("Loading discover: {}", loadedpages);
+                            let discover = album_parsing::get_tag_data(
+                                state.selected_tags.clone(),
+                                loadedpages,
+                            )?
+                            .items;
+                            state.discover.extend(discover.clone());
+
+                            for item in discover.iter() {
+                                listboxes[LIST_BOX_DISCOVER]
+                                    .add(format!("{} - {}", item.artist, item.title));
+                            }
+                        }
                     }
                 }
 
@@ -455,7 +490,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 if pressedkey == KeyCode::Char(' ').into() {
                     // TODO: if aready added - clear
                     if state.current_view == LIST_BOX_TAGS {
-                        state.selected_tags.push(listboxes[LIST_BOX_TAGS].get_selected_item(state.selected_position));
+                        state.selected_tags.push(
+                            listboxes[LIST_BOX_TAGS].get_selected_item(state.selected_position),
+                        );
                     } else {
                         // TODO: Play pause goes here
                         player.set_paused(!player.is_paused());
@@ -469,9 +506,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
             event::Event::Resize(w, h) => {
                 if w > 50 && h > 10 {
-                    listboxes[LIST_BOX_DISCOVER].clone().resize(15, rows - 1,0);
-                    listboxes[LIST_BOX_DISCOVER].clone().resize(cols / COLS_COUNT, rows - 1, listboxes[LIST_BOX_TAGS].width + 2);
-                    listboxes[LIST_BOX_QUEUE].clone().resize(cols / COLS_COUNT, rows - 1,  listboxes[LIST_BOX_DISCOVER].width + 2);
+                    listboxes[LIST_BOX_DISCOVER].clone().resize(15, rows - 1, 0);
+                    listboxes[LIST_BOX_DISCOVER].clone().resize(
+                        cols / COLS_COUNT,
+                        rows - 1,
+                        listboxes[LIST_BOX_TAGS].width + 2,
+                    );
+                    listboxes[LIST_BOX_QUEUE].clone().resize(
+                        cols / COLS_COUNT,
+                        rows - 1,
+                        listboxes[LIST_BOX_DISCOVER].width + 2,
+                    );
 
                     &stdout.lock().unwrap().execute(Clear(ClearType::All))?;
                     redraw(&mut stdout.lock().unwrap(), &mut state, &mut listboxes)?;
@@ -479,7 +524,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     &stdout.lock().unwrap().execute(Clear(ClearType::All))?;
                     &stdout.lock().unwrap().execute(cursor::MoveTo(0, 0))?;
                     &stdout
-                        .lock().unwrap()
+                        .lock()
+                        .unwrap()
                         .execute(style::PrintStyledContent("terminal is too small".red()))?;
                 }
             }
