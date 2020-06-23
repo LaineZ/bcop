@@ -331,7 +331,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 }
 
                 if pressedkey == KeyCode::Char('o').into() {
-                    webbrowser::open(&state.queue[state.queue_pos].album_url)?;
+                    if state.queue.len() > 0 {
+                        webbrowser::open(&state.queue[state.queue_pos].album_url)?;
+                    } else {
+                        state.status_bar(String::from("Queue list is empty!"), true);
+                    }
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {

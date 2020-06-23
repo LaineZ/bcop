@@ -123,7 +123,7 @@ impl ListBox {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
                         &stdout.execute(SetForegroundColor(Color::Black))?;
                     }
-                    let text = truncate(page.to_string(), self.width - 1);
+                    let text = truncate(page.to_string(), self.width);
                     draw_optimized(&mut stdout, text, self.x, (index + 1) as u16)?;
                     &stdout.execute(style::ResetColor)?;
                 }
