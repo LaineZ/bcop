@@ -26,12 +26,21 @@ jobs:
           - build: linux
             os: ubuntu-latest
             rust: stable
+          - build: linux-i586
+            os: ubuntu-latest
+            rust: i586-unknown-linux-gnu
+          - build: linux-armv7hf
+            os: ubuntu-latest
+            rust: armv7-unknown-linux-musleabihf
           - build: macos
             os: macos-latest
             rust: stable
           - build: windows
             os: windows-latest
             rust: stable
+          - build: windows x32
+            os: windows-latest
+            rust: i586-pc-windows-msvc
 
     steps:
     - uses: actions/checkout@v1
@@ -60,11 +69,11 @@ jobs:
       run: mkdir artifacts
 
     - name: Create archive for Linux
-      run: strip ./target/release/${{ env.RELEASE_BIN }} && 7z a -ttar -so -an ./target/release/${{ env.RELEASE_BIN }} ${{ env.RELEASE_ADDS }} | 7z a -si ./artifacts/${{ env.RELEASE_BIN }}-linux-x86_64.tar.gz
+      run: strip ./target/release/${{ env.RELEASE_BIN }} && 7z a -ttar -so -an ./target/release/${{ env.RELEASE_BIN }} ${{ env.RELEASE_ADDS }} | 7z a -si ./artifacts/${{ env.RELEASE_BIN }}-${{ matrix.rust }}.tar.gz
       if: matrix.os == 'ubuntu-latest'
 
     - name: Create archive for Windows
-      run: 7z a -tzip ./artifacts/${{ env.RELEASE_BIN }}-windows-x86_64.zip ./target/release/${{ env.RELEASE_BIN }}.exe ${{ env.RELEASE_ADDS }}
+      run: 7z a -tzip ./artifacts/${{ env.RELEASE_BIN }}-${{ matrix.rust }}.zip ./target/release/${{ env.RELEASE_BIN }}.exe ${{ env.RELEASE_ADDS }}
       if: matrix.os == 'windows-latest'
 
     - name: Install p7zip
@@ -76,9 +85,8 @@ jobs:
       run: 7z a -tzip ./artifacts/${{ env.RELEASE_BIN }}-mac-x86_64.zip ./target/release/${{ env.RELEASE_BIN }} ${{ env.RELEASE_ADDS }}
       if: matrix.os == 'macos-latest'
 
-    # This will double-zip
-    # See - https://github.com/actions/upload-artifact/issues/39
-    - uses: actions/upload-artifact@v1
+
+    - uses: actions/upload-artifact@v2
       name: Upload archive
       with:
         name: ${{ runner.os }}

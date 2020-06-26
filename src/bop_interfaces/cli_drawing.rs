@@ -7,24 +7,22 @@ use crossterm::{
 };
 
 use super::cli_structs::State;
+use unicode_truncate::UnicodeTruncateStr;
+use unicode_truncate::Alignment;
 
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 const PROGRAM_NAME: &str = "▶ BandcampOnlinePlayer RS | ";
 
-fn draw_optimized(stdout: &mut std::io::Stdout, text: String, x: u16, y: u16) -> Result<()> {
-    &stdout.queue(cursor::MoveTo(x, y))?;
-    &stdout.queue(Print(text))?;
-    Ok(())
-}
-
 fn clear_sqr(stdout: &mut std::io::Stdout, x: u16, y: u16, w: u16, h: u16) -> Result<()> {
+    /*
     for xc in x..w {
         for yc in y..h {
             &stdout.queue(cursor::MoveTo(xc, yc))?;
             &stdout.queue(Print(" "))?;
         }
     }
+    */
     Ok(())
 }
 
@@ -111,6 +109,9 @@ impl ListBox {
         // drawing
         let splited_pags = self.display.chunks((self.height - 1) as usize);
 
+        &stdout.execute(cursor::MoveTo(self.width - 10, 1));
+        //&stdout.execute(Print(format!("w: {} h: {}", self.width, self.height)));
+
         for i in 1..self.height {
             &stdout.execute(cursor::MoveTo(self.width + 1, i));
             &stdout.execute(Print("|"));
@@ -123,8 +124,9 @@ impl ListBox {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
                         &stdout.execute(SetForegroundColor(Color::Black))?;
                     }
-                    let text = truncate(page.to_string(), self.width);
-                    draw_optimized(&mut stdout, text, self.x, (index + 1) as u16)?;
+                    let text = page.unicode_pad(self.width as usize - 1, Alignment::Left, true);
+                    &stdout.queue(cursor::MoveTo(self.x, index as u16 + 1))?;
+                    &stdout.queue(Print(text))?;
                     &stdout.execute(style::ResetColor)?;
                 }
             }
@@ -132,10 +134,6 @@ impl ListBox {
 
         Ok(())
     }
-}
-
-fn truncate(s: String, max_width: u16) -> String {
-    s.chars().take(max_width as usize).collect()
 }
 
 pub fn run_string(s: String, max_width: usize, current_offset: usize) -> String {

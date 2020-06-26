@@ -19,6 +19,7 @@ log = "0.4.8"
 flexi_logger = "0.15.2"
 clipboard = "0.5.0"
 rand = "0.7.3"
+unicode-truncate = "0.1.1"
 
 [dependencies.cpal]
 git = "https://github.com/RustAudio/cpal.git"
