@@ -7,22 +7,20 @@ use crossterm::{
 };
 
 use super::cli_structs::State;
-use unicode_truncate::UnicodeTruncateStr;
 use unicode_truncate::Alignment;
+use unicode_truncate::UnicodeTruncateStr;
 
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 const PROGRAM_NAME: &str = "▶ BandcampOnlinePlayer RS | ";
 
 fn clear_sqr(stdout: &mut std::io::Stdout, x: u16, y: u16, w: u16, h: u16) -> Result<()> {
-    /*
     for xc in x..w {
         for yc in y..h {
             &stdout.queue(cursor::MoveTo(xc, yc))?;
             &stdout.queue(Print(" "))?;
         }
     }
-    */
     Ok(())
 }
 
@@ -72,7 +70,7 @@ impl ListBox {
 
     pub fn switch_page_up(&mut self, mut stdout: &mut std::io::Stdout) -> Result<()> {
         if self.page < self.get_page_count() {
-            clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
+            //clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
             self.page += 1;
         }
         Ok(())
@@ -80,7 +78,7 @@ impl ListBox {
 
     pub fn switch_page_down(&mut self, mut stdout: &mut std::io::Stdout) -> Result<()> {
         if self.page > 0 {
-            clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
+            //clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
             self.page -= 1;
         }
         Ok(())
@@ -119,12 +117,17 @@ impl ListBox {
 
         for (i, v) in &mut splited_pags.into_iter().enumerate() {
             if i == self.page {
+                let disp = self.height as usize - 1 / self.display.len();
+                if v.len() < self.height as usize || self.page == disp && disp > 2   {
+                    clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
+                }
+
                 for (index, page) in v.into_iter().enumerate() {
                     if index == state.selected_position && self.focused {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
                         &stdout.execute(SetForegroundColor(Color::Black))?;
                     }
-                    let text = page.unicode_pad(self.width as usize - 1, Alignment::Left, true);
+                    let text = page.unicode_pad(self.width as usize - 2, Alignment::Left, true);
                     &stdout.queue(cursor::MoveTo(self.x, index as u16 + 1))?;
                     &stdout.queue(Print(text))?;
                     &stdout.execute(style::ResetColor)?;
@@ -149,7 +152,8 @@ pub fn redraw(
     state: &State,
     listboxes: &mut std::vec::Vec<ListBox>,
 ) -> Result<()> {
-    let (cols, _rows) = size().expect("Unable to get terminal size continue work is not available!");
+    let (cols, _rows) =
+        size().expect("Unable to get terminal size continue work is not available!");
     &stdout.lock().execute(cursor::MoveTo(0, 0))?;
 
     for (_, lists) in listboxes.iter_mut().enumerate() {
