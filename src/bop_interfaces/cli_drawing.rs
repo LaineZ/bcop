@@ -7,22 +7,13 @@ use crossterm::{
 };
 
 use super::cli_structs::State;
+use super::cli_optimized::FrameBuffer;
 use unicode_truncate::Alignment;
 use unicode_truncate::UnicodeTruncateStr;
 
 use anyhow::Result;
 use style::{Color, SetForegroundColor};
 const PROGRAM_NAME: &str = "▶ BandcampOnlinePlayer RS | ";
-
-fn clear_sqr(stdout: &mut std::io::Stdout, x: u16, y: u16, w: u16, h: u16) -> Result<()> {
-    for xc in x..w {
-        for yc in y..h {
-            &stdout.queue(cursor::MoveTo(xc, yc))?;
-            &stdout.queue(Print(" "))?;
-        }
-    }
-    Ok(())
-}
 
 #[derive(Clone)]
 pub struct ListBox {
@@ -117,11 +108,6 @@ impl ListBox {
 
         for (i, v) in &mut splited_pags.into_iter().enumerate() {
             if i == self.page {
-                let disp = self.height as usize - 1 / self.display.len();
-                if v.len() < self.height as usize || self.page == disp && disp > 2   {
-                    clear_sqr(&mut stdout, self.x, 1, self.width, self.height)?;
-                }
-
                 for (index, page) in v.into_iter().enumerate() {
                     if index == state.selected_position && self.focused {
                         &stdout.execute(SetBackgroundColor(Color::White))?;
