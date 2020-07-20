@@ -25,7 +25,7 @@ use crossterm::{
 
 use super::{
     cli_drawing::redraw,
-    cli_structs::{QueuedTrack, State},
+    cli_structs::{QueuedTrack, State, Queue}, cli_optimized::FrameBuffer,
 };
 
 use anyhow::Result;
@@ -80,13 +80,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         statusbar_text: "[Space]: Select Tags [Enter]: Load tag albums".to_string(),
         bottom_text: "Nothing...".to_string(),
         error: false,
-        shuffle: false,
         current_view: LIST_BOX_TAGS,
         selected_tags: Vec::new(),
         discover: Vec::new(),
-        queue: Vec::new(),
         selected_position: 0,
-        queue_pos: 0,
     };
 
     let mut listboxes = Vec::new();
@@ -115,80 +112,83 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     redraw(&mut stdout.lock().unwrap(), &state, &mut listboxes)?;
 
     let mut loadedpages = 1;
+    let player = Arc::new(Mutex::new(Player::new()));
 
-    let mut player = Player::new();
+        let playern = player.clone();
+        let mut queue_manager = Queue::new(Box::new(move |track| {
+            //state.bottom_text = format!("Loading track: {} - {}", track.artist, track.title);
+            playern.lock().unwrap().switch_track(track.audio_url);
+        }));
 
     let mut running_text_offset: usize = 0;
 
     loop {
-        // 60 FPS rendering, lol
         while !poll(Duration::from_millis(250))? {
             let ctrl_text = format!(
                 "volume: {}% shuffle: {}",
-                player.get_volume(),
-                state.shuffle
+                player.lock().unwrap().get_volume(),
+                queue_manager.shuffle
             );
 
             let (cols, _rows) =
                 size().expect("Unable to get terminal size continue work is not available!");
 
-            if let Some(time) = player.get_time() {
-                if !listboxes[LIST_BOX_QUEUE].is_empty() {
-                    let mins = state.queue[state.queue_pos].duration / 60.0;
-                    let secs = state.queue[state.queue_pos].duration % 60.0;
-
-                    let track_title_base = format!(
-                        "{} - {} ",
-                        state.queue[state.queue_pos].artist, state.queue[state.queue_pos].title
-                    );
-
-                    if track_title_base.len() >= running_text_offset {
-                        running_text_offset += 1;
-                    } else {
-                        running_text_offset = 0;
-                    }
-
-                    let mut split_size: usize = 0;
-
-                    if track_title_base.len() > (cols / 2) as usize {
-                        split_size = (cols / 2) as usize;
-                    }
-
-                    let track_title = cli_drawing::run_string(
-                        track_title_base,
-                        (cols / 2) as usize,
-                        running_text_offset,
-                    );
-                    let whitespace =
-                        " ".repeat(split_size.checked_sub(track_title.len()).unwrap_or(0));
-
-                    //log::info!("{}", track_title);
-                    state.bottom_text = format!(
-                        "\r{}/{:02}:{:02} {} {} pos: {} {}",
-                        FormatTime(time),
-                        mins as u32,
-                        secs as u32,
-                        track_title,
-                        whitespace,
-                        state.queue_pos,
-                        ctrl_text
-                    );
-
-                    if (state.queue[state.queue_pos].duration - time.as_secs_f64()) < 1.0
-                        && state.queue.len() - 1 > state.queue_pos
-                    {
-                        if !state.shuffle {
-                            state.queue_pos += 1;
-                        } else {
-                            let mut rng = rand::thread_rng();
-                            state.queue_pos = rng.gen_range(0, state.queue.len());
+            if let Some(time) = player.lock().unwrap().get_time() {
+                match queue_manager.get_current_track() {
+                    Some(track) => {
+                        if !listboxes[LIST_BOX_QUEUE].is_empty() {
+                            let mins = track.duration / 60.0;
+                            let secs = track.duration % 60.0;
+        
+                            let track_title_base = format!(
+                                "{} - {} ",
+                                track.artist, track.title
+                            );
+        
+                            if track_title_base.len() >= running_text_offset {
+                                running_text_offset += 1;
+                            } else {
+                                running_text_offset = 0;
+                            }
+        
+                            let mut split_size: usize = 0;
+        
+                            if track_title_base.len() > (cols / 2) as usize {
+                                split_size = (cols / 2) as usize;
+                            }
+        
+                            let track_title = cli_drawing::run_string(
+                                track_title_base,
+                                (cols / 2) as usize,
+                                running_text_offset,
+                            );
+                            let whitespace =
+                                " ".repeat(split_size.checked_sub(track_title.len()).unwrap_or(0));
+        
+                            //log::info!("{}", track_title);
+                            state.bottom_text = format!(
+                                "\r{}/{:02}:{:02} {} {} pos: {} {}",
+                                FormatTime(time),
+                                mins as u32,
+                                secs as u32,
+                                track_title,
+                                whitespace,
+                                queue_manager.queue_pos,
+                                ctrl_text
+                            );
+        
+                            if track.duration - time.as_secs_f64() < 1.0
+                            {
+                                if !queue_manager.shuffle {
+                                    queue_manager.next();
+                                } else {
+                                    // TODO: Shuffle
+                                }
+                            }
                         }
-
-                        state.bottom_text = format!(
-                            "Loading track: {} - {}",
-                            state.queue[state.queue_pos].artist, state.queue[state.queue_pos].title
-                        );
-                        player.switch_track(state.queue[state.queue_pos].audio_url.clone());
+                    }
+                    None => {
+                        state.bottom_text = format!("⯀ {}", ctrl_text);
                     }
                 }
             } else {
@@ -242,61 +242,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         }
                     }
                     if state.current_view == LIST_BOX_DISCOVER {
-                        let is_album = album_parsing::get_album(
-                            state.discover[listboxes[LIST_BOX_DISCOVER]
-                                .sel_idx_glob(state.selected_position)]
-                            .tralbum_url
-                            .as_str(),
-                        );
-
-                        match is_album {
-                            Some(album) => {
-                                for album_track in album.trackinfo.unwrap() {
-                                    match album_track.file.clone() {
-                                        Some(album_url) => {
-                                            let pushed_track = QueuedTrack {
-                                                album: album
-                                                    .current
-                                                    .clone()
-                                                    .title
-                                                    .unwrap_or("Unknown album".to_string()),
-                                                artist: state.discover[listboxes
-                                                    [LIST_BOX_DISCOVER]
-                                                    .sel_idx_glob(state.selected_position)]
-                                                .clone()
-                                                .artist,
-                                                title: album_track
-                                                    .title
-                                                    .unwrap_or("Unknown track title".to_string()),
-                                                // TODO: switch to normal error-handling and not this garbage that panic...
-                                                audio_url: album_track.file.unwrap().mp3128,
-                                                album_url: album_url.mp3128,
-                                                duration: album_track.duration.unwrap_or(0.0),
-                                            };
-                                            state.queue.push(pushed_track.clone());
-                                            listboxes[LIST_BOX_QUEUE].add(format!(
-                                                "{} - {}",
-                                                pushed_track.artist, pushed_track.title
-                                            ));
-                                        }
-                                        None => {}
-                                    }
-                                }
-                            }
-                            _ => state.status_bar(
-                                format!(
-                                    "Something went wrong while loading {}",
-                                    state.discover[listboxes[LIST_BOX_DISCOVER]
-                                        .sel_idx_glob(state.selected_position)]
-                                    .title
-                                ),
-                                true,
-                            ),
-                        }
+                        queue_manager.add_album_in_queue(state.discover[state.selected_position].artist.clone(), state.discover[state.selected_position].tralbum_url.as_str());
                     }
                     if state.current_view == LIST_BOX_QUEUE {
-                        player.switch_track(state.queue[state.selected_position].audio_url.clone());
-                        state.queue_pos = state.selected_position;
+                        queue_manager.set(state.selected_position);
                     }
                 }
 
@@ -309,8 +258,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         }
 
                         LIST_BOX_QUEUE => {
-                            player.pause();
-                            player.stop();
+                            player.lock().unwrap().pause();
+                            player.lock().unwrap().stop();
                             listboxes[LIST_BOX_QUEUE].clear();
                         }
 
@@ -325,25 +274,29 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     }
                     if state.current_view == LIST_BOX_QUEUE {
                         // stop playback
-                        player.pause();
-                        player.stop();
+                        player.lock().unwrap().pause();
+                        player.lock().unwrap().stop();
                     }
                 }
 
                 if pressedkey == KeyCode::Char('o').into() {
-                    if state.queue.len() > 0 {
-                        webbrowser::open(&state.queue[state.queue_pos].album_url)?;
-                    } else {
-                        state.status_bar(String::from("Queue list is empty!"), true);
+                    match queue_manager.get_current_track() {
+                        Some(track) => {
+                            webbrowser::open(track.album_url.as_str())?;
+                        }
+
+                        None => {
+                            state.status_bar(String::from("Queue list is empty!"), true);
+                        }
                     }
                 }
 
                 if pressedkey == KeyCode::Char('q').into() {
-                    state.shuffle = !state.shuffle;
+                    queue_manager.shuffle = !queue_manager.shuffle;
                 }
 
                 if pressedkey == KeyCode::Char('e').into() {
-                    player.stop();
+                    player.lock().unwrap().stop();
                 }
 
                 if pressedkey == KeyCode::Char('c').into() {
@@ -361,42 +314,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                                     break;
                                 }
 
-                                let is_album = album_parsing::get_album(clipboard.as_str());
-
-                                match is_album {
-                                Some(album) => {
-                                    let album_url = album
-                                        .clone()
-                                        .url
-                                        .unwrap_or("https://ipotekin.bandcamp.com/".to_string());
-                                    for album_track in album.trackinfo.unwrap() {
-                                        let artist = album.current.clone().artist.unwrap_or("Unknown artist".to_string());
-                                        let title = album_track.title.unwrap_or("Unknown track title".to_string());
-
-                                        state.queue.push(QueuedTrack {
-                                            album: album
-                                                .current
-                                                .clone()
-                                                .title
-                                                .unwrap_or("Unknown album".to_string()),
-                                            artist: artist.clone(),
-                                            title: title.clone(),
-                                            // TODO: switch to normal error-handling and not this garbage that panic...
-                                            audio_url: album_track.file.ok_or_else(|| anyhow::anyhow!("Failed to get mp3 link!"))?.mp3128,
-                                            album_url: album_url.clone(),
-                                            duration: album_track.duration.unwrap_or(0.0),
-                                        });
-                                        listboxes[LIST_BOX_QUEUE].add(format!("{} - {}", artist.clone(), title.clone()));
-                                    }
-                                }
-                                _ => state.status_bar(
-                                    format!(
-                                        "Something went wrong while loading album from clipboard: {}...",
-                                        clipboard.chars().take(20).collect::<String>()
-                                    ),
-                                    true,
-                                ),
-                            }
+                                queue_manager.add_album_in_queue(clipboard.clone(), clipboard.as_str())
                             });
                         }
                         Err(_) => {
@@ -464,23 +382,23 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                 if pressedkey == KeyCode::Left.into() {
                     state.bottom_text = "Tracking back by 5 seconds... Please wait...".to_string();
-                    player.seek_backward(Duration::from_secs(5));
+                    player.lock().unwrap().seek_backward(Duration::from_secs(5));
                 }
 
                 if pressedkey == KeyCode::Char('w').into() {
-                    if player.get_volume() < 100 {
-                        player.increase_volume(1);
+                    if player.lock().unwrap().get_volume() < 100 {
+                        player.lock().unwrap().increase_volume(1);
                     }
                 }
 
                 if pressedkey == KeyCode::Char('s').into() {
-                    player.decrease_volume(1);
+                    player.lock().unwrap().decrease_volume(1);
                 }
 
                 if pressedkey == KeyCode::Right.into() {
                     state.bottom_text =
                         "Tracking forward by 5 seconds... Please wait...".to_string();
-                    player.seek_forward(Duration::from_secs(5));
+                    player.lock().unwrap().seek_forward(Duration::from_secs(5));
                 }
 
                 if pressedkey == KeyCode::PageUp.into() {
@@ -499,7 +417,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         );
                     } else {
                         // TODO: Play pause goes here
-                        player.set_paused(!player.is_paused());
+                        player.lock().unwrap().set_paused(!player.lock().unwrap().is_paused());
                     }
                 }
 

@@ -1,5 +1,6 @@
 use std::mem;
 
+#[derive(Clone)]
 pub struct FrameBuffer {
     frame: Vec<char>,
     width: u16,
@@ -9,7 +10,7 @@ pub struct FrameBuffer {
 impl FrameBuffer {
     pub fn create(width: u16, height: u16) -> Self {
         let mut frame = Vec::with_capacity((width * height).into());
-        for indexes in 0..(width * height) {
+        for _ in 0..(width * height) {
             frame.push(' '); // empty symbol...
         }
         FrameBuffer { frame, width, height }

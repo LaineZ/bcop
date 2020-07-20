@@ -14,7 +14,7 @@ https://github.com/LaineZ/bc_rs/actions
 ### CLI/TUI Mode
 This a terminal based interface that uses cross-platform [crossterm]([https://github.com/crossterm-rs/crossterm) library
 
-### Running
+## Running
 
 ### Linux/Mac
 
