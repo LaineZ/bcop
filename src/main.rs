@@ -2,8 +2,8 @@ mod bc_core;
 mod bop_interfaces;
 mod model;
 
+use bop_interfaces::tui;
 use std::env;
-use bop_interfaces::cli_advanced;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -29,12 +29,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if args.len() < 2 {
-        cli_advanced::loadinterface(args.clone())?;
+        tui::loadinterface(args.clone())?;
         std::process::exit(0);
     }
 
     match args[1].as_str() {
-        "cli" => cli_advanced::loadinterface(args)?,
+        "cli" => tui::loadinterface(args)?,
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
             println!("Allowed options:");

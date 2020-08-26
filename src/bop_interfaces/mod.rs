@@ -1,4 +1,3 @@
-pub mod cli_advanced;
-pub mod cli_drawing;
-pub mod cli_structs;
-pub mod cli_optimized;
+pub mod tui;
+pub mod tui_drawing;
+pub mod tui_structs;

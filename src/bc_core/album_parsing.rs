@@ -50,7 +50,7 @@ pub fn parse(html_code: &str) -> Option<String> {
     Some(album_data_json)
 }
 
-pub fn get_tag_data(tags: Vec<String>, page: i32) -> Result<DiscoverData> {
+pub fn get_tag_data(tags: Vec<String>, page: usize) -> Result<DiscoverData> {
     let request = json!({
         "filters": {
             "format": "all",
