@@ -1,24 +1,13 @@
-use super::{tui_drawing::{redraw, ListBox}, tui_structs::State};
-use crossterm::{
-    cursor::{DisableBlinking, Hide},
-    terminal::{enable_raw_mode, size, Clear, ClearType},
-    QueueableCommand,
+use super::{
+    listbox::ListBox,
+    tui_structs::State,
 };
-use std::io::stdout;
-use console_fb::FrameBuffer;
+use console_engine::{crossterm::terminal::size, KeyCode};
 
-// Listbox constants =)
-const COLS_COUNT: u16 = 2;
-const LIST_BOX_TAGS: usize = 0;
-const LIST_BOX_DISCOVER: usize = 1;
-const LIST_BOX_QUEUE: usize = 2;
+const LIST_TAGS: usize = 0;
+const LIST_DISCOVER: usize = 1;
 
 pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    // Terminal initialization
-    let mut stdout = stdout();
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
-    log::info!("Detected terminal size {}x{}", cols, rows);
-
     // Tag loading
     let tags: Vec<String> = include_str!("tags.list")
         .split("\n")
@@ -27,38 +16,56 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     // Terminal configuration
     println!("Loading TUI...");
-    stdout.queue(DisableBlinking)?;
-    stdout.queue(Hide)?;
-    stdout.queue(Clear(ClearType::All))?;
-    // Linux only feature
-    enable_raw_mode()?;
 
-    let mut listboxes = Vec::new();
-    // init listboxes (PLEASE KEEP ORDER WITH CONSTANTS)
-    // tags
-    listboxes.push(ListBox::new(15, rows - 1, 0, true));
-    listboxes[LIST_BOX_TAGS].add_range(tags);
+    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
 
-    // discover
-    listboxes.push(ListBox::new(
-        cols / COLS_COUNT,
-        rows - 1,
-        listboxes[LIST_BOX_TAGS].width + 2,
-        false,
-    ));
-    // queue
-    listboxes.push(ListBox::new(
-        cols / COLS_COUNT,
-        rows - 1,
-        (listboxes[LIST_BOX_DISCOVER].width) + 2,
-        false,
-    ));
+    let mut listbox = ListBox::new(cols, rows);
+    listbox.display.extend(tags);
 
-    let state = State::new();
+    let mut current_select = LIST_TAGS;
+    let mut state = State::new();
 
-    let mut framebuffer = FrameBuffer::create(cols, rows);
+    let mut engine = console_engine::ConsoleEngine::init(cols as u32, rows as u32, 30);
 
-    redraw(&state, &mut framebuffer, &mut listboxes)?;
-    framebuffer.push_fb(&mut stdout, true);
+    loop {
+        engine.wait_frame(); // wait for next frame + capture inputs
+        engine.check_resize();
+        engine.clear_screen(); // reset the screen
+        engine.set_screen(listbox.draw());
+        engine.draw();
+
+        if engine.is_key_pressed(KeyCode::Esc) {
+            break;
+        }
+
+        if engine.is_key_held(KeyCode::Down) {
+            listbox.scroll_down();
+        }
+
+
+        if engine.is_key_held(KeyCode::Up) {
+            listbox.scroll_up();
+        }
+
+        if engine.is_key_pressed(KeyCode::Char('l')) {
+            state.extend_discover()?;
+            for data in state.discover.iter_mut() {
+                listbox.display.push(format!("{} - {}", data.artist, data.title))
+            }
+        }
+
+        if engine.is_key_pressed(KeyCode::Enter) {
+            if current_select == LIST_TAGS {
+                current_select = LIST_DISCOVER;
+                state.selected_tags.push(listbox.display[listbox.position].clone());
+                listbox.display.clear();
+                state.extend_discover()?;
+                for data in state.discover.iter_mut() {
+                    listbox.display.push(format!("{} - {}", data.artist, data.title))
+                }
+            }
+        }
+
+    }
     Ok(())
 }

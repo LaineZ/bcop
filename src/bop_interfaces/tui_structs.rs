@@ -13,20 +13,18 @@ pub struct State {
     pub current_view: usize,
     pub selected_tags: Vec<String>,
     pub discover: Vec<discover::Item>,
-    pub selected_position: usize,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            header_text: "привет".to_string(),
-            bottom_text: "привет".to_string(),
+            header_text: "Welcome!".to_string(),
+            bottom_text: "No player".to_string(),
             error: false,
             current_view: 0,
             loaded_discover_pages: 0,
             selected_tags: Vec::new(),
             discover: Vec::new(),
-            selected_position: 0,
         }
     }
 

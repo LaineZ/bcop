@@ -1,3 +1,3 @@
 pub mod tui;
-pub mod tui_drawing;
+pub mod listbox;
 pub mod tui_structs;
