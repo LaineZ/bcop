@@ -1,5 +1,4 @@
-use console_engine::{Color, pixel::Pixel, screen::Screen, pixel};
-const BASE_HEADER: &str = "▶ BandcampOnlinePlayer RS | ";
+use console_engine::{screen::Screen, Color};
 
 #[derive(Clone)]
 pub struct ListBox {
@@ -7,20 +6,24 @@ pub struct ListBox {
     pub page: usize,
     pub position: usize,
     pub screen: Screen,
+    pub focused: bool,
 }
 
 impl ListBox {
-    pub fn new(w: u16, h: u16,) -> Self {
+    pub fn new(w: u16, h: u16, focused: bool) -> Self {
         Self {
             display: Vec::new(),
             page: 0,
             position: 0,
             screen: Screen::new_empty(w as u32, h as u32),
+            focused,
         }
     }
 
     pub fn get_page_count(&mut self) -> usize {
-        self.display.chunks((self.screen.get_height() - 2) as usize).len()
+        self.display
+            .chunks((self.screen.get_height() - 2) as usize)
+            .len()
     }
 
     pub fn scroll_down(&mut self) {
@@ -66,8 +69,18 @@ impl ListBox {
         self.display.retain(|x| x == &value);
     }
 
+    pub fn get_selected_str(&mut self) -> String {
+        self.display[self.position].clone()
+    }
+
     pub fn sel_idx_glob(&mut self, pos: usize) -> usize {
         pos + (self.page * self.screen.get_height() as usize)
+    }
+
+    pub fn resize(&mut self, w: u16, h: u16) {
+        self.position = 0;
+        self.screen.clear();
+        self.screen.resize(w as u32, h as u32);
     }
 
     pub fn draw(&mut self) -> &Screen {
@@ -78,14 +91,14 @@ impl ListBox {
             if i == self.page {
                 for (index, page) in v.into_iter().enumerate() {
                     if index == self.position {
-                        self.screen.print_fbg(0, index as i32, page, Color::Black, Color::White)
+                        self.screen
+                            .print_fbg(0, index as i32, page, Color::Black, Color::White)
                     } else {
                         self.screen.print(0, index as i32, page);
                     }
                 }
             }
         }
-
         &self.screen
     }
 }

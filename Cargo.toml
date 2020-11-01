@@ -13,14 +13,13 @@ ureq = "1.5.1"
 regex = "1.4.1"
 anyhow = "1.0"
 minimp3 = "0.5.0"
-crossterm = "0.18.1"
 webbrowser = "0.5.5"
 log = "0.4.11"
 flexi_logger = "0.16.1"
 clipboard = "0.5.0"
 rand = "0.7.3"
 unicode-truncate = "0.1.1"
-console_engine = "1.2.0"
+console_engine = {git = "https://github.com/VincentFoulon80/console_engine"}
 
 [dependencies.cpal]
 git = "https://github.com/RustAudio/cpal.git"
