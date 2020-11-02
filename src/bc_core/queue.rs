@@ -1,3 +1,6 @@
+use core::fmt;
+use std::{fmt::Display, time::Duration};
+
 use super::album_parsing;
 
 #[derive(Clone)]
@@ -7,7 +10,7 @@ pub struct QueuedTrack {
     pub album: String,
     pub audio_url: String,
     pub album_url: String,
-    pub duration: f64,
+    pub duration: Duration,
 }
 
 impl Default for QueuedTrack {
@@ -18,8 +21,14 @@ impl Default for QueuedTrack {
             audio_url: String::new(),
             album: String::new(),
             album_url: String::new(),
-            duration: 0.0,
+            duration: Duration::from_secs(0),
         }
+    }
+}
+
+impl Display for QueuedTrack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} - {}", self.artist, self.title)
     }
 }
 
@@ -98,7 +107,7 @@ impl<'a> Queue<'a> {
                                 // TODO: switch to normal error-handling and not this garbage that panic...
                                 audio_url: album_track.file.unwrap().mp3128,
                                 album_url: album_url.mp3128,
-                                duration: album_track.duration.unwrap_or(0.0),
+                                duration: Duration::from_secs_f64(album_track.duration.unwrap_or(0.0)),
                             };
                             self.queue.push(pushed_track.clone());
                         }

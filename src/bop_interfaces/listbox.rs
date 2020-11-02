@@ -7,16 +7,18 @@ pub struct ListBox {
     pub position: usize,
     pub screen: Screen,
     pub focused: bool,
+    pub description: String,
 }
 
 impl ListBox {
-    pub fn new(w: u16, h: u16, focused: bool) -> Self {
+    pub fn new<S: Into<String>>(w: u16, h: u16, focused: bool, description: S) -> Self {
         Self {
             display: Vec::new(),
             page: 0,
             position: 0,
             screen: Screen::new_empty(w as u32, h as u32),
             focused,
+            description: description.into()
         }
     }
 
@@ -58,11 +60,8 @@ impl ListBox {
         self.screen.clear();
     }
 
-    pub fn get_selected_item(&mut self, pos: usize) -> String {
-        self.display[(pos + (self.page * self.screen.get_height() as usize))
-            .checked_sub(1)
-            .unwrap_or(0)]
-        .clone()
+    pub fn get_selected_idx(&mut self) -> usize {
+       self.position + (self.page * self.screen.get_height() as usize)
     }
 
     pub fn remove(&mut self, value: String) {

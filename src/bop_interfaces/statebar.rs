@@ -19,7 +19,7 @@ impl StateBar {
 
         Self {
             header_text: BASE_HEADER.to_string(),
-            bottom_text: String::from("Loading..."),
+            bottom_text: String::from("Nothing playing..."),
             error: false,
             screen: Screen::new(cols.into(), 2),
             y: (rows as u32) - 2,
@@ -33,7 +33,7 @@ impl StateBar {
 
     pub fn information<T: Display>(&mut self, item: &T) {
         self.error = false;
-        self.header_text = item.to_string();
+        self.header_text = format!("{}{}", BASE_HEADER, item.to_string());
     }
 
     pub fn draw(&mut self) -> &Screen {

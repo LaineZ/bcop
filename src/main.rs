@@ -34,11 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     match args[1].as_str() {
-        "cli" => tui::loadinterface(args)?,
+        "tui" => tui::loadinterface(args)?,
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
             println!("Allowed options:");
-            println!("cli - TUI player mode");
+            println!("tui - TUI player mode");
         }
     }
     Ok(())
