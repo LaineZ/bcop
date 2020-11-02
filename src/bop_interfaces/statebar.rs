@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use Into;
 use console_engine::{Color, crossterm::terminal::size, pixel, pixel::Pixel, screen::Screen};
 
 const BASE_HEADER: &str = "▶ BandcampOnlinePlayer RS | ";
@@ -26,14 +27,18 @@ impl StateBar {
         }
     }
 
-    pub fn error<T: Display>(&mut self, item: &T) {
+    pub fn error<T: AsRef<str>>(&mut self, item: T) {
         self.error = true;
-        self.header_text = item.to_string();
+        self.header_text = item.as_ref().to_string();
     }
 
-    pub fn information<T: Display>(&mut self, item: &T) {
+    pub fn information<T: AsRef<str>>(&mut self, item: T) {
         self.error = false;
-        self.header_text = format!("{}{}", BASE_HEADER, item.to_string());
+        self.header_text = format!("{}{}", BASE_HEADER, item.as_ref());
+    }
+
+    pub fn bottom_info<T: AsRef<str>>(&mut self, item: T) {
+        self.bottom_text = item.as_ref().to_string();
     }
 
     pub fn draw(&mut self) -> &Screen {

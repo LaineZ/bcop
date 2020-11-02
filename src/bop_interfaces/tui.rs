@@ -3,16 +3,16 @@ use std::{
     time::Duration,
 };
 
-use crate::bc_core::{playback::Player, queue::Queue};
+use crate::bc_core::{
+    playback::{FormatTime, Player},
+    queue::Queue,
+};
 
 use super::{listbox::ListBox, statebar::StateBar, tui_structs::State};
-use console_engine::{
-    crossterm::{
+use console_engine::{Color, KeyCode, crossterm::{
         event::{self, read},
         terminal::size,
-    },
-    KeyCode,
-};
+    }};
 
 const LIST_TAGS: usize = 0;
 const LIST_DISCOVER: usize = 1;
@@ -64,6 +64,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     let mut engine = console_engine::ConsoleEngine::init(cols as u32, rows as u32, 30);
 
+    let mut stopwatch = std::time::Instant::now();
+    let mut last_fps = 0;
+
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
         engine.check_resize();
@@ -76,15 +79,18 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         engine.print_screen(0, bar.y as i32, bar.draw());
 
         if debug_overlay {
-            engine.print(
+            engine.print_fbg(
                 1,
                 1,
                 format!(
-                    "Terminal size: {}x{}",
+                    "Terminal size: {}x{} FPS: {}",
                     engine.get_width(),
-                    engine.get_height()
+                    engine.get_height(),
+                    last_fps,
                 )
                 .as_str(),
+                Color::White,
+                Color::DarkBlue
             );
         }
 
@@ -120,7 +126,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         if engine.is_key_pressed(KeyCode::Enter) {
-            log::info!("Enter pressed");
             if listboxes[LIST_TAGS].focused {
                 state
                     .selected_tags
@@ -167,6 +172,20 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             debug_overlay = !debug_overlay;
         }
 
+        if engine.is_key_pressed(KeyCode::Char(' ')) {
+            let paused = player.try_lock().unwrap().is_paused();
+            player.try_lock().unwrap().set_paused(!paused);
+        }
+
+        if engine.is_key_pressed(KeyCode::Char('o')) {
+            if queue.queue.len() > 0 {
+                webbrowser::open(&queue.get_current_track().unwrap().album_url)?;
+            } else {
+                bar.error("Queue list is empty!");
+            }
+        }
+
+
         match engine.get_resize() {
             Some((width, height)) => {
                 for list in listboxes.iter_mut() {
@@ -179,24 +198,50 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         // TODO: change this
-        match player.clone().try_lock().unwrap().get_time() {
-            Some(time) => {
-                if time
-                    >= queue
-                        .get_current_track()
-                        .ok_or_else(|| {
-                            bar.error(&"Queue is empty!".to_string());
-                        })
-                        .unwrap()
-                        .duration
-                {
-                    queue.next().unwrap();
+        {
+            let player = player.clone();
+            let player_lock = player.try_lock().unwrap();
+
+            match player_lock.get_time() {
+                Some(time) => match queue.get_current_track() {
+                    Some(track) => {
+                        if time >= track.duration {
+                            bar.bottom_info("Loading next track...");
+                            queue.next();
+                        }
+
+                        let mut state_pl = "◼";
+                        if player_lock.is_paused() {
+                            state_pl = "⏸"
+                        } else {
+                            state_pl = "▶"
+                        }
+
+                        bar.bottom_info(format!(
+                            "{} {} - {} from {} {}/{}",
+                            state_pl,
+                            track.artist,
+                            track.title,
+                            track.album,
+                            FormatTime(player_lock.get_time().unwrap_or(Duration::from_secs(0))),
+                            FormatTime(track.duration)
+                        ));
+                    }
+                    None => {
+                        bar.bottom_info("Queue does not contain any track");
+                    }
+                },
+
+                None => {
+                    bar.bottom_info("Playback stopped");
                 }
             }
+        }
 
-            None => {
-                // TODO: Loading
-            }
+        if stopwatch.elapsed().as_millis() >= 1000 {
+            last_fps = engine.frame_count;
+            engine.frame_count = 0;
+            stopwatch = std::time::Instant::now();
         }
     }
     Ok(())

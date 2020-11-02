@@ -49,13 +49,10 @@ impl<'a> Queue<'a> {
         }
     }
 
-    pub fn next(&mut self) -> Option<QueuedTrack> {
+    pub fn next(&mut self) {
         if self.queue_pos < self.queue.len() {
             self.queue_pos += 1;
             (self.track_update)(self.queue[self.queue_pos].clone());
-            Some(self.queue[self.queue_pos].clone())
-        } else {
-            None
         }
     }
 
@@ -106,7 +103,7 @@ impl<'a> Queue<'a> {
                                     .unwrap_or("Unknown track title".to_string()),
                                 // TODO: switch to normal error-handling and not this garbage that panic...
                                 audio_url: album_track.file.unwrap().mp3128,
-                                album_url: album_url.mp3128,
+                                album_url: url.to_string(),
                                 duration: Duration::from_secs_f64(album_track.duration.unwrap_or(0.0)),
                             };
                             self.queue.push(pushed_track.clone());
