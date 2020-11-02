@@ -51,16 +51,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     listboxes.push(ListBox::new(cols, rows, false, "Play queue"));
     listboxes[LIST_TAGS].display.extend(tags);
 
-    let mut player = Arc::new(Mutex::new(Player::new()));
+    let mut player = Player::new();
 
     let mut state = State::new();
     let mut bar = StateBar::new();
+    let mut queue = Queue::new();
 
-    let player_box = player.clone();
-    let mut queue = Queue::new(Box::new(move |track| {
-        player_box.try_lock().unwrap().switch_track(track.audio_url);
-        player_box.try_lock().unwrap().play();
-    }));
 
     let mut engine = console_engine::ConsoleEngine::init(cols as u32, rows as u32, 30);
 
@@ -106,6 +102,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     list.scroll_down();
                 }
             }
+        }
+
+        if engine.is_key_held(KeyCode::Left) {
+            player.seek_backward(Duration::from_secs(5));
+        }
+
+        if engine.is_key_held(KeyCode::Right) {
+            player.seek_forward(Duration::from_secs(5));
         }
 
         if engine.is_key_held(KeyCode::Up) {
@@ -156,6 +160,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
             if listboxes[LIST_QUEUE].focused {
                 queue.set(listboxes[LIST_QUEUE].get_selected_idx());
+                player.switch_track(queue.get_current_track().unwrap().audio_url);
             }
         }
 
@@ -173,8 +178,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         if engine.is_key_pressed(KeyCode::Char(' ')) {
-            let paused = player.try_lock().unwrap().is_paused();
-            player.try_lock().unwrap().set_paused(!paused);
+            player.set_paused(!player.is_paused());
         }
 
         if engine.is_key_pressed(KeyCode::Char('o')) {
@@ -199,19 +203,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
         // TODO: change this
         {
-            let player = player.clone();
-            let player_lock = player.try_lock().unwrap();
-
-            match player_lock.get_time() {
+            match player.get_time() {
                 Some(time) => match queue.get_current_track() {
                     Some(track) => {
                         if time >= track.duration {
                             bar.bottom_info("Loading next track...");
                             queue.next();
+                            player.switch_track(queue.get_current_track().unwrap().audio_url);
                         }
 
                         let mut state_pl = "◼";
-                        if player_lock.is_paused() {
+                        if player.is_paused() {
                             state_pl = "⏸"
                         } else {
                             state_pl = "▶"
@@ -223,7 +225,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             track.artist,
                             track.title,
                             track.album,
-                            FormatTime(player_lock.get_time().unwrap_or(Duration::from_secs(0))),
+                            FormatTime(player.get_time().unwrap_or(Duration::from_secs(0))),
                             FormatTime(track.duration)
                         ));
                     }

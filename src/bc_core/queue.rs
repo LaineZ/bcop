@@ -32,34 +32,31 @@ impl Display for QueuedTrack {
     }
 }
 
-pub struct Queue<'a> {
+pub struct Queue {
     pub queue: Vec<QueuedTrack>,
     pub shuffle: bool,
     pub queue_pos: usize,
-    pub track_update: Box<dyn FnMut(QueuedTrack) + 'a>,
 }
 
-impl<'a> Queue<'a> {
-    pub fn new(track_update: Box<dyn FnMut(QueuedTrack)>) -> Self {
+impl Queue {
+    pub fn new() -> Self {
         Self {
             queue: Vec::new(),
             shuffle: false,
             queue_pos: 0,
-            track_update,
         }
     }
 
     pub fn next(&mut self) {
         if self.queue_pos < self.queue.len() {
             self.queue_pos += 1;
-            (self.track_update)(self.queue[self.queue_pos].clone());
         }
     }
 
     pub fn set(&mut self, idx: usize) -> Option<QueuedTrack> {
         if idx < self.queue.len() {
             self.queue_pos = idx;
-            (self.track_update)(self.queue[self.queue_pos].clone());
+
             Some(self.queue[self.queue_pos].clone())
         } else {
             None
@@ -67,9 +64,9 @@ impl<'a> Queue<'a> {
     }
 
     pub fn prev(&mut self) -> Option<QueuedTrack> {
-        if self.queue_pos >= 0 {
+        if self.queue_pos > 0 {
             self.queue_pos -= 1;
-            (self.track_update)(self.queue[self.queue_pos].clone());
+
             Some(self.queue[self.queue_pos].clone())
         } else {
             None
@@ -104,7 +101,9 @@ impl<'a> Queue<'a> {
                                 // TODO: switch to normal error-handling and not this garbage that panic...
                                 audio_url: album_track.file.unwrap().mp3128,
                                 album_url: url.to_string(),
-                                duration: Duration::from_secs_f64(album_track.duration.unwrap_or(0.0)),
+                                duration: Duration::from_secs_f64(
+                                    album_track.duration.unwrap_or(0.0),
+                                ),
                             };
                             self.queue.push(pushed_track.clone());
                         }
