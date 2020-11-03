@@ -63,7 +63,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     let mut stopwatch = std::time::Instant::now();
     let mut last_fps = 0;
-    
+
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
         engine.check_resize();
@@ -193,7 +193,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 player.set_paused(!player.is_paused());
             }
             if x < listboxes[LIST_TAGS].screen.get_width() && y < rows-2 {
-                listboxes[LIST_TAGS].set_position(y as usize);
+                listboxes[LIST_TAGS].position = y as usize;
             }
         }
 
