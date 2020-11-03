@@ -62,7 +62,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
     let mut stopwatch = std::time::Instant::now();
     let mut last_fps = 0;
-
+    
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
         engine.check_resize();
