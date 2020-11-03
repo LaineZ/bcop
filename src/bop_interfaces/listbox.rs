@@ -78,6 +78,10 @@ impl ListBox {
         pos + (self.page * self.screen.get_height() as usize)
     }
 
+    pub fn set_sel_idx_glob(&mut self, pos: usize) {
+        self.position = pos;
+    }
+
     pub fn resize(&mut self, w: u16, h: u16) {
         self.position = 0;
         self.screen.clear();

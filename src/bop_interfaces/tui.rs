@@ -92,7 +92,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
         engine.draw();
 
-        if engine.is_key_pressed(KeyCode::Esc) {
+        if engine.is_key_pressed(KeyCode::Esc) || engine.is_key_pressed_with_modifier(KeyCode::Char('c'), console_engine::KeyModifiers::CONTROL) {
             break;
         }
 
@@ -186,19 +186,34 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             player.stop();
         }
 
-            match engine.get_mouse_press(MouseButton::Left) {
-                Some((x, y)) => {
-                    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
-                    if x == 0 && y == rows as u32 - 1 {
-                        player.set_paused(!player.is_paused());
-                    }
-                }
-
-                None => { }
+        if let Some((x, y)) = engine.get_mouse_press(MouseButton::Left) {
+            let (_cols, rows) = (engine.get_width(), engine.get_height());
+            if x == 0 && y == rows as u32 - 1 {
+                player.set_paused(!player.is_paused());
             }
+            if x < listboxes[LIST_TAGS].screen.get_width() && y < rows-2 {
+                listboxes[LIST_TAGS].set_sel_idx_glob(y as usize);
+            }
+        }
+
+        if engine.is_mouse_scrolled_down() {
+            for list in listboxes.iter_mut() {
+                if list.focused {
+                    list.switch_page_up();
+                }
+            }
+        }
+
+        if engine.is_mouse_scrolled_up() {
+            for list in listboxes.iter_mut() {
+                if list.focused {
+                    list.switch_page_down();
+                }
+            }
+        }
 
         if engine.is_key_pressed(KeyCode::Char('o')) {
-            if queue.queue.len() > 0 {
+            if !queue.queue.is_empty() {
                 webbrowser::open(&queue.get_current_track().unwrap().album_url)?;
             } else {
                 bar.error("Queue list is empty!");
@@ -206,15 +221,11 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
 
-        match engine.get_resize() {
-            Some((width, height)) => {
-                for list in listboxes.iter_mut() {
-                    list.resize(width, height);
-                }
-                bar.resize(width, height);
+        if let Some((width, height)) = engine.get_resize() {
+            for list in listboxes.iter_mut() {
+                list.resize(width, height);
             }
-
-            None => {}
+            bar.resize(width, height);
         }
 
         // TODO: change this
