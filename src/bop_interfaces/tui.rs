@@ -189,15 +189,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
         if let Some((x, y)) = engine.get_mouse_press(MouseButton::Left) {
             let (_cols, rows) = (engine.get_width(), engine.get_height());
+            // pause
             if x == 0 && y == rows as u32 - 1 {
                 player.set_paused(!player.is_paused());
             }
+            // scroll
             if x < listboxes[LIST_TAGS].screen.get_width() && y < rows-2 {
                 listboxes[LIST_TAGS].position = y as usize;
             }
         }
 
-        if engine.is_mouse_scrolled_down() {
+        if engine.is_mouse_scrolled_down() || engine.is_key_held(KeyCode::PageDown) {
             for list in listboxes.iter_mut() {
                 if list.focused {
                     list.switch_page_up();
@@ -205,7 +207,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
         }
 
-        if engine.is_mouse_scrolled_up() {
+        if engine.is_mouse_scrolled_up() || engine.is_key_held(KeyCode::PageUp) {
             for list in listboxes.iter_mut() {
                 if list.focused {
                     list.switch_page_down();
