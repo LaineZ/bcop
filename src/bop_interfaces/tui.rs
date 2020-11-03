@@ -42,7 +42,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         .map(|s| s.trim().to_string())
         .collect();
 
-    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
+    let mut engine = console_engine::ConsoleEngine::init_fill(30);
+
+    let (cols, rows) = (engine.get_width() as u16, engine.get_height() as u16);
     let mut debug_overlay = false;
 
     let mut listboxes = Vec::new();
@@ -58,7 +60,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     let mut queue = Queue::new();
 
 
-    let mut engine = console_engine::ConsoleEngine::init(cols as u32, rows as u32, 30);
 
     let mut stopwatch = std::time::Instant::now();
     let mut last_fps = 0;
