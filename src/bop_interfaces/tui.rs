@@ -9,7 +9,7 @@ use crate::bc_core::{
 };
 
 use super::{listbox::ListBox, statebar::StateBar, tui_structs::State};
-use console_engine::{Color, KeyCode, crossterm::{
+use console_engine::{Color, KeyCode, MouseButton, crossterm::{
         event::{self, read},
         terminal::size,
     }};
@@ -104,14 +104,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
         }
 
-        if engine.is_key_held(KeyCode::Left) {
-            player.seek_backward(Duration::from_secs(5));
-        }
-
-        if engine.is_key_held(KeyCode::Right) {
-            player.seek_forward(Duration::from_secs(5));
-        }
-
         if engine.is_key_held(KeyCode::Up) {
             for list in listboxes.iter_mut() {
                 if list.focused {
@@ -159,8 +151,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
 
             if listboxes[LIST_QUEUE].focused {
-                queue.set(listboxes[LIST_QUEUE].get_selected_idx());
-                player.switch_track(queue.get_current_track().unwrap().audio_url);
+                player.switch_track(queue.set(listboxes[LIST_QUEUE].get_selected_idx()).unwrap().audio_url);
             }
         }
 
@@ -177,9 +168,34 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             debug_overlay = !debug_overlay;
         }
 
+        // player controls
+
         if engine.is_key_pressed(KeyCode::Char(' ')) {
             player.set_paused(!player.is_paused());
         }
+
+        if engine.is_key_held(KeyCode::Left) {
+            player.seek_backward(Duration::from_secs(5));
+        }
+
+        if engine.is_key_held(KeyCode::Right) {
+            player.seek_forward(Duration::from_secs(5));
+        }
+
+        if engine.is_key_pressed(KeyCode::Char('s')) {
+            player.stop();
+        }
+
+            match engine.get_mouse_press(MouseButton::Left) {
+                Some((x, y)) => {
+                    let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
+                    if x == 0 && y == rows as u32 - 1 {
+                        player.set_paused(!player.is_paused());
+                    }
+                }
+
+                None => { }
+            }
 
         if engine.is_key_pressed(KeyCode::Char('o')) {
             if queue.queue.len() > 0 {
@@ -208,8 +224,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     Some(track) => {
                         if time >= track.duration {
                             bar.bottom_info("Loading next track...");
-                            queue.next();
-                            player.switch_track(queue.get_current_track().unwrap().audio_url);
+                            player.switch_track(queue.next().unwrap().audio_url);
                         }
 
                         let mut state_pl = "◼";

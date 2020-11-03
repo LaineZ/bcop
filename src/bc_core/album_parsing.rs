@@ -35,8 +35,6 @@ pub fn get_album(url: &str) -> Option<Album> {
     file.write_all(json.as_bytes()).unwrap();
     */
 
-    log::info!("{}", json);
-
     let data: Album = serde_json::from_str(&json).unwrap();
 
     Some(data)

@@ -47,9 +47,12 @@ impl Queue {
         }
     }
 
-    pub fn next(&mut self) {
+    pub fn next(&mut self) -> Option<QueuedTrack> {
         if self.queue_pos < self.queue.len() {
             self.queue_pos += 1;
+            Some(self.queue[self.queue_pos].clone())
+        } else {
+            None
         }
     }
 

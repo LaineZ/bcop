@@ -61,7 +61,9 @@ impl ListBox {
     }
 
     pub fn get_selected_idx(&mut self) -> usize {
-       self.position + (self.page * self.screen.get_height() as usize)
+       let pos = self.position + (self.page * self.screen.get_height() as usize);
+       log::info!("listbox pos: {}", pos);
+       pos
     }
 
     pub fn remove(&mut self, value: String) {
