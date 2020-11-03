@@ -193,7 +193,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 player.set_paused(!player.is_paused());
             }
             if x < listboxes[LIST_TAGS].screen.get_width() && y < rows-2 {
-                listboxes[LIST_TAGS].set_sel_idx_glob(y as usize);
+                listboxes[LIST_TAGS].set_position(y as usize);
             }
         }
 
