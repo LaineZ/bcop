@@ -25,16 +25,7 @@ pub fn fix_json(data: &str) -> String {
 
 pub fn get_album(url: &str) -> Option<Album> {
     let page = http_tools::http_request(url)?;
-
     let json = parse(page.as_str())?;
-
-    // just for debug
-    /*
-    let mut file = std::fs::File::create("albuminfo.txt").unwrap();
-    std::fs::remove_file("albuminfo.txt").unwrap();
-    file.write_all(json.as_bytes()).unwrap();
-    */
-
     let data: Album = serde_json::from_str(&json).unwrap();
 
     Some(data)

@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::Duration;
 
 use crate::bc_core::{
     playback::{FormatTime, Player},
@@ -9,10 +6,13 @@ use crate::bc_core::{
 };
 
 use super::{listbox::ListBox, statebar::StateBar, tui_structs::State};
-use console_engine::{Color, KeyCode, MouseButton, crossterm::{
+use console_engine::{
+    crossterm::{
         event::{self, read},
         terminal::size,
-    }};
+    },
+    Color, KeyCode, MouseButton,
+};
 
 const LIST_TAGS: usize = 0;
 const LIST_DISCOVER: usize = 1;
@@ -59,8 +59,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     let mut bar = StateBar::new();
     let mut queue = Queue::new();
 
-
-
     let mut stopwatch = std::time::Instant::now();
     let mut last_fps = 0;
 
@@ -87,13 +85,18 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 )
                 .as_str(),
                 Color::White,
-                Color::DarkBlue
+                Color::DarkBlue,
             );
         }
 
         engine.draw();
 
-        if engine.is_key_pressed(KeyCode::Esc) || engine.is_key_pressed_with_modifier(KeyCode::Char('c'), console_engine::KeyModifiers::CONTROL) {
+        if engine.is_key_pressed(KeyCode::Esc)
+            || engine.is_key_pressed_with_modifier(
+                KeyCode::Char('c'),
+                console_engine::KeyModifiers::CONTROL,
+            )
+        {
             break;
         }
 
@@ -152,7 +155,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
 
             if listboxes[LIST_QUEUE].focused {
-                player.switch_track(queue.set(listboxes[LIST_QUEUE].get_selected_idx()).unwrap().audio_url);
+                player.switch_track(
+                    queue
+                        .set(listboxes[LIST_QUEUE].get_selected_idx())
+                        .unwrap()
+                        .audio_url,
+                );
             }
         }
 
@@ -187,15 +195,28 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             player.stop();
         }
 
+        if engine.is_key_held(KeyCode::Char('a')) {
+            if player.get_volume() > 0 {
+                player.decrease_volume(5);
+            }
+        }
+
+        if engine.is_key_held(KeyCode::Char('d')) {
+            if player.get_volume() < 100 {
+                player.increase_volume(5);
+            }
+        }
+
         if let Some((x, y)) = engine.get_mouse_press(MouseButton::Left) {
             let (_cols, rows) = (engine.get_width(), engine.get_height());
             // pause
             if x == 0 && y == rows as u32 - 1 {
                 player.set_paused(!player.is_paused());
             }
-            // scroll
-            if x < listboxes[LIST_TAGS].screen.get_width() && y < rows-2 {
-                listboxes[LIST_TAGS].position = y as usize;
+            for lists in listboxes.iter_mut() {
+                if x < lists.screen.get_width() && y < rows - 2 {
+                    lists.position = y as usize;
+                }
             }
         }
 
@@ -223,7 +244,6 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
         }
 
-
         if let Some((width, height)) = engine.get_resize() {
             for list in listboxes.iter_mut() {
                 list.resize(width, height);
@@ -249,8 +269,9 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         }
 
                         bar.bottom_info(format!(
-                            "{} {} - {} from {} {}/{}",
+                            "{} Volume: {}% {} - {} from {} {}/{}",
                             state_pl,
+                            player.get_volume(),
                             track.artist,
                             track.title,
                             track.album,
@@ -264,7 +285,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 },
 
                 None => {
-                    bar.bottom_info("Playback stopped");
+                    bar.bottom_info(format!("Playback stopped! Volume: {}%", player.get_volume()));
                 }
             }
         }

@@ -1,4 +1,4 @@
-use console_engine::{screen::Screen, Color};
+use console_engine::{Color, pixel::Pixel, screen::Screen, pixel};
 
 #[derive(Clone)]
 /// A listbox user interface
@@ -58,7 +58,7 @@ impl ListBox {
 
     /// Scrolls listbox up by 1 page
     pub fn switch_page_up(&mut self) {
-        if self.page < self.get_page_count() {
+        if self.page < self.get_page_count() - 1 {
             self.page += 1;
             self.position = 0;
         }
@@ -76,7 +76,7 @@ impl ListBox {
     /// Gets selected listbox index
     pub fn get_selected_idx(&mut self) -> usize {
        let pos = self.position + (self.page * self.screen.get_height() as usize);
-       pos.checked_sub(1).unwrap_or(0)
+       pos.checked_sub(2).unwrap_or(0)
     }
 
     /// Removes listbox items by value
@@ -104,7 +104,6 @@ impl ListBox {
     /// Draws listbox. For more stability recommended to use in print_screen function
     pub fn draw(&mut self) -> &Screen {
         let splited_pags = self.display.chunks((self.screen.get_height() - 2) as usize);
-
         for (i, v) in &mut splited_pags.into_iter().enumerate() {
             if i == self.page {
                 for (index, page) in v.into_iter().enumerate() {
