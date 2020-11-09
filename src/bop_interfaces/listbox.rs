@@ -1,4 +1,4 @@
-use console_engine::{Color, pixel::Pixel, screen::Screen, pixel};
+use console_engine::{pixel, pixel::Pixel, screen::Screen, Color};
 
 #[derive(Clone)]
 /// A listbox user interface
@@ -15,6 +15,8 @@ pub struct ListBox {
     pub focused: bool,
     /// Listbox bottom name and description, keys, usage
     pub description: String,
+    /// Highlighted lists. Recommended only read and remove directly
+    pub highlight: Vec<String>,
 }
 
 impl ListBox {
@@ -26,7 +28,8 @@ impl ListBox {
             position: 0,
             screen: Screen::new_empty(w as u32, h as u32),
             focused,
-            description: description.into()
+            description: description.into(),
+            highlight: Vec::new(),
         }
     }
 
@@ -75,13 +78,27 @@ impl ListBox {
 
     /// Gets selected listbox index
     pub fn get_selected_idx(&mut self) -> usize {
-       let pos = self.position + (self.page * self.screen.get_height() as usize);
-       pos.checked_sub(2).unwrap_or(0)
+        let pos = self.position + (self.page * self.screen.get_height() as usize);
+        pos.checked_sub(2).unwrap_or(0)
     }
 
     /// Removes listbox items by value
     pub fn remove(&mut self, value: String) {
         self.display.retain(|x| x == &value);
+    }
+
+    /// Highlights item
+    pub fn highlight(&mut self, item: String) -> bool {
+        let is_present = self.highlight.iter().any(|c| c == &item);
+        if is_present {
+            &self.highlight.push(item);
+        }
+        return is_present;
+    }
+
+    /// Highlights selected item
+    pub fn highlight_selected(&mut self) -> bool {
+        self.highlight(self.clone().get_selected_str())
     }
 
     /// Gets current selected String in listbox

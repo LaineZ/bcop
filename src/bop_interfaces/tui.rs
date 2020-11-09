@@ -18,6 +18,9 @@ const LIST_TAGS: usize = 0;
 const LIST_DISCOVER: usize = 1;
 const LIST_QUEUE: usize = 2;
 
+/// Change this varible to speed up rendering
+pub const MAX_FPS: u32 = 30;
+
 fn setup_focus_at(id: usize, lbx: &mut Vec<ListBox>, bar: &mut StateBar) {
     for list in lbx.iter_mut() {
         list.focused = false;
@@ -42,7 +45,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         .map(|s| s.trim().to_string())
         .collect();
 
-    let mut engine = console_engine::ConsoleEngine::init_fill(30);
+    let mut engine = console_engine::ConsoleEngine::init_fill(MAX_FPS);
 
     let (cols, rows) = (engine.get_width() as u16, engine.get_height() as u16);
     let mut debug_overlay = false;
@@ -127,17 +130,17 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
         if engine.is_key_pressed(KeyCode::Enter) {
             if listboxes[LIST_TAGS].focused {
-                state
-                    .selected_tags
-                    .push(listboxes[LIST_TAGS].get_selected_str());
-
-                state.extend_discover()?;
-                for data in state.discover.iter_mut() {
-                    listboxes[LIST_DISCOVER]
-                        .display
-                        .push(format!("{} - {}", data.artist, data.title))
+                if !state.selected_tags.is_empty() {
+                    state.extend_discover()?;
+                    for data in state.discover.iter_mut() {
+                        listboxes[LIST_DISCOVER]
+                            .display
+                            .push(format!("{} - {}", data.artist, data.title))
+                    }
+                    setup_focus_at(LIST_DISCOVER, &mut listboxes, &mut bar);
+                } else {
+                    bar.error("Please select at least 1 tag!");
                 }
-                setup_focus_at(LIST_DISCOVER, &mut listboxes, &mut bar);
             }
 
             if listboxes[LIST_DISCOVER].focused {
@@ -178,9 +181,14 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         // player controls
-
         if engine.is_key_pressed(KeyCode::Char(' ')) {
-            player.set_paused(!player.is_paused());
+            if listboxes[LIST_TAGS].focused {
+                // TODO: Unselect
+                listboxes[LIST_TAGS].highlight_selected();
+                state.add_tag(listboxes[LIST_TAGS].get_selected_str());
+            } else {
+                player.set_paused(!player.is_paused());
+            }
         }
 
         if engine.is_key_held(KeyCode::Left) {
@@ -285,7 +293,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 },
 
                 None => {
-                    bar.bottom_info(format!("Playback stopped! Volume: {}%", player.get_volume()));
+                    bar.bottom_info(format!(
+                        "Playback stopped! Volume: {}%",
+                        player.get_volume()
+                    ));
                 }
             }
         }

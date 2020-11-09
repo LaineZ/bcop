@@ -1,7 +1,9 @@
-use std::fmt::Display;
+use std::{fmt::Display, time::Duration};
 
+use console_engine::{crossterm::terminal::size, pixel, screen::Screen, Color};
 use Into;
-use console_engine::{Color, crossterm::terminal::size, pixel, screen::Screen};
+
+use super::tui::MAX_FPS;
 
 const BASE_HEADER: &str = "▶ BandcampOnlinePlayer RS | ";
 
@@ -23,7 +25,8 @@ pub struct StateBar {
 impl StateBar {
     /// Creates a state bars
     pub fn new() -> Self {
-        let (cols, rows) = size().expect("Unable to get terminal size continue work is not available!");
+        let (cols, rows) =
+            size().expect("Unable to get terminal size continue work is not available!");
 
         Self {
             header_text: BASE_HEADER.to_string(),
@@ -54,8 +57,15 @@ impl StateBar {
     /// Draws a statebar
     pub fn draw(&mut self) -> &Screen {
         self.screen.fill(pixel::pxl_bg(' ', Color::Blue));
-        self.screen.print_fbg(0, 0, self.header_text.as_str(), Color::White, Color::Blue);
-        self.screen.print_fbg(0, 1, self.bottom_text.as_str(), Color::White, Color::Blue);
+        if !self.error {
+            self.screen
+                .print_fbg(0, 0, self.header_text.as_str(), Color::White, Color::Blue);
+        } else {
+            self.screen
+                .print_fbg(0, 0, self.header_text.as_str(), Color::White, Color::Red);
+        }
+        self.screen
+            .print_fbg(0, 1, self.bottom_text.as_str(), Color::White, Color::Blue);
         &self.screen
     }
 

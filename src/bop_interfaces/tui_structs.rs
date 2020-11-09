@@ -31,4 +31,11 @@ impl State {
 
         Ok(())
     }
+
+    pub fn add_tag(&mut self, tag: String) {
+        let is_present = self.selected_tags.iter().any(|s| s == &tag);
+        if !is_present {
+            self.selected_tags.push(tag);
+        }
+    }
 }
