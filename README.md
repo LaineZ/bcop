@@ -33,9 +33,7 @@ Works on any Linux with ALSA-compitable sound card but CI-Builds and future rele
 ### TUI Mode controls
 **General keys**
 
-<kbd>Esc</kbd> - closes program
-
-<kbd>H</kbd> - hide/show tag list
+<kbd>Esc</kbd> OR <kbd>Ctrl</kbd>+<kbd>C</kbd> - closes program
 
 <kbd>Q</kbd> - switch to queue list
 

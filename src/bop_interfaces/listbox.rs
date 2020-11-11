@@ -87,18 +87,14 @@ impl ListBox {
         self.display.retain(|x| x == &value);
     }
 
-    /// Highlights item
-    pub fn highlight(&mut self, item: String) -> bool {
-        let is_present = self.highlight.iter().any(|c| c == &item);
-        if is_present {
-            &self.highlight.push(item);
+    /// Highlights item, if highlights - removes them
+    pub fn highlight<T: AsRef<str>>(&mut self, item: T) {
+        let is_present = self.highlight.iter().any(|c| c == item.as_ref());
+        if !is_present {
+            &self.highlight.push(item.as_ref().to_string());
+        } else {
+            &self.highlight.retain(|x| x != item.as_ref());
         }
-        return is_present;
-    }
-
-    /// Highlights selected item
-    pub fn highlight_selected(&mut self) -> bool {
-        self.highlight(self.clone().get_selected_str())
     }
 
     /// Gets current selected String in listbox
@@ -124,11 +120,19 @@ impl ListBox {
         for (i, v) in &mut splited_pags.into_iter().enumerate() {
             if i == self.page {
                 for (index, page) in v.into_iter().enumerate() {
+                    let mut color = Color::Reset;
+
+                    if self.highlight.iter().any(|s| s == page) {
+                        color = Color::Red;
+                        log::info!("{} selected!", page);
+                    }
+
                     if index == self.position {
+                        color = Color::Black;
                         self.screen
-                            .print_fbg(0, index as i32, page, Color::Black, Color::White)
+                            .print_fbg(0, index as i32, page, color, Color::White)
                     } else {
-                        self.screen.print(0, index as i32, page);
+                        self.screen.print_fbg(0, index as i32, page, color, Color::Reset);
                     }
                 }
             }

@@ -120,7 +120,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         if engine.is_key_pressed(KeyCode::Char('l')) {
-            state.extend_discover().unwrap();
+            state.extend_discover(listboxes[LIST_TAGS].highlight.clone())?;
             for data in state.discover.iter_mut() {
                 listboxes[LIST_DISCOVER]
                     .display
@@ -128,32 +128,39 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
         }
 
+        if engine.is_key_pressed(KeyCode::Char('d')) {}
+
         if engine.is_key_pressed(KeyCode::Enter) {
             if listboxes[LIST_TAGS].focused {
-                if !state.selected_tags.is_empty() {
-                    state.extend_discover()?;
+                if !listboxes[LIST_TAGS].highlight.is_empty() {
+                    bar.information("Loading discover...");
+                    setup_focus_at(LIST_DISCOVER, &mut listboxes, &mut bar);
+                    state.extend_discover(listboxes[LIST_TAGS].highlight.clone())?;
                     for data in state.discover.iter_mut() {
                         listboxes[LIST_DISCOVER]
                             .display
                             .push(format!("{} - {}", data.artist, data.title))
                     }
-                    setup_focus_at(LIST_DISCOVER, &mut listboxes, &mut bar);
                 } else {
                     bar.error("Please select at least 1 tag!");
                 }
             }
 
             if listboxes[LIST_DISCOVER].focused {
-                let artist = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
-                    .artist
-                    .clone();
-                let url = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
-                    .tralbum_url
-                    .clone();
-                queue.add_album_in_queue(artist, url.as_str()).unwrap();
+                if !state.discover.is_empty() {
+                    let artist = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
+                        .artist
+                        .clone();
+                    let url = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
+                        .tralbum_url
+                        .clone();
+                    queue.add_album_in_queue(artist, url.as_str()).unwrap();
 
-                for data in queue.queue.iter_mut() {
-                    listboxes[LIST_QUEUE].display.push(data.to_string())
+                    for data in queue.queue.iter_mut() {
+                        listboxes[LIST_QUEUE].display.push(data.to_string())
+                    }
+                } else {
+                    bar.error(format!("Cannot load discover! Please select another tags: {}", listboxes[LIST_TAGS].highlight.join(", ")));
                 }
             }
 
@@ -183,9 +190,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         // player controls
         if engine.is_key_pressed(KeyCode::Char(' ')) {
             if listboxes[LIST_TAGS].focused {
-                // TODO: Unselect
-                listboxes[LIST_TAGS].highlight_selected();
-                state.add_tag(listboxes[LIST_TAGS].get_selected_str());
+                let tag = listboxes[LIST_TAGS].clone().get_selected_str();
+                listboxes[LIST_TAGS].highlight(tag.as_str());
             } else {
                 player.set_paused(!player.is_paused());
             }
@@ -266,7 +272,12 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     Some(track) => {
                         if time >= track.duration {
                             bar.bottom_info("Loading next track...");
-                            player.switch_track(queue.next().unwrap().audio_url);
+                            if let Some(track) = queue.next() {
+                                player.switch_track(track.audio_url);
+                            } else {
+                                player.stop();
+                                bar.information("Finished playback!");
+                            }
                         }
 
                         let mut state_pl = "◼";
@@ -294,7 +305,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
                 None => {
                     bar.bottom_info(format!(
-                        "Playback stopped! Volume: {}%",
+                        "Playback stopped. Volume: {}%",
                         player.get_volume()
                     ));
                 }
