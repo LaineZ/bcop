@@ -6,13 +6,7 @@ use crate::bc_core::{
 };
 
 use super::{listbox::ListBox, statebar::StateBar, tui_structs::State};
-use console_engine::{
-    crossterm::{
-        event::{self, read},
-        terminal::size,
-    },
-    Color, KeyCode, MouseButton,
-};
+use console_engine::{Color, KeyCode, MouseButton};
 
 const LIST_TAGS: usize = 0;
 const LIST_DISCOVER: usize = 1;
@@ -160,7 +154,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                         listboxes[LIST_QUEUE].display.push(data.to_string())
                     }
                 } else {
-                    bar.error(format!("Cannot load discover! Please select another tags: {}", listboxes[LIST_TAGS].highlight.join(", ")));
+                    bar.error(format!(
+                        "Cannot load discover! Please select another tags: {}",
+                        listboxes[LIST_TAGS].highlight.join(", ")
+                    ));
                 }
             }
 
@@ -266,49 +263,44 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         }
 
         // TODO: change this
-        {
-            match player.get_time() {
-                Some(time) => match queue.get_current_track() {
-                    Some(track) => {
-                        if time >= track.duration {
-                            bar.bottom_info("Loading next track...");
-                            if let Some(track) = queue.next() {
-                                player.switch_track(track.audio_url);
-                            } else {
-                                player.stop();
-                                bar.information("Finished playback!");
-                            }
-                        }
-
-                        let mut state_pl = "◼";
-                        if player.is_paused() {
-                            state_pl = "⏸"
+        match player.get_time() {
+            Some(time) => {
+                if let Some(track) = queue.get_current_track() {
+                    if time >= track.duration {
+                        bar.bottom_info("Loading next track...");
+                        if let Some(track) = queue.next() {
+                            player.switch_track(track.audio_url);
                         } else {
-                            state_pl = "▶"
+                            player.stop();
+                            bar.information("Finished playback!");
                         }
-
-                        bar.bottom_info(format!(
-                            "{} Volume: {}% {} - {} from {} {}/{}",
-                            state_pl,
-                            player.get_volume(),
-                            track.artist,
-                            track.title,
-                            track.album,
-                            FormatTime(player.get_time().unwrap_or(Duration::from_secs(0))),
-                            FormatTime(track.duration)
-                        ));
                     }
-                    None => {
-                        bar.bottom_info("Queue does not contain any track");
-                    }
-                },
 
-                None => {
+                    let mut state_pl = "◼";
+                    if player.is_paused() {
+                        state_pl = "⏸"
+                    } else {
+                        state_pl = "▶"
+                    }
+
                     bar.bottom_info(format!(
-                        "Playback stopped. Volume: {}%",
-                        player.get_volume()
+                        "{} 🔈{}% {} - {} from {} {}/{}",
+                        state_pl,
+                        player.get_volume(),
+                        track.artist,
+                        track.title,
+                        track.album,
+                        FormatTime(player.get_time().unwrap_or(Duration::from_secs(0))),
+                        FormatTime(track.duration)
                     ));
                 }
+            }
+
+            None => {
+                bar.bottom_info(format!(
+                    "◼ 🔈{}%",
+                    player.get_volume()
+                ));
             }
         }
 

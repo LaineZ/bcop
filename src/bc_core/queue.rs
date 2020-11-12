@@ -86,11 +86,14 @@ impl Queue {
     pub fn add_album_in_queue(&mut self, artist: String, url: &str) -> Result<(), ()> {
         let is_album = album_parsing::get_album(url);
 
+
+
+        // TODO: Refactor this
         match is_album {
             Some(album) => {
                 for album_track in album.trackinfo.unwrap() {
                     match album_track.file.clone() {
-                        Some(album_url) => {
+                        Some(_album_url) => {
                             let pushed_track = QueuedTrack {
                                 album: album
                                     .current

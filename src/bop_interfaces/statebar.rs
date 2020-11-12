@@ -65,7 +65,7 @@ impl StateBar {
                 .print_fbg(0, 0, self.header_text.as_str(), Color::White, Color::Red);
         }
         self.screen
-            .print_fbg(0, 1, self.bottom_text.as_str(), Color::White, Color::Blue);
+            .print_fbg(0, 1, self.bottom_text.as_str(), Color::White, Color::DarkBlue);
         &self.screen
     }
 
