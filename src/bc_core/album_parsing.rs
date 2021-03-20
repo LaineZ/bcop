@@ -53,7 +53,7 @@ pub fn get_tag_data(tags: Vec<String>, page: usize) -> Result<DiscoverData> {
     });
 
     let response = ureq::post("https://bandcamp.com/api/hub/2/dig_deeper")
-        .send_string(request.to_string().as_str());
+        .send_string(request.to_string().as_str())?;
 
     let data = serde_json::from_str(&response.into_string()?)?;
     Ok(data)

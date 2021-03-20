@@ -23,7 +23,7 @@ impl State {
             let discover = album_parsing::get_tag_data(tags, self.loaded_discover_pages)?.items;
             self.discover.extend(discover);
         } else {
-            log::warn!("Failed to load discover for some reasons...");
+            log::warn!("Discover list is empty");
         }
 
         Ok(())

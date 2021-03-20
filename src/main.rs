@@ -2,7 +2,7 @@ mod bc_core;
 mod bop_interfaces;
 mod model;
 
-use bop_interfaces::tui;
+use bop_interfaces::{cli, tui};
 use std::env;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -35,6 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args[1].as_str() {
         "tui" => tui::loadinterface(args)?,
+        "cli" => cli::loadinterface(args)?,
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
             println!("Allowed options:");
