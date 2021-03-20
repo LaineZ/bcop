@@ -38,7 +38,7 @@ CI-Builds and future release builds supports **only amd64** architecture. If you
 ![ScreeshotWindows](https://i.imgur.com/NIg76L6.png)
 
 ### TUI Mode controls
-#### Currently, TUI Mode in heavy development, and can works incorrectly - use it on own rist
+#### Currently, TUI Mode in heavy development, and can works incorrectly - use it on own risk
 **General keys**
 
 <kbd>Esc</kbd> OR <kbd>Ctrl</kbd>+<kbd>C</kbd> - closes program

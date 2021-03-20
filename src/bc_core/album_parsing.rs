@@ -1,4 +1,4 @@
-use crate::model::album::Album;
+use crate::model::{album::Album, search};
 use crate::model::discover::DiscoverData;
 
 use crate::bc_core::http_tools;
@@ -29,6 +29,13 @@ pub fn get_album(url: &str) -> Option<Album> {
     let data: Album = serde_json::from_str(&json).unwrap();
 
     Some(data)
+}
+
+pub fn search(query: &str) -> Option<search::Auto> {
+    let page = http_tools::http_request(&format!("https://bandcamp.com/api/fuzzysearch/1/autocomplete?q={}", query))?;
+    log::info!("{}", page);
+    let data: search::Root = serde_json::from_str(&page).unwrap();
+    Some(data.auto)
 }
 
 pub fn parse(html_code: &str) -> Option<String> {
