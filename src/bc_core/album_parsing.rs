@@ -26,9 +26,9 @@ pub fn fix_json(data: &str) -> String {
 pub fn get_album(url: &str) -> Option<Album> {
     let page = http_tools::http_request(url)?;
     let json = parse(page.as_str())?;
-    let data: Album = serde_json::from_str(&json).unwrap();
+    let data: Option<Album> = serde_json::from_str(&json).unwrap_or_else(|_| { return None });
 
-    Some(data)
+    return data;
 }
 
 pub fn search(query: &str) -> Option<search::Auto> {

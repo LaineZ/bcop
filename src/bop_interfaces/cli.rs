@@ -1,16 +1,19 @@
 use std::{io::Write, time::Duration};
 
-use crate::bc_core::{self, playback::Player, queue::Queue};
+use crate::{
+    bc_core::{self, playback::Player, queue::Queue},
+    model::search,
+};
 use anyhow::Result;
 use bc_core::{album_parsing::search, playback::FormatTime};
 
-fn loop_control() -> Result<()> {
-    let mut player = Player::new();
-    let mut queue = Queue::new();
-
-    let mut search_results = Vec::new();
-
+fn loop_control(
+    player: &mut Player,
+    queue: &mut Queue,
+    search_results: &mut Vec<search::Result>,
+) -> Result<()> {
     let mut command = String::new();
+
     print!("}} ");
     std::io::stdout().flush()?;
     std::io::stdin().read_line(&mut command)?;
@@ -55,6 +58,11 @@ fn loop_control() -> Result<()> {
             }
         }
 
+        "stop" => {
+            player.stop();
+            println!("player stopped!");
+        }
+
         "seekb" => {
             if !command_args.is_empty() && command_args.len() > 1 {
                 match command_args[1].parse::<u64>() {
@@ -87,7 +95,7 @@ fn loop_control() -> Result<()> {
             if !command_args.is_empty() && command_args.len() > 1 {
                 if let Some(search_res) = search(command_args[1]) {
                     search_results.clear();
-                    search_results = search_res.results.clone();
+                    *search_results = search_res.results.clone();
                     for (i, res) in search_results.iter().enumerate() {
                         if res.field_type == "t" || res.field_type == "a" {
                             println!(
@@ -111,12 +119,16 @@ fn loop_control() -> Result<()> {
                 match command_args[1].parse::<usize>() {
                     Ok(id) => {
                         // load from search
-                        let url = &search_results
-                            [id.clamp(0, search_results.len().saturating_sub(1))]
-                        .url;
-                        queue
-                            .add_album_in_queue("Unknown artist".to_string(), url)
-                            .unwrap();
+                        let ent_idx = id.clamp(0, search_results.len().saturating_sub(1));
+                        if !search_results.is_empty() {
+                            let url = &search_results[ent_idx].url;
+                            &queue
+                                .add_album_in_queue("Unknown artist".to_string(), url)
+                                .unwrap();
+                        } else {
+                            println!("empty!");
+                            log::info!("VALUES: {:#?}", search_results);
+                        }
                     }
                     Err(_) => {
                         // load url
@@ -162,12 +174,29 @@ fn loop_control() -> Result<()> {
         }
 
         "p" => {
-            if player.is_paused() {
-                println!("info: playing");
-                player.play();
+            if !command_args.is_empty() && command_args.len() > 1 {
+                {
+                    match command_args[1].parse::<usize>() {
+                        Ok(idx) => {
+                            queue.queue_pos = idx;
+                            if let Some(track) = queue.get_current_track() {
+                                player.switch_track(track.audio_url);
+                                println!("starting playing...");
+                            }
+                        }
+                        Err(_) => {
+                            println!("incorrect format!");
+                        }
+                    }
+                }
             } else {
-                println!("info: paused");
-                player.pause();
+                if player.is_paused() {
+                    println!("info: playing");
+                    player.play();
+                } else {
+                    println!("info: paused");
+                    player.pause();
+                }
             }
         }
 
@@ -214,7 +243,14 @@ fn loop_control() -> Result<()> {
 
 pub fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("info: running in cli mode");
-    loop {
-        loop_control()?;
+
+    {
+        let mut queue = Queue::new();
+        let mut search_results = Vec::new();
+        let mut player = Player::new();
+
+        loop {
+            loop_control(&mut player, &mut queue, &mut search_results)?;
+        }
     }
 }
