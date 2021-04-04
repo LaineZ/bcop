@@ -1,4 +1,4 @@
-use std::fmt::{self, Display};
+use std::{fmt::{self, Display}, ops::Neg};
 use std::io::Read;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
@@ -106,7 +106,6 @@ struct PlayerThread {
 fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
     let agent = ureq::builder()
     .timeout_connect(std::time::Duration::from_secs(10))
-    .timeout_read(std::time::Duration::from_secs(2))
     .build();
 
     let reader = agent.get(&url)
@@ -520,5 +519,15 @@ impl Player {
 
     pub fn seek_backward(&mut self, time: Duration) {
         self.send(Command::SeekBackwards(time));
+    }
+
+    pub fn seek(&mut self, time: Duration) {
+        let seek_secs = self.get_time().unwrap_or(Duration::from_secs(0)).as_secs() as i32 - time.as_secs() as i32;
+
+        if seek_secs > 0 {
+            self.seek_backward(Duration::from_secs(seek_secs as u64));
+        } else {
+            self.seek_forward(Duration::from_secs(seek_secs.neg() as u64));
+        }
     }
 }

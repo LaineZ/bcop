@@ -58,6 +58,19 @@ fn loop_control(
             }
         }
 
+
+        "seek" => {
+            if !command_args.is_empty() && command_args.len() > 1 {
+                match command_args[1].parse::<u64>() {
+                    Ok(seek) => {
+                        println!("seeking to {} seconds", seek);
+                        player.seek(Duration::from_secs(seek));
+                    }
+                    Err(_) => println!("error: invalid seek format"),
+                }
+            }
+        }
+
         "stop" => {
             player.stop();
             println!("player stopped!");
@@ -232,6 +245,7 @@ fn loop_control(
             println!("`del [queue index]` - remove track from play queue");
             println!("`seekf [secs]` - seek current track forward to `secs` seconds");
             println!("`seekb [secs]` - seek current track backward to `secs` seconds");
+            println!("`seek` [secs] - seek to absolute position on track");
         }
         _ => println!(
             "error: unknown command `{}` type `help` for commands",
