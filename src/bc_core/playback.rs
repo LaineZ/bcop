@@ -103,16 +103,30 @@ struct PlayerThread {
     is_playing: bool,
 }
 
-fn load_track(url: &str) -> Decoder<Box<dyn Read>> {
+fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
     .timeout_connect(std::time::Duration::from_secs(10))
+    .timeout_read(Duration::from_secs(1))
     .build();
 
-    let reader = agent.get(&url)
-        .call()
-        .expect("unable to create a reader")
-        .into_reader();
-    Decoder::new(Box::new(reader))
+    let mut tries = 0;
+    while tries < 10 {
+        let reader = agent.get(&url).call();
+
+        match reader {
+            Ok(r) => {
+                log::info!("Started playback!");
+                return Some(Decoder::new(Box::new(r.into_reader())))
+            }
+            Err(error) => {
+                log::error!("Cannot start playback: {}", error.to_string());
+                tries += 1;
+                continue;
+            }
+        }
+    }
+
+    None
 }
 
 impl PlayerThread {
@@ -346,7 +360,7 @@ impl PlayerThread {
                 Command::SwitchTrack(url) => {
                     //log::info!("Loading track {}", &url);
                     self.reset();
-                    self.decoder = Some(load_track(&url));
+                    self.decoder = load_track(&url);
                     self.is_playing = true;
                     cur_url = Some(url);
                 }
@@ -374,7 +388,7 @@ impl PlayerThread {
                     time = std::cmp::min(time, self.tracker.time());
                     self.tracker.seek_backward(time);
 
-                    self.decoder = Some(load_track(cur_url.as_ref().unwrap()));
+                    self.decoder = load_track(cur_url.as_ref().unwrap());
 
                     let submitted = self.buffer.submitted_samples.load(Ordering::SeqCst);
                     let samples = time_to_samples(time, SampleRate(44100), 2).min(submitted);
