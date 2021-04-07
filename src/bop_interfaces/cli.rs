@@ -136,7 +136,7 @@ fn loop_control(
                         if !search_results.is_empty() {
                             let url = &search_results[ent_idx].url;
                             &queue
-                                .add_album_in_queue("Unknown artist".to_string(), url)
+                                .add_album_in_queue(url)
                                 .unwrap();
                         } else {
                             println!("empty!");
@@ -146,9 +146,8 @@ fn loop_control(
                     Err(_) => {
                         // load url
                         if command_args[1].starts_with("http") {
-                            // TOOD: fix 'Unknown artist'
                             if queue
-                                .add_album_in_queue("Unknown artist".to_string(), command_args[1])
+                                .add_album_in_queue( command_args[1])
                                 .is_err()
                             {
                                 println!("error while parsing album data!");

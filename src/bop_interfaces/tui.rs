@@ -142,13 +142,10 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
 
             if listboxes[LIST_DISCOVER].focused {
                 if !state.discover.is_empty() {
-                    let artist = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
-                        .artist
-                        .clone();
                     let url = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
                         .tralbum_url
                         .clone();
-                    queue.add_album_in_queue(artist, url.as_str()).unwrap();
+                    queue.add_album_in_queue( url.as_str())?;
 
                     for data in queue.queue.iter_mut() {
                         listboxes[LIST_QUEUE].display.push(data.to_string())

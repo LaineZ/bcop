@@ -358,7 +358,6 @@ impl PlayerThread {
 
             match cmd {
                 Command::SwitchTrack(url) => {
-                    //log::info!("Loading track {}", &url);
                     self.reset();
                     self.decoder = load_track(&url);
                     self.is_playing = true;
@@ -409,11 +408,6 @@ impl PlayerThread {
                 }
 
                 Command::AddVolume(value) => {
-                    log::info!(
-                        "Volume set: increase: {} volume: {}",
-                        value,
-                        self.buffer.volume.load(Ordering::Relaxed)
-                    );
                     self.buffer.volume.store(value, Ordering::Relaxed);
                 }
 
@@ -448,7 +442,7 @@ impl Player {
                     log::error!("{}", e);
                 }
             })
-            .expect("Can't spawn thread");
+            .expect("Can't spawn player thread");
 
         Player {
             cmd_tx,
