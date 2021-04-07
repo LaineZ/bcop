@@ -9,7 +9,8 @@ use anyhow::{anyhow, Context, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig};
+use cpal::{ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig, BufferSize};
+use samplerate::{convert, ConverterType};
 
 struct TimeTracker {
     started_at: Instant,
@@ -142,7 +143,8 @@ impl PlayerThread {
 
         let config = StreamConfig {
             channels: 2,
-            sample_rate: SampleRate(44100),
+            buffer_size: BufferSize::Default,
+                sample_rate: SampleRate(48000),
         };
 
         let supported_configs = device
@@ -163,7 +165,7 @@ impl PlayerThread {
                 cur_format,
             );
 
-            if min <= 44100 && 44100 <= max && config.channels() == 2 {
+            if config.channels() == 2 {
                 if selected.is_none() || cur_format == SampleFormat::I16 {
                     format = config.sample_format();
                     selected = Some(i);
