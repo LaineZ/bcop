@@ -1,15 +1,18 @@
-use std::{fmt::{self, Display}, ops::Neg};
 use std::io::Read;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use std::{
+    fmt::{self, Display},
+    ops::Neg,
+};
 
 use anyhow::{anyhow, Context, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig, BufferSize};
+use cpal::{BufferSize, ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig};
 use samplerate::{convert, ConverterType};
 
 struct TimeTracker {
@@ -102,13 +105,14 @@ struct PlayerThread {
     stream: Stream,
     tracker: TimeTracker,
     is_playing: bool,
+    sample_rate: u32,
 }
 
 fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
-    .timeout_connect(std::time::Duration::from_secs(10))
-    .timeout_read(Duration::from_secs(1))
-    .build();
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(Duration::from_secs(1))
+        .build();
 
     let mut tries = 0;
     while tries < 10 {
@@ -117,7 +121,7 @@ fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
         match reader {
             Ok(r) => {
                 log::info!("Started playback!");
-                return Some(Decoder::new(Box::new(r.into_reader())))
+                return Some(Decoder::new(Box::new(r.into_reader())));
             }
             Err(error) => {
                 log::error!("Cannot start playback: {}", error.to_string());
@@ -141,10 +145,10 @@ impl PlayerThread {
         let device_name = device.name().unwrap_or("unknown".to_string());
         log::info!("Audio device: {}", device_name);
 
-        let config = StreamConfig {
+        let mut stream_config = StreamConfig {
             channels: 2,
             buffer_size: BufferSize::Default,
-                sample_rate: SampleRate(48000),
+            sample_rate: SampleRate(48000),
         };
 
         let supported_configs = device
@@ -165,9 +169,10 @@ impl PlayerThread {
                 cur_format,
             );
 
-            if config.channels() == 2 {
+            if min >= 44100 && config.channels() == 2 {
                 if selected.is_none() || cur_format == SampleFormat::I16 {
                     format = config.sample_format();
+                    stream_config.sample_rate = SampleRate(max);
                     selected = Some(i);
                 }
             }
@@ -193,6 +198,7 @@ impl PlayerThread {
             //log::info!("Volume: {}", (buf.volume.load(Ordering::Relaxed) as f32) / 327.68);
 
             let skip = buf.remaining_samples.load(Ordering::SeqCst) == 0;
+            let vol = buf.volume.load(Ordering::Relaxed) as f32 / 327.68;
 
             if !skip {
                 let mut frames = match buf.frames.lock() {
@@ -206,8 +212,7 @@ impl PlayerThread {
                     let frame = &mut frames[0];
                     let len = frame.len().min(total - filled);
                     for i in 0..len {
-                        frame[i] = (frame[i] as f32 * (buf.volume.load(Ordering::Relaxed) as f32)
-                            / 327.68) as i16;
+                        frame[i] = (frame[i] as f32 * vol) as i16;
                         output[filled + i] = Sample::from(&frame[i])
                     }
                     filled += len;
@@ -235,13 +240,13 @@ impl PlayerThread {
         let b = buffer.clone();
         let stream = match format {
             SampleFormat::I16 => {
-                device.build_output_stream(&config, move |v, _| data_fn::<i16>(v, &b), error_fn)?
+                device.build_output_stream(&stream_config, move |v, _| data_fn::<i16>(v, &b), error_fn)?
             }
             SampleFormat::U16 => {
-                device.build_output_stream(&config, move |v, _| data_fn::<u16>(v, &b), error_fn)?
+                device.build_output_stream(&stream_config, move |v, _| data_fn::<u16>(v, &b), error_fn)?
             }
             SampleFormat::F32 => {
-                device.build_output_stream(&config, move |v, _| data_fn::<f32>(v, &b), error_fn)?
+                device.build_output_stream(&stream_config, move |v, _| data_fn::<f32>(v, &b), error_fn)?
             }
         };
         stream.play()?;
@@ -254,6 +259,7 @@ impl PlayerThread {
             stream,
             tracker: TimeTracker::new(),
             is_playing: true,
+            sample_rate: stream_config.sample_rate.0
         })
     }
 
@@ -347,7 +353,24 @@ impl PlayerThread {
                     if let Some(frame) = self.next_frame()? {
                         let len = frame.data.len();
                         if let Ok(mut frames) = self.buffer.frames.lock() {
-                            frames.push(frame.data);
+                            if self.sample_rate > 44100
+                            {
+                                let frame_resamp: Vec<f32> =
+                                    frame.data.iter().map(|&v| v as f32).collect();
+                                let resampled = convert(
+                                    44100,
+                                    self.sample_rate,
+                                    2,
+                                    ConverterType::Linear,
+                                    frame_resamp.as_slice(),
+                                )
+                                .unwrap();
+                                frames.push(resampled.iter().map(|&v| v as i16).collect());
+                            }
+                            else
+                            {
+                                frames.push(frame.data);
+                            }
                         }
                         self.buffer
                             .remaining_samples
@@ -532,7 +555,8 @@ impl Player {
     }
 
     pub fn seek(&mut self, time: Duration) {
-        let seek_secs = self.get_time().unwrap_or(Duration::from_secs(0)).as_secs() as i32 - time.as_secs() as i32;
+        let seek_secs = self.get_time().unwrap_or(Duration::from_secs(0)).as_secs() as i32
+            - time.as_secs() as i32;
 
         if seek_secs > 0 {
             self.seek_backward(Duration::from_secs(seek_secs as u64));
