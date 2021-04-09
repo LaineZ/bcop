@@ -148,7 +148,7 @@ impl PlayerThread {
         let mut stream_config = StreamConfig {
             channels: 2,
             buffer_size: BufferSize::Default,
-            sample_rate: SampleRate(48000),
+            sample_rate: SampleRate(44100),
         };
 
         let supported_configs = device
@@ -169,10 +169,12 @@ impl PlayerThread {
                 cur_format,
             );
 
-            if min >= 44100 && config.channels() == 2 {
+            if max >= 44100 && config.channels() == 2 {
                 if selected.is_none() || cur_format == SampleFormat::I16 {
                     format = config.sample_format();
-                    stream_config.sample_rate = SampleRate(max);
+                    if cfg!(target_os = "windows") {
+                        stream_config.sample_rate = SampleRate(max);
+                    }
                     selected = Some(i);
                 }
             }
@@ -400,7 +402,7 @@ impl PlayerThread {
                     }
 
                     self.tracker.seek_forward(time);
-                    let samples = time_to_samples(time, SampleRate(44100), 2);
+                    let samples = time_to_samples(time, SampleRate(self.sample_rate), 2);
                     self.skip_samples(samples)?;
                 }
 
@@ -415,7 +417,7 @@ impl PlayerThread {
                     self.decoder = load_track(cur_url.as_ref().unwrap());
 
                     let submitted = self.buffer.submitted_samples.load(Ordering::SeqCst);
-                    let samples = time_to_samples(time, SampleRate(44100), 2).min(submitted);
+                    let samples = time_to_samples(time, SampleRate(self.sample_rate), 2).min(submitted);
                     self.skip_samples(submitted - samples)?;
                     self.buffer
                         .submitted_samples
