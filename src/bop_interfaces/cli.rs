@@ -244,6 +244,8 @@ fn loop_control(
             println!("`del [queue index]` - remove track from play queue");
             println!("`seekf [secs]` - seek current track forward to `secs` seconds");
             println!("`seekb [secs]` - seek current track backward to `secs` seconds");
+            println!("`voli [value]` - inscrease volume level");
+            println!("`vold [value]` - decrease volume level");
             println!("`seek` [secs] - seek to absolute position on track");
         }
         _ => println!(
