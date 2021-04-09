@@ -111,7 +111,7 @@ struct PlayerThread {
 fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
         .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(Duration::from_secs(1))
+        .timeout_read(Duration::from_secs(5))
         .build();
 
     let mut tries = 0;

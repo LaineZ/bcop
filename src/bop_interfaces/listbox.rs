@@ -1,4 +1,4 @@
-use console_engine::{pixel, pixel::Pixel, screen::Screen, Color};
+use console_engine::{screen::Screen, Color};
 
 #[derive(Clone)]
 /// A listbox user interface

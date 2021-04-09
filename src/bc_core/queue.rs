@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{any, fmt::Display, time::Duration};
+use std::{fmt::Display, time::Duration};
 
 use crate::model::album::{Album, Trackinfo};
 

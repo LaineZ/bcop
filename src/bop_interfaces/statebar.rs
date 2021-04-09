@@ -1,9 +1,5 @@
-use std::{fmt::Display, time::Duration};
-
 use console_engine::{crossterm::terminal::size, pixel, screen::Screen, Color};
 use Into;
-
-use super::tui::MAX_FPS;
 
 const BASE_HEADER: &str = "▶ BandcampOnlinePlayer RS | ";
 

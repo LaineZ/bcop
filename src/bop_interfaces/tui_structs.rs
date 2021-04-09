@@ -1,5 +1,4 @@
 use crate::{bc_core::album_parsing, model::discover};
-use std::fmt::Display;
 
 #[derive(Clone)]
 pub struct State {

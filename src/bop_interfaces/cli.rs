@@ -58,7 +58,6 @@ fn loop_control(
             }
         }
 
-
         "seek" => {
             if !command_args.is_empty() && command_args.len() > 1 {
                 match command_args[1].parse::<u64>() {
@@ -106,9 +105,9 @@ fn loop_control(
 
         "search" => {
             if !command_args.is_empty() && command_args.len() > 1 {
-                if let Some(search_res) = search(command_args[1]) {
+                if let Some(mut search_res) = search(command_args[1]) {
                     search_results.clear();
-                    *search_results = search_res.results.clone();
+                    search_results.append(&mut search_res.results);
                     for (i, res) in search_results.iter().enumerate() {
                         if res.field_type == "t" || res.field_type == "a" {
                             println!(
@@ -135,9 +134,7 @@ fn loop_control(
                         let ent_idx = id.clamp(0, search_results.len().saturating_sub(1));
                         if !search_results.is_empty() {
                             let url = &search_results[ent_idx].url;
-                            &queue
-                                .add_album_in_queue(url)
-                                .unwrap();
+                            &queue.add_album_in_queue(url).unwrap();
                         } else {
                             println!("empty!");
                             log::info!("VALUES: {:#?}", search_results);
@@ -146,10 +143,7 @@ fn loop_control(
                     Err(_) => {
                         // load url
                         if command_args[1].starts_with("http") {
-                            if queue
-                                .add_album_in_queue( command_args[1])
-                                .is_err()
-                            {
+                            if queue.add_album_in_queue(command_args[1]).is_err() {
                                 println!("error while parsing album data!");
                             } else {
                                 println!("track(s) inserted sucessfully type 'ls' to view it!");
@@ -202,12 +196,12 @@ fn loop_control(
                     }
                 }
             } else {
-                if player.is_paused() {
-                    println!("info: playing");
-                    player.play();
+                if !player.is_paused() {
+                    println!("info: pause");
+                    player.set_paused(true);
                 } else {
-                    println!("info: paused");
-                    player.pause();
+                    println!("info: playing");
+                    player.set_paused(false);
                 }
             }
         }
@@ -256,7 +250,7 @@ fn loop_control(
     Ok(())
 }
 
-pub fn loadinterface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("info: running in cli mode");
 
     {
