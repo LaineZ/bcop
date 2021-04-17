@@ -5,12 +5,18 @@ use crate::bc_core::{
     queue::Queue,
 };
 
-use super::{listbox::ListBox, statebar::StateBar, tui_structs::State};
-use console_engine::{Color, KeyCode, MouseButton};
+use super::{listbox::ListBox, statebar::StateBar, statebar::StateBarWidget, tui_structs::State};
+use console_engine::{Color, ConsoleEngine, KeyCode, MouseButton};
 
 const LIST_TAGS: usize = 0;
 const LIST_DISCOVER: usize = 1;
 const LIST_QUEUE: usize = 2;
+
+const STATEBAR_PROGRAMHEADER: usize = 0;
+const STATEBAR_VOLUME: usize = 1;
+const STATEBAR_TRACK_INFO: usize = 2;
+const STATEBAR_TRACK_SEEKBAR: usize = 3;
+const STATEBAR_SHUFFLE: usize = 4;
 
 /// Change this varible to speed up rendering
 pub const MAX_FPS: u32 = 30;
@@ -20,7 +26,6 @@ fn setup_focus_at(id: usize, lbx: &mut Vec<ListBox>, bar: &mut StateBar) {
         list.focused = false;
     }
     lbx[id].focused = true;
-    bar.information(&lbx[id].description);
 }
 
 fn get_focus_at(lbx: &mut Vec<ListBox>) -> usize {
@@ -44,16 +49,25 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     let (cols, rows) = (engine.get_width() as u16, engine.get_height() as u16);
     let mut debug_overlay = false;
 
+    // LISTBOXES
     let mut listboxes = Vec::new();
     listboxes.push(ListBox::new(cols, rows, true, "Tags"));
     listboxes.push(ListBox::new(cols, rows, false, "Discover"));
     listboxes.push(ListBox::new(cols, rows, false, "Play queue"));
     listboxes[LIST_TAGS].display.extend(tags);
 
+    // STATEBAR
+    let mut bar = StateBar::new();
+    // adding 4 statebars widgets
+    for _ in 0..4 {
+        bar.widgets.push(StateBarWidget::new());
+    }
+
+    bar.widgets[STATEBAR_PROGRAMHEADER].set_text("▶ BandcampOnlinePlayer RS");
+
     let mut player = Player::new();
 
     let mut state = State::new();
-    let mut bar = StateBar::new();
     let mut queue = Queue::new();
 
     let mut stopwatch = std::time::Instant::now();
@@ -68,8 +82,8 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                 engine.print_screen(0, 0, list.draw());
             }
         }
-        engine.print_screen(0, bar.y as i32, bar.draw());
 
+        engine.print_screen(0, bar.y as i32, bar.draw());
         if debug_overlay {
             engine.print_fbg(
                 1,
@@ -127,7 +141,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
         if engine.is_key_pressed(KeyCode::Enter) {
             if listboxes[LIST_TAGS].focused {
                 if !listboxes[LIST_TAGS].highlight.is_empty() {
-                    bar.information("Loading discover...");
+                    bar.widgets[STATEBAR_TRACK_INFO].set_text("Loading discover...");
                     setup_focus_at(LIST_DISCOVER, &mut listboxes, &mut bar);
                     state.extend_discover(listboxes[LIST_TAGS].highlight.clone())?;
                     for data in state.discover.iter_mut() {
@@ -136,7 +150,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                             .push(format!("{} - {}", data.artist, data.title))
                     }
                 } else {
-                    bar.error("Please select at least 1 tag!");
+                    bar.widgets[STATEBAR_TRACK_INFO].set_text("Please select at least 1 tag!");
                 }
             }
 
@@ -145,16 +159,13 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
                     let url = state.discover[listboxes[LIST_DISCOVER].get_selected_idx()]
                         .tralbum_url
                         .clone();
-                    queue.add_album_in_queue( url.as_str())?;
+                    queue.add_album_in_queue(url.as_str())?;
 
                     for data in queue.queue.iter_mut() {
                         listboxes[LIST_QUEUE].display.push(data.to_string())
                     }
                 } else {
-                    bar.error(format!(
-                        "Cannot load discover! Please select another tags: {}",
-                        listboxes[LIST_TAGS].highlight.join(", ")
-                    ));
+                    bar.widgets[STATEBAR_TRACK_INFO].set_text("Can't load discover... Please select another tags");
                 }
             }
 
@@ -177,7 +188,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             }
         }
 
-        if engine.is_key_pressed(KeyCode::F(1)) {
+        if engine.is_key_pressed(KeyCode::F(2)) {
             debug_overlay = !debug_overlay;
         }
 
@@ -248,7 +259,7 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             if !queue.queue.is_empty() {
                 webbrowser::open(&queue.get_current_track().unwrap().album_url)?;
             } else {
-                bar.error("Queue list is empty!");
+                bar.widgets[STATEBAR_TRACK_INFO].set_text("Queue list is empty!");
             }
         }
 
@@ -264,41 +275,18 @@ pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error
             Some(time) => {
                 if let Some(track) = queue.get_current_track() {
                     if time >= track.duration {
-                        bar.bottom_info("Loading next track...");
+                        bar.widgets[STATEBAR_TRACK_INFO].set_text("Loading next track...");
                         if let Some(track) = queue.next() {
                             player.switch_track(track.audio_url);
                         } else {
                             player.stop();
-                            bar.information("Finished playback!");
+                            bar.widgets[STATEBAR_TRACK_INFO].set_text("Finished playback");
                         }
                     }
-
-                    let mut state_pl = "◼";
-                    if player.is_paused() {
-                        state_pl = "⏸"
-                    } else {
-                        state_pl = "▶"
-                    }
-
-                    bar.bottom_info(format!(
-                        "{} 🔈{}% {} - {} from {} {}/{}",
-                        state_pl,
-                        player.get_volume(),
-                        track.artist,
-                        track.title,
-                        track.album,
-                        FormatTime(player.get_time().unwrap_or(Duration::from_secs(0))),
-                        FormatTime(track.duration)
-                    ));
                 }
             }
 
-            None => {
-                bar.bottom_info(format!(
-                    "◼ 🔈{}%",
-                    player.get_volume()
-                ));
-            }
+            None => {}
         }
 
         if stopwatch.elapsed().as_millis() >= 1000 {
