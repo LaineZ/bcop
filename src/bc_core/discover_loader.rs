@@ -1,12 +1,12 @@
 use crate::{bc_core::album_parsing, model::discover};
 
 #[derive(Clone)]
-pub struct State {
+pub struct DiscoverLoader {
     loaded_discover_pages: usize,
     pub discover: Vec<discover::Item>,
 }
 
-impl State {
+impl DiscoverLoader {
     pub fn new() -> Self {
         Self {
             loaded_discover_pages: 0,

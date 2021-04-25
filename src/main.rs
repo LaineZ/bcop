@@ -2,8 +2,10 @@ mod bc_core;
 mod bop_interfaces;
 mod model;
 
-use bop_interfaces::{cli, tui};
+//use bop_interfaces::cli;
 use std::env;
+
+use bop_interfaces::stream;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -29,17 +31,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if args.len() < 2 {
-        tui::loadinterface(args.clone())?;
+        //cli::loadinterface(args.clone())?;
         std::process::exit(0);
     }
 
     match args[1].as_str() {
-        "tui" => tui::loadinterface(args)?,
-        "cli" => cli::loadinterface(args)?,
+        //"tui" => tui::loadinterface(args)?,
+        //"cli" => cli::loadinterface(args)?,
+        "stream" => stream::loadinterface(args)?,
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
-            println!("Allowed options:");
-            println!("tui - TUI player mode");
         }
     }
     Ok(())

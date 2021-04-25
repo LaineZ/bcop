@@ -3,7 +3,7 @@ use std::{fmt::Display, time::Duration};
 
 use crate::model::album::{Album, Trackinfo};
 
-use super::album_parsing;
+use super::{album_parsing, playback::Player};
 use anyhow::anyhow;
 
 #[derive(Clone)]
@@ -58,6 +58,7 @@ pub struct Queue {
     pub queue: Vec<QueuedTrack>,
     pub shuffle: bool,
     pub queue_pos: usize,
+    pub player: Player
 }
 
 impl Queue {
@@ -66,36 +67,32 @@ impl Queue {
             queue: Vec::new(),
             shuffle: false,
             queue_pos: 0,
+            player: Player::new()
         }
     }
 
-    pub fn next(&mut self) -> Option<QueuedTrack> {
+    pub fn next(&mut self) -> bool {
         if self.queue_pos + 1 < self.queue.len() - 1 {
             self.queue_pos += 1;
-            Some(self.queue[self.queue_pos].clone())
-        } else {
-            None
+            self.player.switch_track(&self.queue[self.queue_pos].audio_url);
+            return true;
         }
+        return false;
     }
 
-    pub fn set(&mut self, idx: usize) -> Option<QueuedTrack> {
-        if idx < self.queue.len() {
-            self.queue_pos = idx;
 
-            Some(self.queue[self.queue_pos].clone())
-        } else {
-            None
-        }
+    pub fn start(&mut self) {
+        self.player.switch_track(&self.queue[self.queue_pos].audio_url);
+        self.player.play();
     }
 
-    pub fn prev(&mut self) -> Option<QueuedTrack> {
+    pub fn prev(&mut self) -> bool {
         if self.queue_pos > 0 {
             self.queue_pos -= 1;
-
-            Some(self.queue[self.queue_pos].clone())
-        } else {
-            None
+            self.player.switch_track(&self.queue[self.queue_pos].audio_url);
+            return true;
         }
+        return false;
     }
 
     pub fn get_current_track(&mut self) -> Option<QueuedTrack> {
