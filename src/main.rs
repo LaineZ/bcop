@@ -5,7 +5,7 @@ mod model;
 //use bop_interfaces::cli;
 use std::env;
 
-use bop_interfaces::stream;
+use bop_interfaces::{cli, stream};
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -36,9 +36,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     match args[1].as_str() {
-        //"tui" => tui::loadinterface(args)?,
-        //"cli" => cli::loadinterface(args)?,
-        "stream" => stream::loadinterface(args)?,
+        //"tui" => tui::load_interface(args)?,
+        "cli" => cli::load_interface(args)?,
+        "stream" => stream::load_interface(args)?,
         _ => {
             eprintln!("error: Invalid arguments supplyed. Exiting");
         }

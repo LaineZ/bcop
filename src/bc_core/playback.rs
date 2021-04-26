@@ -385,6 +385,7 @@ impl PlayerThread {
 
             match cmd {
                 Command::SwitchTrack(url) => {
+                    log::info!("Loading track {}", &url);
                     self.reset();
                     self.decoder = load_track(&url);
                     self.is_playing = true;

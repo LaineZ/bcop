@@ -80,10 +80,25 @@ impl Queue {
         return false;
     }
 
+    pub fn process(&mut self) {
+        if let Some(track) = self.get_current_track() {
+            if self.player.is_playing() && track.duration == self.player.get_time().unwrap_or(Duration::from_secs(0)) {
+                log::info!("Next track...");
+                self.next();
+            }
+        }
+    }
+
+    pub fn is_end(&self) -> bool {
+        self.queue_pos == self.queue.len()
+    }
 
     pub fn start(&mut self) {
         self.player.switch_track(&self.queue[self.queue_pos].audio_url);
         self.player.play();
+        if !self.player.is_playing() {
+            log::warn!("cannot start playback");
+        }
     }
 
     pub fn prev(&mut self) -> bool {

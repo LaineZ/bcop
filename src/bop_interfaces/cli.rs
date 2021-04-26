@@ -1,14 +1,13 @@
 use std::{io::Write, time::Duration};
 
 use crate::{
-    bc_core::{self, playback::Player, queue::Queue},
+    bc_core::{self, queue::Queue},
     model::search,
 };
 use anyhow::Result;
 use bc_core::{album_parsing::search, playback::FormatTime};
 
 fn loop_control(
-    player: &mut Player,
     queue: &mut Queue,
     search_results: &mut Vec<search::Result>,
 ) -> Result<()> {
@@ -26,8 +25,8 @@ fn loop_control(
             if !command_args.is_empty() && command_args.len() > 1 {
                 match command_args[1].parse::<u16>() {
                     Ok(volume) => {
-                        player.increase_volume(volume);
-                        println!("volume set to: {}%", player.get_volume())
+                        queue.player.increase_volume(volume);
+                        println!("volume set to: {}%", queue.player.get_volume())
                     }
                     Err(_) => println!("error: invalid volume format"),
                 }
@@ -38,8 +37,8 @@ fn loop_control(
             if !command_args.is_empty() && command_args.len() > 1 {
                 match command_args[1].parse::<u16>() {
                     Ok(volume) => {
-                        player.decrease_volume(volume);
-                        println!("volume set to: {}%", player.get_volume())
+                        queue.player.decrease_volume(volume);
+                        println!("volume set to: {}%", queue.player.get_volume())
                     }
                     Err(_) => println!("error: invalid volume format"),
                 }
@@ -51,7 +50,7 @@ fn loop_control(
                 match command_args[1].parse::<u64>() {
                     Ok(seek) => {
                         println!("seeking forward to {} seconds", seek);
-                        player.seek_forward(Duration::from_secs(seek));
+                        queue.player.seek_forward(Duration::from_secs(seek));
                     }
                     Err(_) => println!("error: invalid seek format"),
                 }
@@ -63,7 +62,7 @@ fn loop_control(
                 match command_args[1].parse::<u64>() {
                     Ok(seek) => {
                         println!("seeking to {} seconds", seek);
-                        player.seek(Duration::from_secs(seek));
+                        queue.player.seek(Duration::from_secs(seek));
                     }
                     Err(_) => println!("error: invalid seek format"),
                 }
@@ -71,8 +70,8 @@ fn loop_control(
         }
 
         "stop" => {
-            player.stop();
-            println!("player stopped!");
+            queue.player.stop();
+            println!("queue.player stopped!");
         }
 
         "seekb" => {
@@ -80,7 +79,7 @@ fn loop_control(
                 match command_args[1].parse::<u64>() {
                     Ok(seek) => {
                         println!("seeking backwards to {} seconds", seek);
-                        player.seek_backward(Duration::from_secs(seek));
+                        queue.player.seek_backward(Duration::from_secs(seek));
                     }
                     Err(_) => println!("error: invalid seek format"),
                 }
@@ -152,12 +151,6 @@ fn loop_control(
                     }
                 }
             }
-
-            if !player.is_playing() {
-                if let Some(track) = queue.get_current_track() {
-                    player.switch_track(track.audio_url);
-                }
-            }
         }
 
         "ls" => {
@@ -185,10 +178,7 @@ fn loop_control(
                     match command_args[1].parse::<usize>() {
                         Ok(idx) => {
                             queue.queue_pos = idx;
-                            if let Some(track) = queue.get_current_track() {
-                                player.switch_track(track.audio_url);
-                                println!("starting playing...");
-                            }
+                            queue.start();
                         }
                         Err(_) => {
                             println!("incorrect format!");
@@ -196,34 +186,30 @@ fn loop_control(
                     }
                 }
             } else {
-                if !player.is_paused() {
+                if !queue.player.is_paused() {
                     println!("info: pause");
-                    player.set_paused(true);
+                    queue.player.set_paused(true);
                 } else {
                     println!("info: playing");
-                    player.set_paused(false);
+                    queue.player.set_paused(false);
                 }
             }
         }
 
         "d" => {
-            if let Some(duration) = player.get_time() {
+            if let Some(duration) = queue.player.get_time() {
                 println!("{}", FormatTime(duration));
             }
         }
 
         "next" => {
-            if let Some(track) = queue.next() {
-                player.switch_track(&track.audio_url);
-                println!("next track: {}", &track);
-            }
+            queue.next();
+            println!("next track!");
         }
 
         "prev" => {
-            if let Some(track) = queue.prev() {
-                player.switch_track(&track.audio_url);
-                println!("switching to previous track: {}", &track);
-            }
+            queue.prev();
+            println!("prev track!");
         }
 
         "help" => {
@@ -250,16 +236,12 @@ fn loop_control(
     Ok(())
 }
 
-pub fn loadinterface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn load_interface(_args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("info: running in cli mode");
+    let mut queue = Queue::new();
+    let mut search_results = Vec::new();
 
-    {
-        let mut queue = Queue::new();
-        let mut search_results = Vec::new();
-        let mut player = Player::new();
-
-        loop {
-            loop_control(&mut player, &mut queue, &mut search_results)?;
-        }
+    loop {
+        loop_control( &mut queue, &mut search_results)?;
     }
 }

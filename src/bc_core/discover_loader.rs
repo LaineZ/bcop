@@ -1,4 +1,5 @@
 use crate::{bc_core::album_parsing, model::discover};
+use anyhow::anyhow;
 
 #[derive(Clone)]
 pub struct DiscoverLoader {
@@ -22,8 +23,9 @@ impl DiscoverLoader {
             let discover = album_parsing::get_tag_data(tags, self.loaded_discover_pages)?.items;
             self.discover.extend(discover);
         } else {
-            log::warn!("Discover list is empty");
+            anyhow!("Tags is empty");
         }
+
 
         Ok(())
     }
