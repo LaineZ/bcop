@@ -82,9 +82,9 @@ impl Queue {
 
     pub fn process(&mut self) {
         if let Some(track) = self.get_current_track() {
-            if self.player.is_playing() && track.duration == self.player.get_time().unwrap_or(Duration::from_secs(0)) {
-                log::info!("Next track...");
-                self.next();
+            if !self.player.is_playing() && track.duration <= self.player.get_time().unwrap_or(Duration::from_secs(0)) {
+                //log::info!("Next track...");
+                //self.next();
             }
         }
     }

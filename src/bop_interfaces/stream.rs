@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::bc_core::{self, queue::Queue};
 use anyhow::Result;
 use bc_core::discover_loader::DiscoverLoader;
@@ -18,6 +20,7 @@ pub fn load_interface(args: Vec<String>) -> Result<(), Box<dyn std::error::Error
     }
 
     loop {
+        std::thread::sleep(Duration::from_millis(50));
         queue.process();
         if queue.is_end() {
             idx += 1;

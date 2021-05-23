@@ -110,8 +110,8 @@ struct PlayerThread {
 
 fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
-        .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(Duration::from_secs(5))
+        .timeout_connect(std::time::Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(1))
         .build();
 
     let mut tries = 0;
@@ -241,15 +241,21 @@ impl PlayerThread {
 
         let b = buffer.clone();
         let stream = match format {
-            SampleFormat::I16 => {
-                device.build_output_stream(&stream_config, move |v, _| data_fn::<i16>(v, &b), error_fn)?
-            }
-            SampleFormat::U16 => {
-                device.build_output_stream(&stream_config, move |v, _| data_fn::<u16>(v, &b), error_fn)?
-            }
-            SampleFormat::F32 => {
-                device.build_output_stream(&stream_config, move |v, _| data_fn::<f32>(v, &b), error_fn)?
-            }
+            SampleFormat::I16 => device.build_output_stream(
+                &stream_config,
+                move |v, _| data_fn::<i16>(v, &b),
+                error_fn,
+            )?,
+            SampleFormat::U16 => device.build_output_stream(
+                &stream_config,
+                move |v, _| data_fn::<u16>(v, &b),
+                error_fn,
+            )?,
+            SampleFormat::F32 => device.build_output_stream(
+                &stream_config,
+                move |v, _| data_fn::<f32>(v, &b),
+                error_fn,
+            )?,
         };
         stream.play()?;
 
@@ -261,7 +267,7 @@ impl PlayerThread {
             stream,
             tracker: TimeTracker::new(),
             is_playing: true,
-            sample_rate: stream_config.sample_rate.0
+            sample_rate: stream_config.sample_rate.0,
         })
     }
 
@@ -341,9 +347,15 @@ impl PlayerThread {
         loop {
             let timeout = Duration::from_millis(10);
 
+            log::info!(
+                "Remaining samples: {}",
+                self.buffer.remaining_samples.load(Ordering::SeqCst)
+            );
+
             if self.decoder.is_none() {
                 // track almost ended
-                if self.buffer.remaining_samples.load(Ordering::SeqCst) == 0 {
+                log::info!("Encoder is none?");
+                if self.buffer.remaining_samples.load(Ordering::SeqCst) <= 384 {
                     // track ended
                     self.reset();
                 }
@@ -355,8 +367,7 @@ impl PlayerThread {
                     if let Some(frame) = self.next_frame()? {
                         let len = frame.data.len();
                         if let Ok(mut frames) = self.buffer.frames.lock() {
-                            if self.sample_rate > 44100
-                            {
+                            if self.sample_rate > 44100 {
                                 let frame_resamp: Vec<f32> =
                                     frame.data.iter().map(|&v| v as f32).collect();
                                 let resampled = convert(
@@ -368,9 +379,8 @@ impl PlayerThread {
                                 )
                                 .unwrap();
                                 frames.push(resampled.iter().map(|&v| v as i16).collect());
-                            }
-                            else
-                            {
+                            } else {
+                                //log::info!("Frames: {:#?}", frame.data);
                                 frames.push(frame.data);
                             }
                         }
@@ -414,15 +424,16 @@ impl PlayerThread {
 
                     time = std::cmp::min(time, self.tracker.time());
                     self.tracker.seek_backward(time);
-
                     self.decoder = load_track(cur_url.as_ref().unwrap());
 
                     let submitted = self.buffer.submitted_samples.load(Ordering::SeqCst);
-                    let samples = time_to_samples(time, SampleRate(self.sample_rate), 2).min(submitted);
+                    let samples =
+                        time_to_samples(time, SampleRate(self.sample_rate), 2).min(submitted);
                     self.skip_samples(submitted - samples)?;
                     self.buffer
                         .submitted_samples
                         .store(submitted - samples, Ordering::SeqCst);
+                    log::info!("Seeked back");
                 }
 
                 Command::Play => {
