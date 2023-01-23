@@ -4,7 +4,7 @@
 ![CI Build](https://github.com/LaineZ/bc_rs/workflows/CI%20Build/badge.svg) -->
 
 
-A next cross-platform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written in Rust!
+A next cross-platform version of [BandcampOnlinePlayer](https://github.com/LaineZ/BandcampOnlinePlayer) written in Rust with Sciter library!
 
 A simple desktop-orienteted client for bandcamp.com - Allows listen albums from tags or URL's much easier; and provides features like play queue, low memory/cpu usage rather than browser, etc.
 
