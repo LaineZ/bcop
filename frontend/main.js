@@ -48,6 +48,7 @@ function updatePlayerInformation() {
         $('#total-time').text(fmtTime(Math.floor(queue[queuePosition].duration)));
         $('#seekbar').val(getTime());
         $('#seekbar').attr('max', Math.floor(queue[queuePosition].duration));
+        $('#track-name')
 
         if (queue.length > queuePosition + 1) {
             if (getTime() >= queue[queuePosition].duration) {

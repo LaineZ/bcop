@@ -219,6 +219,18 @@ option:hover {
   padding-right: 20px;
 }
 
+#controls div {
+  flow: horizontal;
+}
+
+#controls p {
+  margin: 0;
+  padding-left: 20px;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: bold;
+}
+
 #controls img {
   margin: 5px;
   height: 20px;

@@ -1,15 +1,18 @@
-use std::{path::Path, process::Command};
+use std::{path::Path, process::Command, env};
 
 fn main() {
     let sdk_path = Path::new("sciter-js-sdk-4.4.9.3");
+    let mut out_dir = std::env::current_exe().unwrap();
+
+    for _ in 0..3 {
+        out_dir.pop();
+    }
+
+    println!("cargo:warning=path: {:?}", out_dir);
 
     if !sdk_path.exists() {
         panic!("Unable to find sciter sdk installation... please run ./download.sh script...");
     }
-
-    let var = &std::env::var("OUT_DIR").unwrap();
-    let out_dir = Path::new(var);
-
 
     if cfg!(windows) {
 
