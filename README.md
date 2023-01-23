@@ -8,8 +8,8 @@ A next cross-platform version of [BandcampOnlinePlayer](https://github.com/Laine
 
 A simple desktop-orienteted client for bandcamp.com - Allows listen albums from tags or URL's much easier; and provides features like play queue, low memory/cpu usage rather than browser, etc.
 
-You can download latest dev version from "actions" menu:
-https://github.com/LaineZ/bc_rs/actions
+<!-- You can download latest dev version from "actions" menu:
+https://github.com/LaineZ/bc_rs/actions -->
 
 ## Installation
 If you have [https://crates.io/](cargo) installed. bc-rs can be installed using this commands:
@@ -18,79 +18,7 @@ If you have [https://crates.io/](cargo) installed. bc-rs can be installed using 
    1. On Ubuntu/Debian you can install with this command: ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
    2. On Void linux you can install with this command ``sudo xbps-install alsa-lib-devel libxcb-devel``
 2. Run this command: ``cargo install --git https://github.com/LaineZ/bc_rs.git``
-3. DONE! You can run in CLI/TUI Mode by instructions above
-
-## Application modes
-
-### TUI Mode:
-Terminal graphics based interface. Built with [console_engine](https://github.com/VincentFoulon80/console_engine) library. Runs with ``tui`` flag
-
-### CLI Mode:
-Command line based interface. Runs with ``cli`` flag. Type ``help`` to see commands
-
-## Running
-
-### Linux/Mac
-
-Works on any Linux with ALSA-compitable sound card.
-
-CI-Builds and future release builds supports **only amd64** architecture. If you want run this on **i386, arm64, armhf, ...** you need compile it **yourself**.
-
-```./bandcamp-online-cli [tui or cli]```
-
-![Screenshot](https://i.imgur.com/jKar1mc.png)
-
-### Windows
-
-``bandcamp-online-cli.exe [tui or cli]``
-
-![ScreeshotWindows](https://i.imgur.com/NIg76L6.png)
-
-### TUI Mode controls
-#### Currently, TUI Mode in heavy development, and can works incorrectly - use it on own risk
-**General keys**
-
-<kbd>Esc</kbd> OR <kbd>Ctrl</kbd>+<kbd>C</kbd> - closes program
-
-<kbd>Q</kbd> - switch to queue list
-
-<kbd>C</kbd> - add album/track to queue by URL from clipboard
-
-<kbd>⭾</kbd> - cycle between views
-
-<kbd>↑</kbd> <kbd>↓</kbd> - navigation
-
-<kbd>PageUp</kbd> <kbd>PageDown</kbd> - scroll pages
-
-**Playback only**
-
-<kbd>←</kbd> - move track backwards by 5 secs
-
-<kbd>→</kbd> - move track forward by 5 secs
-
-<kbd>W</kbd> <kbd>S</kbd> - inrease / decrease volume by 1%
-
-<kbd>O</kbd> - open current playing album URL in browser
-
-<kbd>Delete</kbd> - clear selected list
-
-**Tags list only**
-
-<kbd>Space</kbd> - add tag
-
-<kbd>Enter</kbd> - load albums by tags
-
-<kbd>Delete</kbd> - diselect all tags
-
-**Queue list only**
-
-<kbd>Enter</kbd> - play selected track
-
-<kbd>Space</kbd> - play/pause current track
-
-**Album list only**
-
-<kbd>Enter</kbd> - add selected album to queue
+3. DONE! You can run it with ``bc_rs`` command
 
 ## Building
 1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command

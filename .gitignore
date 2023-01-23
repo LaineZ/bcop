@@ -1,6 +1,5 @@
 /target
-**/*.rs.bk
-*.txt
-*.json
-*.log
-/.vscode
+*.rc
+*.cache
+configuration.toml
+sciter-js*

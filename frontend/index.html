@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<head>
+    <title>BandcampOnlinePlayer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="zepto.js"></script>
+    <!-- <style src="style.css"></style> -->
+</head>
+
+<body>
+    <script src="fragments.js"></script>
+    <script src="event_dispatcher.js"></script>
+    <script src="tags.js"></script>
+    <script src="main.js"></script>
+    <div id="modal-dim" class="modal">
+        <div id="clear-queue-modal" class="modal-content">
+            <p>You really want clear the queue?</p>
+            <button id="clear-queue-yes">
+                Yes
+            </button>
+            <button class="no">
+                No
+            </button>
+        </div>
+
+        <div id="album-import-modal" class="modal-content">
+            <div>
+                <input type="text" id="album-url-input" placeholder="Enter album or track URL, or search term...">
+            </div>
+            <div id="search-results">
+
+            </div>
+        </div>
+
+        <div class="modal-content" id="options-modal">
+            <div class="lists-window">
+                <div class="option-tabs" id="option-tabs">
+                    <div class="option-tab selected" id="options-general">
+                        <h3>general</h3>
+                    </div>
+                    <!-- <div class="option-tab" id="options-audio">
+                        <h3>audio</h3>
+                    </div> -->
+                    <div class="option-tab" id="options-about">
+                        <h3>about</h3>
+                    </div>
+                </div>
+
+                <div id="general" class="option-selection">
+                    <label>Artwork proxy type:
+                        <select id="use-proxy" title="Enable this option if you encounter with missing images">
+                            <option value="0">None</option>
+                            <option value="1">Use HTTP instead of HTTPS</option>
+                            <option value="2">HTTP Proxy</option>
+                        </select>
+                    </label>
+                    <br>
+                    <label>Artwork quality:
+                        <br>
+                        <select id="artwork-quality">
+                            <option value="0">High</option>
+                            <option value="1">Medium</option>
+                            <option value="2">Low</option>
+                            <option value="3">Very Low</option>
+                        </select>
+                    </label>
+                </div>
+                <!-- 
+                <div id="audio" class="option-selection hidden">
+                    <p>Not yet implemented</p>
+                </div> -->
+
+                <div id="about" class="option-selection hidden">
+                    <h2>BandcampOnlinePlayer</h2>
+                    <p>© 2020-2023 by <strong>140bpmdubstep</strong></p>
+                    <a id="github" href="">github</a>
+                    <hr>
+                    <h4>Contributors:</h4>
+                    <ul>
+                        <li><strong>Fedor Cheremisenov</strong> (UI/UX)</li>
+                        <li><strong>LeshaInc</strong> (playback engine, code review)</li>
+                        <li><strong>VincentFoulon80</strong> (TUI version, code refactoring)</li>
+                    </ul>
+                    <p>This Application uses Sciter Engine <a href="" id="sciter-link">https://sciter.com</a> © Terra
+                        Informatica Software, Inc.</p>
+                </div>
+                <button class="close-button" id="close-settings">×</button>
+            </div>
+            <br>
+        </div>
+    </div>
+
+    <div id="error-modal">Not implemented</div>
+
+    <div class="main-window">
+        <div class="lists-window">
+            <div id="menu">
+                <img src="icons/tags.svg" id="tags-toggle" title="Toggle tags">
+                <img src="icons/cog.svg" id="settings" title="Settings">
+                <img src="icons/search.svg" id="album-import" title="Insert album/track from URL">
+            </div>
+            <select size="5" id="tags-select">
+            </select>
+            <div id="discover-window">
+                <input type="text" id="discover-heading" title="Enter discover tags here, separated by spaces"></input>
+                <div id="loading">
+                    <img src="icons/loading.svg">
+                </div>
+                <div class="album-selector" id="albums-select">
+                    <div class="welcome-message">
+                        <div id="welcome-message">
+                            <h1>BandcampOnlinePlayer</h1>
+                            <p>Press <strong>S</strong> to enter discover tags</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="queue-select">
+            </div>
+        </div>
+        <div id="controls">
+            <div>
+                <img src="icons/fast-backward.svg" id="back" title="Previous">
+                <img src="icons/pause.svg" id="play-pause" title="Play/Pause">
+                <img src="icons/fast-forward.svg" id="forward" title="Next">
+                <img src="icons/stop.svg" id="stop" title="Stop">
+                <img src="icons/remove.svg" id="clear-queue" title="Clear player queue">
+            </div>
+            <input id="seekbar" type="hslider" min="0" max="0">
+            <a id="current-time">00:00</a>
+            <a>/</a>
+            <a id="total-time">00:00</a>
+            <input id="volume" type="hslider" min="0" max="100" value="100">
+        </div>
+    </div>
+</body>

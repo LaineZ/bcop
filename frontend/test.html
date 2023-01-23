@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <title>Test</title>
+    <style>
+        menu>li.copy {
+            foreground-image: url(sciter:copy.png)
+        }
+
+        menu>li.cut {
+            foreground-image: url(sciter:cut.png)
+        }
+
+        menu>li.paste {
+            foreground-image: url(sciter:paste.png)
+        }
+    </style>
+    <script>
+        function ContextMenu() {
+            return <menu.context>
+                <li>Dum</li>
+                <li>Spiro
+                    <menu>
+                        <li.copy>Spiro A</li>
+                        <li.cut>Spiro B</li>
+                        <li.paste>Spiro C</li>
+                    </menu>
+                </li>
+                <li>Spero
+                    <menu>
+                        <li>Spero A</li>
+                        <li>Spero B</li>
+                        <li>Spero C</li>
+                    </menu>
+                </li>
+            </menu>;
+        }
+
+        document.on("contextmenu", function (evt) {
+            //const {x,y} = evt.data;
+            //console.log(evt.target, x / devicePixelRatio,y / devicePixelRatio);
+            evt.source = Element.create(<ContextMenu />);
+            return true; // handled
+        });
+
+    </script>
+</head>
+
+<body>
+
+    <p>Right click to reveal context menu</p>
+
+</body>
+
+</html>

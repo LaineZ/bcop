@@ -1,47 +1,59 @@
-mod bc_core;
-mod bop_interfaces;
-mod model;
+pub mod handlers;
+pub mod playback;
 
-//use bop_interfaces::cli;
-use std::env;
+fn check_options() {
+	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
+		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8		// Enables `Sciter.machineName()`
+		| sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8	// Enables opening file dialog (`view.selectFile()`)
+	)).ok();
 
-use bop_interfaces::{cli, stream};
+	for arg in std::env::args() {
+		if arg.starts_with("--sciter-gfx=") {
+			use sciter::GFX_LAYER;
+			let backend = match arg.split_at("--sciter-gfx=".len()).1.trim() {
+				"auto" => GFX_LAYER::AUTO,
+				"cpu" => GFX_LAYER::CPU,
+				"skia" | "skia-cpu" => GFX_LAYER::SKIA_CPU,
+				"skia-opengl" => GFX_LAYER::SKIA_OPENGL,
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+				#[cfg(windows)]
+				"d2d" => GFX_LAYER::D2D,
+				#[cfg(windows)]
+				"warp" => GFX_LAYER::WARP,
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
+				_ => GFX_LAYER::AUTO,
+			};
+			log::info!("setting {:?} backend", backend);
+			let ok = sciter::set_options(sciter::RuntimeOptions::GfxLayer(backend));
+			if let Err(e) = ok {
+				log::error!("failed to set backend: {:?}", e);
+			}
 
-    flexi_logger::Logger::with_str("warn, bandcamp_online_cli=debug")
-        .log_to_file()
-        .format_for_files(flexi_logger::with_thread)
-        .suppress_timestamp()
-        .start()
+		}
+	}
+}
+
+fn main() -> anyhow::Result<()> {
+    env_logger::init();
+	check_options();
+
+    log::info!("sciter: {}", sciter::version());
+	let resources = include_bytes!("archive.rc");
+
+    let mut frame = sciter::WindowBuilder::main_window()
+        .with_size((1000, 600))
+        .create();
+
+	frame.archive_handler(resources).expect("Invalid archive");
+    frame
+        .set_options(sciter::window::Options::DebugMode(true))
         .unwrap();
-
-    println!(
-        "BandcampOnlinePlayer by 140bpmdubstep and LeshaInc VERSION {}",
-        VERSION
-    );
-
-    log::info!(
-        "BandcampOnlinePlayer by 140bpmdubstep and LeshaInc VERSION {} Command line: {:?}",
-        VERSION,
-        args
-    );
-
-    if args.len() < 2 {
-        //cli::loadinterface(args.clone())?;
-        std::process::exit(0);
-    }
-
-    match args[1].as_str() {
-        //"tui" => tui::load_interface(args)?,
-        "cli" => cli::load_interface(args)?,
-        "stream" => stream::load_interface(args)?,
-        _ => {
-            eprintln!("error: Invalid arguments supplyed. Exiting");
-        }
-    }
+    frame.event_handler(handlers::log::Log);
+    frame.event_handler(handlers::http_request::HttpRequest::new());
+    frame.event_handler(handlers::player::Player::new());
+	frame.event_handler(handlers::config::Config::new());
+    frame.load_file("this://app/index.html");
+    frame.run_app();
+	log::info!("Stopped working...");
     Ok(())
 }
