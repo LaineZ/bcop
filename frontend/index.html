@@ -97,9 +97,9 @@
     <div class="main-window">
         <div class="lists-window">
             <div id="menu">
-                <img src="icons/tags.svg" id="tags-toggle" title="Toggle tags">
-                <img src="icons/cog.svg" id="settings" title="Settings">
-                <img src="icons/search.svg" id="album-import" title="Insert album/track from URL">
+                <img src="icons/tags.svg" class="image-button" id="tags-toggle" title="Toggle tags">
+                <img src="icons/cog.svg" class="image-button"  id="settings" title="Settings">
+                <img src="icons/search.svg" class="image-button"  id="album-import" title="Insert album/track from URL">
             </div>
             <select size="5" id="tags-select">
             </select>
@@ -120,20 +120,23 @@
             <div id="queue-select">
             </div>
         </div>
-        <div id="controls">
-            <div>
-                <img src="icons/fast-backward.svg" id="back" title="Previous">
-                <img src="icons/pause.svg" id="play-pause" title="Play/Pause">
-                <img src="icons/fast-forward.svg" id="forward" title="Next">
-                <img src="icons/stop.svg" id="stop" title="Stop">
-                <img src="icons/remove.svg" id="clear-queue" title="Clear player queue">
-                <p id="track-name">No track loaded</p>
+        <div id="bottom-panel">
+            <div id="controls">
+                <img src="icons/fast-backward.svg" class="image-button"  id="back" title="Previous">
+                <img src="icons/pause.svg" class="image-button"  id="play-pause" title="Play/Pause">
+                <img src="icons/fast-forward.svg" class="image-button"  id="forward" title="Next">
+                <img src="icons/stop.svg" class="image-button"  id="stop" title="Stop">
+                <img src="icons/remove.svg" id="clear-queue" class="image-button" title="Clear player queue">
             </div>
-            <input id="seekbar" type="hslider" min="0" max="0">
-            <a id="current-time">00:00</a>
-            <a>/</a>
-            <a id="total-time">00:00</a>
-            <input id="volume" type="hslider" min="0" max="100" value="100">
+            <div id="trackbar">
+                <input id="seekbar" type="hslider" min="0" max="100">
+                <div id="trackinfo">
+                    <p id="track-name">No track loaded</p>
+                    <p id="current-time">00:00</p>
+                    <p id="total-time">00:00</p>
+                    <input id="volume" type="hslider" min="0" max="100" value="100">
+                </div>
+            </div>
         </div>
     </div>
 </body>

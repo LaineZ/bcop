@@ -97,7 +97,7 @@ $(".no").on("click", function () {
 });
 
 $("#clear-queue-yes").on("click", function () {
-    clearQueue();
+    player.clearQueue();
     closeModals();
 });
 

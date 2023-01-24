@@ -86,13 +86,13 @@ impl HttpRequest {
                 done.call(None, &make_args!(tags), None).unwrap();
             }
 
-            if let Ok(tags) = get_tags() {
-                // cache tag in file
-                let tag_string = tags.join("\n");
-                std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                done.call(None, &make_args!(tag_string.clone()), None)
-                    .unwrap();
-            }
+            // if let Ok(tags) = get_tags() {
+            //     // cache tag in file
+            //     let tag_string = tags.join("\n");
+            //     std::fs::write("tag.cache", tag_string.clone()).unwrap();
+            //     done.call(None, &make_args!(tag_string.clone()), None)
+            //         .unwrap();
+            // }
         });
     }
 

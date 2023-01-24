@@ -72,8 +72,24 @@ input[type=text] {
 }
 
 input[type=hslider] {
-  background: var(--bg1);
-  color: var(--fg);
+  height:16px;
+  background:var(--bg1);
+  padding: 0;
+  display:block;
+}
+
+input[type=hslider] > button.slider { 
+  display: none;
+}
+
+input[type=hslider] {
+  background-image: url(stock:block);
+  background-repeat: no-repeat;
+  background-size: length(slider-position) 100%;
+  fill: var(--fg);
+  stroke-width:0;
+  padding: 0;
+  display:block;
 }
 
 menu {
@@ -86,6 +102,24 @@ menu li {
   color: var(--fg);
   transform: translate(1, 1);
   animation: ease 300ms slide;
+}
+
+h2 {
+  margin-bottom: 5px;
+}
+
+select {
+  background: var(--bg1);
+  color: var(--fg);
+  border: 0;
+  width: "*";
+}
+
+option {
+  font-size: 14px;
+  background: var(--bg1);
+  color: var(--fg);
+  transition: background-color ease 1s;
 }
 
 popup.list {
@@ -183,25 +217,6 @@ popup.list {
   }
 }
 
-
-h2 {
-  margin-bottom: 5px;
-}
-
-select {
-  background: var(--bg1);
-  color: var(--fg);
-  border: 0;
-  width: "*";
-}
-
-option {
-  font-size: 14px;
-  background: var(--bg1);
-  color: var(--fg);
-  transition: background-color ease 1s;
-}
-
 option:hover {
   background: var(--fg3);
   color: var(--fg);
@@ -214,34 +229,41 @@ option:hover {
 }
 
 #controls {
-  border-top: 1px solid var(--bg1);
-  padding-top: 5px;
-  padding-left: 12px;
   padding-right: 20px;
 }
 
-#controls div {
+#controls .image-button {
+  padding: 16px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+#trackbar {
+  flow: vertical;
+  height: 24px;
+  width: *;
+}
+
+#bottom-panel {
+  border-top: 1px solid var(--bg1);
+  padding-left: 12px;
   flow: horizontal;
 }
 
-#controls p {
-  margin: 0;
-  padding-left: 20px;
-  text-align: center;
-  vertical-align: middle;
+#track-name {
+  width: 1*;
   font-weight: bold;
 }
 
-#controls img {
-  margin: 5px;
-  height: 20px;
-  color: var(--fg);
-  transition: color ease 0.5s;
+#trackinfo {
+  flow: horizontal;
+  padding-right: 10px;
+  vertical-align: middle;
+  height: 32px;
 }
 
-#controls img:hover {
-  color: var(--fg2);
-  transition: color ease 0.5s;
+#trackinfo p {
+  padding-right: 5px;
 }
 
 #seekbar {
@@ -250,16 +272,15 @@ option:hover {
 
 #volume {
   width: 100px;
+  padding-right: 10px;
+  /* Workaround for vslider bugs. Slider stops working if settings relative */
+  position: fixed;
+  right: 80px;
+  bottom: 8px;
 }
 
 #total-time {
   color: var(--fg2);
-}
-
-#controls a {
-  height: 128px;
-  vertical-align: middle;
-  font-weight: bold;
 }
 
 #discover-window {
@@ -338,21 +359,12 @@ option:hover {
   background-color: var(--bg2);
   height: "*";
   flow: vertical;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 48px);
   transition: width ease 0.5s;
 }
 
 #menu img {
-  width: 16px;
-  height: 16px;
   padding: 8px;
-  color: var(--fg);
-  transition: color ease 0.5s;
-}
-
-#menu img:hover {
-  color: var(--fg2);
-  transition: color ease 0.5s;
 }
 
 #search-results .track-card:hover {
@@ -590,6 +602,18 @@ option:hover {
 .lists-window {
   flow: horizontal;
   height: "*";
+}
+
+.image-button {
+  width: 16px;
+  height: 16px;
+  color: var(--fg);
+  transition: color ease 0.5s;
+}
+
+.image-button:hover {
+  color: var(--fg2);
+  transition: color ease 0.5s;
 }
 
 .main-window {
