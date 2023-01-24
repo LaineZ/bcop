@@ -38,6 +38,7 @@ If you have [https://crates.io/](cargo) installed. bc-rs can be installed using 
 ## Current development screenshots
 
 ![bc](/resources/screenshot1.png)
+![bc](/resources/screenshot2.png)
 
 ## Notice
 This application **DOES NOT** provide any ways to **DOWNLOAD** music on computer. it's just make easier stream/play music from site and finding cool tracks =)
