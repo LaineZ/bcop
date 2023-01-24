@@ -51,48 +51,8 @@ function setImage(art_id, image) {
     }
 }
 
-function setStateChangeCallback(callback) {
-    Window.this.xcall("set_state_change_callback", callback);
-}
-
-function loadTrack(url) {
-    Window.this.xcall("load_track", url);
-}
-
-function setPaused(paused) {
-    Window.this.xcall("set_paused", paused);
-}
-
-function isPaused() {
-    return Window.this.xcall("is_paused");
-}
-
-function stop() {
-    Window.this.xcall("stop");
-}
-
-function seek(secs) {
-    Window.this.xcall("seek", secs);
-}
-
-function getTime() {
-    return Window.this.xcall("get_time");
-}
-
-function fmtTime(time) {
-    return Window.this.xcall("fmt_time", time);
-}
-
 function parseAlbumData(html) {
     return Window.this.xcall("parse_album_data", html);
-}
-
-function getVolume() {
-    return Window.this.xcall("get_volume");
-}
-
-function setVolume(value) {
-    return Window.this.xcall("set_volume", value);
 }
 
 function openInBrowser(url) {
@@ -108,4 +68,12 @@ function getSettings() {
 
 function saveSettings() {
     Window.this.xcall("save_config");
+}
+
+function setupVolume(volumeTrackBar) {
+    Window.this.xcall("setup_volume", volumeTrackBar)
+}
+
+function storeVolume(volumeTrackBar) {
+    Window.this.xcall("store_volume", volumeTrackBar);
 }

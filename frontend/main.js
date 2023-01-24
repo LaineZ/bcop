@@ -1,23 +1,26 @@
-let discover = [];
-let queue = [];
 let selectedTags = [];
-
-let page = 1;
-let queuePosition = 0;
-
-let intervalUpdate = setInterval(updatePlayerInformation, 500);
-
+let player = new Player();
+let discover = new Discover();
 
 const tagSelector = document.getElementById("tags-select");
 const loading = document.getElementById("loading");
 
 loading.style.display = "block";
+
 getTags(function (done) {
     done.split("\n").forEach(element => {
         tagSelector.innerHTML += `<option class="tag">${element}</option>`
     });
     loading.style.display = "none";
 });
+
+player.setup();
+
+setupVolume($("#volume")[0]);
+
+setInterval(function () {
+    player.updatePlayerInformation();
+}, 500);
 
 function debounce(func, wait, immediate) {
     let timeout;
@@ -40,52 +43,6 @@ function debounce(func, wait, immediate) {
         if (callNow) func.apply(context, args);
     };
 };
-
-
-function updatePlayerInformation() {
-    if (queue.length > 0) {
-        $('#current-time').text(fmtTime(getTime()));
-        $('#total-time').text(fmtTime(Math.floor(queue[queuePosition].duration)));
-        $('#seekbar').val(getTime());
-        $('#seekbar').attr('max', Math.floor(queue[queuePosition].duration));
-        $('#track-name')
-
-        if (queue.length > queuePosition + 1) {
-            if (getTime() >= queue[queuePosition].duration) {
-                queuePosition += 1;
-                loadTrack(queue[queuePosition].file["mp3-128"]);
-            }
-        } else {
-            stop();
-        }
-    }
-}
-
-function extendDiscover(tags, page) {
-    const json = {
-        filters: {
-            format: "all",
-            location: 0,
-            sort: "pop",
-            tags: tags
-        },
-        page: page
-    };
-
-    loading.style.display = "block";
-    httpRequestPost("https://bandcamp.com/api/hub/2/dig_deeper", JSON.stringify(json), function (response) {
-        const jsonRes = JSON.parse(response);
-        jsonRes.items.forEach(element => {
-            discover.push(element.tralbum_url);
-            $('#albums-select')
-                .append(discoverAlbumCard(element.art_id, element.title, element.artist, element.genre));
-
-            var card = document.getElementById("art_" + element.art_id);
-            setImage(element.art_id, card);
-        });
-        loading.style.display = "none";
-    });
-}
 
 function showQueueClearModal() {
     const modalDim = document.getElementById("modal-dim");
@@ -127,49 +84,10 @@ function closeModals() {
 
     modalDim.classList.add("closing");
 
-    setTimeout(function() {
+    setTimeout(function () {
         modalDim.classList.remove("active");
         modalDim.classList.remove("closing");
-    }, 200); 
-}
-
-function clearDiscover() {
-    page = 1;
-    discover = [];
-    $('#albums-select').empty();
-}
-
-function clearQueue() {
-    stop();
-    queue = [];
-    queuePosition = 0;
-    $('#queue-select').empty();
-}
-
-function addToQueue(url) {
-    const loading = document.getElementById("loading");
-    loading.style.display = "block";
-
-    httpRequestGet(url, function (response) {
-        const aldata = parseAlbumData(response);
-
-        if (aldata) {
-            const jsonRes = JSON.parse(aldata);
-            jsonRes.trackinfo.forEach(element => {
-                if (element.file != null) {
-                    queue.push(element);
-                    $('#queue-select').append(
-                        queuedTrackCard(jsonRes.current.art_id, element.title, jsonRes.artist));
-                }
-            });
-
-            document.getElementsByClassName("queue_art_" + jsonRes.current.art_id).forEach(card => {
-                setImage(jsonRes.current.art_id, card);
-            });
-        }
-
-        loading.style.display = "none";
-    });
+    }, 200);
 }
 
 // HANDLERS
@@ -184,28 +102,27 @@ $("#clear-queue-yes").on("click", function () {
 });
 
 $("#tags-select").on("click", function () {
-    clearDiscover();
+    discover.clearDiscover();
     selectedTags = [$(this).val()];
     $('#discover-heading').text(selectedTags);
     for (let index = 0; index < 3; index++) {
-        page += 1;
-        extendDiscover(selectedTags, page)
+        discover.extend(selectedTags)
     }
 });
 
 $("#albums-select").on("click", ".album-card", function () {
     var idx = $(this).index();
-    addToQueue(discover[idx]);
+    player.addToQueue(discover.discover[idx]);
 });
 
 $("#albums-select").on("click", ".album-card", function () {
     var idx = $(this).index();
-    addToQueue(discover[idx]);
+    player.addToQueue(discover.discover[idx]);
 });
 
 $("#search-results").on("click", ".track-card", function () {
     var value = $(this).prop("value");
-    addToQueue(value);
+    player.addToQueue(value);
     closeModals();
 });
 
@@ -232,13 +149,13 @@ $(window).on("click", "#discover-context-menu", "li", function (e) {
     // add to queue
     if (idx == 0) {
         const index = $(e.source.parentElement).index();
-        addToQueue(discover[index]);
+        player.addToQueue(discover.discover[index]);
     }
 
     // open in browser
     if (idx == 1) {
         const index = $(e.source.parentElement).index();
-        openInBrowser(discover[index]);
+        openInBrowser(discover.discover[index]);
     }
 });
 
@@ -248,35 +165,26 @@ $(window).on("click", "#discover-queue-menu", "li", function (e) {
     // remove track
     if (idx == 0) {
         const index = $(e.source.parentElement).index();
-
-        log($(e.source.parentElement)[0]);
-
-
-        if (index == queuePosition) {
-            stop();
-        }
-
-
-        $(e.source.parentElement).eq(index).remove();
-        queue.splice(index, 1);
+        player.removeTrackAt(index);
     }
 });
 
 $("#queue-select").on("click", ".track-card", function () {
     var idx = $(this).index();
-    queuePosition = idx;
-    loadTrack(queue[queuePosition].file["mp3-128"]);
+    player.queuePosition = idx;
+    player.loadTrack();
 });
 
-$('#clear-discover-btn').on("click", function () {
-    clearDiscover()
+
+$("#track-name").on("click", function () {
+    log($(".track-card.current").offset());
 });
 
 $('#play-pause').on("click", function () {
-    if (isPaused()) {
-        setPaused(false);
+    if (player.isPaused()) {
+        player.setPaused(false);
     } else {
-        setPaused(true);
+        player.setPaused(true);
     }
 });
 
@@ -289,9 +197,9 @@ $('#sciter-link').on("click", function () {
 })
 
 $('#back').on("click", function () {
-    if (queuePosition > 0) {
-        queuePosition -= 1;
-        loadTrack(queue[queuePosition].file["mp3-128"]);
+    if (player.queuePosition > 0) {
+        player.queuePosition -= 1;
+        player.loadTrack();
     } else {
         seek(0);
         log("error");
@@ -309,12 +217,12 @@ $('#back').on("click", function () {
 $('#forward').on("click", function () {
     if (queuePosition < queue.length - 1) {
         queuePosition += 1;
-        loadTrack(queue[queuePosition].file["mp3-128"]);
+        player.loadTrack();
     }
 });
 
 $('#stop').on("click", function () {
-    stop();
+    player.stop();
 });
 
 $('#clear-queue').on('click', function () {
@@ -344,7 +252,7 @@ $('#album-import').on('click', function () {
     showAlbumImport();
 });
 
-const searchRequest = debounce(function() {
+const searchRequest = debounce(function () {
     var text = $('#album-url-input').text();
 
     $('#search-results').empty();
@@ -354,7 +262,8 @@ const searchRequest = debounce(function() {
         if (json.auto && json.auto.results) {
             json.auto.results.forEach(element => {
                 if (element.type == "a" || element.type == "t") {
-                    $('#search-results').append(searchResultCard(element.art_id, element.name, element.band_name, element.url));
+                    $('#search-results').append(
+                        searchResultCard(element.art_id, element.name, element.band_name, element.url));
 
                     var card = document.getElementById("search_art_" + element.art_id);
                     setImage(element.art_id, card);
@@ -378,7 +287,7 @@ $('#album-url-input').keyup(function (e) {
     if (e.keyCode == keys.ENTER) {
         var text = $('#album-url-input').text();
         if (text.startsWith("https://") && text.includes("bandcamp.com")) {
-            addToQueue(text);
+            player.addToQueue(text);
             closeModals();
         }
     }
@@ -407,23 +316,19 @@ $('#albums-select').scroll(function () {
     const clientHeight = $('#albums-select').height();
 
     if (Math.abs(scrollHeight - clientHeight - scrollTop) < 1) {
-        page += 1;
-        extendDiscover(selectedTags, page)
+        discover.extend(selectedTags)
     }
 });
 
 $('#volume').on('input', function (e) {
-    setVolume($(this).val());
-});
-
-$('#volume').on('input', function (e) {
-    setVolume($(this).val());
+    player.setVolume($(this).val());
+    storeVolume($("#volume")[0]);
 });
 
 $('#discover-heading').keyup(function (e) {
     if (e.keyCode == keys.ENTER) {
-        clearDiscover();
-        extendDiscover($(this).val().split(" "), page);
+        discover.clearDiscover();
+        discover.extend($(this).val().split(" "));
     }
 });
 
@@ -442,22 +347,10 @@ $(document).keyup(function (e) {
 });
 
 $('#seekbar').on('input', function (e) {
-    seek($(this).val());
-    updatePlayerInformation();
+    player.seek($(this).val());
+    player.updatePlayerInformation();
 });
 
-setStateChangeCallback(function () {
-    if (isPaused()) {
-        $('#play-pause').attr("src", "icons/play.svg");
-    } else {
-        $('#play-pause').attr("src", "icons/pause.svg");
-    }
-
-    $(".track-card").each(function (index) {
-        if (index == queuePosition) {
-            $(this).attr("class", "track-card current");
-        } else {
-            $(this).attr("class", "track-card");
-        }
-    });
+document.on("closerequest", function (evt) {
+    saveSettings()
 });

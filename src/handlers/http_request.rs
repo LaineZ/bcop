@@ -97,31 +97,28 @@ impl HttpRequest {
     }
 
     fn http_request_get(&mut self, url: String, done: sciter::Value) {
-        self.pool.execute(move || {
-            match ureq::get(&url).call() {
-                Ok(response) => {
-                    let body = response.into_string().unwrap();
-                    done.call(None, &make_args!(body), None).unwrap();
-                },
-                Err(err) => {
-                    log::error!("GET: Request to address: {} failed: {}", url, err);
-                },
+        self.pool.execute(move || match ureq::get(&url).call() {
+            Ok(response) => {
+                let body = response.into_string().unwrap();
+                done.call(None, &make_args!(body), None).unwrap();
+            }
+            Err(err) => {
+                log::error!("GET: Request to address: {} failed: {}", url, err);
             }
         });
     }
 
     fn http_request_post(&mut self, url: String, body: String, done: sciter::Value) {
-        self.pool.execute(move || {
-            match ureq::post(&url).send_string(&body) {
+        self.pool
+            .execute(move || match ureq::post(&url).send_string(&body) {
                 Ok(response) => {
                     let body = response.into_string().unwrap();
                     done.call(None, &make_args!(body), None).unwrap();
-                },
+                }
                 Err(err) => {
                     log::error!("POST: Request to address: {} failed: {}", url, err);
-                },
-            }
-        });
+                }
+            });
     }
 
     fn parse_album_data(&self, html_code: String) -> String {

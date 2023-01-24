@@ -23,10 +23,7 @@ impl Player {
     }
 
     pub fn fmt_time(&mut self, time: i32) -> String {
-        format!(
-            "{}",
-            FormatTime(Duration::from_secs(time as u64))
-        )
+        format!("{}", FormatTime(Duration::from_secs(time as u64)))
     }
 
     pub fn load_track(&mut self, url: String) {

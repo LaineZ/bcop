@@ -32,6 +32,7 @@ pub enum ArtworkThumbnailQuality {
 pub struct Config {
     proxy_type: ProxyType,
     load_artworks: ArtworkThumbnailQuality,
+    volume: u16,
 }
 
 impl Config {
@@ -39,6 +40,7 @@ impl Config {
         Self {
             load_artworks: ArtworkThumbnailQuality::High,
             proxy_type: ProxyType::None,
+            volume: 100,
         }
     }
 
@@ -57,6 +59,7 @@ impl Config {
         Self {
             load_artworks: ArtworkThumbnailQuality::High,
             proxy_type: ProxyType::None,
+            volume: 100,
         }
     }
 
@@ -76,6 +79,21 @@ impl Config {
                     .unwrap_or(0) as i32,
             )
             .unwrap();
+    }
+
+    pub fn setup_volume(&self, mut volume_track: Element) {
+        volume_track.set_value(self.volume as i32).unwrap();
+    }
+
+    pub fn store_volume(&mut self, volume_track: Element) {
+        let track_value = volume_track
+            .get_value()
+            .to_string()
+            .replace("\"", "")
+            .parse::<i32>()
+            .unwrap_or(100);
+
+        self.volume = track_value as u16;
     }
 
     pub fn set_settings(&mut self, settings_window: Element) {
@@ -149,5 +167,7 @@ impl sciter::EventHandler for Config {
         fn populate_settings(Value);
         fn set_settings(Value);
         fn save_config();
+        fn setup_volume(Value);
+        fn store_volume(Value);
     }
 }

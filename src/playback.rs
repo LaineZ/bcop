@@ -50,10 +50,6 @@ impl TimeTracker {
         self.started_at -= t;
     }
 
-    fn seek_backward(&mut self, t: Duration) {
-        self.started_at += t;
-    }
-
     fn time(&self) -> Duration {
         if let Some(at) = self.paused_at {
             self.started_at.elapsed() - self.pause_time - at.elapsed()
@@ -102,7 +98,6 @@ struct PlayerThread {
     time_tx: Sender<Option<Duration>>,
     buffer: Arc<Buffer>,
     decoder: Option<Decoder<Box<dyn Read>>>,
-    decoder_orig: Option<Decoder<Box<dyn Read>>>,
     stream: Stream,
     tracker: TimeTracker,
     is_playing: bool,
@@ -263,7 +258,6 @@ impl PlayerThread {
             time_tx,
             buffer,
             decoder: None,
-            decoder_orig: None,
             stream,
             tracker: TimeTracker::new(),
             is_playing: true,
@@ -411,7 +405,7 @@ impl PlayerThread {
                     self.skip_samples(samples)?;
                 }
 
-                Command::SeekBackwards(mut time) => {
+                Command::SeekBackwards(time) => {
                     if cur_url.is_none() {
                         continue;
                     }
