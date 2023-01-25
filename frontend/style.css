@@ -1,12 +1,3 @@
-:root {
-  --bg: #150e10;
-  --bg1: #272739;
-  --bg2: #393849;
-  --fg: #77888c;
-  --fg2: #4f5a64;
-  --fg3: #3b4152;
-  --error: #392727;
-}
 
 @set my-v-scrollbar {
   .slider {

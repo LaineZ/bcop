@@ -16,6 +16,13 @@ getTags(function (done) {
 
 player.setup();
 
+function setTheme(theme) {
+    for (const [key, value] of Object.entries(themes[theme])) {
+        log('K:' + key + "V: " + value);
+        document.style.variable(key, value);
+    }
+}
+
 setInterval(function () {
     player.updatePlayerInformation();
 }, 500);
@@ -201,7 +208,7 @@ $('#back').on("click", function () {
         const nativeElement = $("#error-modal")[0];
         nativeElement.style.animation = "500ms slide alternate";
         $("#error-modal").attr("class", "show");
-        setTimeout(function () {
+        setTimeout(function () {settings
             void nativeElement.offsetWidth;
             nativeElement.style.animation = "";
             $("#error-modal").attr("class", "");
@@ -245,6 +252,10 @@ $('#tags-toggle').on('click', function () {
 
 $('#album-import').on('click', function () {
     showAlbumImport();
+});
+
+$('#theme').on('change', function() {
+    setTheme(this.value);
 });
 
 const searchRequest = debounce(function () {

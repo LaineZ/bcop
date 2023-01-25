@@ -8,6 +8,15 @@ A next cross-platform version of [BandcampOnlinePlayer](https://github.com/Laine
 
 A simple desktop-orienteted client for bandcamp.com - Allows listen albums from tags or URL's much easier; and provides features like play queue, low memory/cpu usage rather than browser, etc.
 
+## Features
+
+* Audio playback from site in mp3 128k quality
+* Playback control: seek, pause, next, prev, volume ...
+* Play queue: add/remove album tracks
+* Album explorer: allows to explore albums in specified tag
+* Global search aroud website
+* **AND MORE**
+
 <!-- You can download latest dev version from "actions" menu:
 https://github.com/LaineZ/bc_rs/actions -->
 

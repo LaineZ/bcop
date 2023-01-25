@@ -1,4 +1,4 @@
-use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, Element, Value};
+use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, Element, Value, make_args};
 use serde::{Deserialize, Serialize};
 
 const PROXY_TYPE: [ProxyType; 3] = [ProxyType::None, ProxyType::UseHttp, ProxyType::UseProxy];
@@ -33,6 +33,7 @@ pub struct Config {
     proxy_type: ProxyType,
     load_artworks: ArtworkThumbnailQuality,
     volume: u16,
+    theme_name: String,
 }
 
 impl Config {
@@ -41,6 +42,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             proxy_type: ProxyType::None,
             volume: 100,
+            theme_name: String::from("hope_diamond"),
         }
     }
 
@@ -60,6 +62,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             proxy_type: ProxyType::None,
             volume: 100,
+            theme_name: String::from("hope_diamond"),
         }
     }
 
@@ -69,6 +72,8 @@ impl Config {
             .find_first("#artwork-quality")
             .unwrap()
             .unwrap();
+
+        let theme_dropdown = settings_window.find_first("#theme").unwrap().unwrap();
 
         let proxy_value = proxy_dropdown
             .get_value()
@@ -82,6 +87,11 @@ impl Config {
             .replace("\"", "")
             .parse::<i32>()
             .unwrap_or(0);
+
+        let theme_value = theme_dropdown
+            .get_value()
+            .to_string()
+            .replace("\"", "");
 
         self.proxy_type = if PROXY_TYPE.len() - 1 < proxy_value as usize {
             log::warn!(
@@ -103,6 +113,16 @@ impl Config {
             ArtworkThumbnailQuality::High
         } else {
             LOAD_ARTWORKS[load_artworks_value as usize]
+        };
+
+        self.theme_name = if !theme_value.trim().is_empty() {
+            theme_value
+        } else {
+            log::warn!(
+                "Invalid theme string: `{}`",
+                theme_value
+            );
+            "hope_diamond".to_string()
         };
     }
 
@@ -130,6 +150,7 @@ impl Config {
 impl sciter::EventHandler for Config {
     fn document_complete(&mut self, root: sciter::HELEMENT, _target: sciter::HELEMENT) {
         let root = Element::from(root);
+
         // setting volume
         let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
 
@@ -137,12 +158,11 @@ impl sciter::EventHandler for Config {
         // populate settings
 
         let mut proxy_dropdown = root.find_first("#use-proxy").unwrap().unwrap();
-        let mut load_artworks_dropdown = root
-            .find_first("#artwork-quality")
-            .unwrap()
-            .unwrap();
+        let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
+        let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
 
         proxy_dropdown.set_value(self.proxy_type as i32).unwrap();
+        theme_dropdown.set_value(&self.theme_name).unwrap();
         load_artworks_dropdown
             .set_value(
                 LOAD_ARTWORKS
@@ -151,6 +171,8 @@ impl sciter::EventHandler for Config {
                     .unwrap_or(0) as i32,
             )
             .unwrap();
+
+        root.call_function("setTheme", &make_args!(&self.theme_name)).unwrap();
     }
 
     fn on_event(
@@ -176,7 +198,7 @@ impl sciter::EventHandler for Config {
                             .unwrap_or(100);
 
                         self.volume = track_value as u16;
-                        return true
+                        return true;
                     }
                 }
                 false
