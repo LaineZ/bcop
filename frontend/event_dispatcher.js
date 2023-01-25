@@ -69,11 +69,3 @@ function getSettings() {
 function saveSettings() {
     Window.this.xcall("save_config");
 }
-
-function setupVolume(volumeTrackBar) {
-    Window.this.xcall("setup_volume", volumeTrackBar)
-}
-
-function storeVolume(volumeTrackBar) {
-    Window.this.xcall("store_volume", volumeTrackBar);
-}

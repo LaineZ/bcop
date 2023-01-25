@@ -273,7 +273,7 @@ option:hover {
 #volume {
   width: 100px;
   padding-right: 10px;
-  /* Workaround for vslider bugs. Slider stops working if settings relative */
+  /* Workaround for vslider bugs. Slider stops working if position: relative was set */
   position: fixed;
   right: 80px;
   bottom: 8px;

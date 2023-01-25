@@ -16,8 +16,6 @@ getTags(function (done) {
 
 player.setup();
 
-setupVolume($("#volume")[0]);
-
 setInterval(function () {
     player.updatePlayerInformation();
 }, 500);
@@ -322,7 +320,6 @@ $('#albums-select').scroll(function () {
 
 $('#volume').on('input', function (e) {
     player.setVolume($(this).val());
-    storeVolume($("#volume")[0]);
 });
 
 $('#discover-heading').keyup(function (e) {

@@ -1,4 +1,4 @@
-use sciter::{dispatch_script_call, Element, Value};
+use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, Element, Value};
 use serde::{Deserialize, Serialize};
 
 const PROXY_TYPE: [ProxyType; 3] = [ProxyType::None, ProxyType::UseHttp, ProxyType::UseProxy];
@@ -81,21 +81,6 @@ impl Config {
             .unwrap();
     }
 
-    pub fn setup_volume(&self, mut volume_track: Element) {
-        volume_track.set_value(self.volume as i32).unwrap();
-    }
-
-    pub fn store_volume(&mut self, volume_track: Element) {
-        let track_value = volume_track
-            .get_value()
-            .to_string()
-            .replace("\"", "")
-            .parse::<i32>()
-            .unwrap_or(100);
-
-        self.volume = track_value as u16;
-    }
-
     pub fn set_settings(&mut self, settings_window: Element) {
         let proxy_dropdown = settings_window.find_first("#use-proxy").unwrap().unwrap();
         let load_artworks_dropdown = settings_window
@@ -161,13 +146,49 @@ impl Config {
 }
 
 impl sciter::EventHandler for Config {
+    fn document_complete(&mut self, root: sciter::HELEMENT, _target: sciter::HELEMENT) {
+        let root = Element::from(root);
+        let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
+
+        volume_bar.set_value(self.volume as i32).unwrap();
+    }
+
+    fn on_event(
+        &mut self,
+        _root: sciter::HELEMENT,
+        _source: sciter::HELEMENT,
+        target: sciter::HELEMENT,
+        code: sciter::dom::event::BEHAVIOR_EVENTS,
+        _phase: sciter::dom::event::PHASE_MASK,
+        _reason: sciter::dom::EventReason,
+    ) -> bool {
+        match code {
+            BEHAVIOR_EVENTS::BUTTON_CLICK => {
+                let target = Element::from(target);
+
+                if let Some(id) = target.get_attribute("id") {
+                    if id == "volume" {
+                        let track_value = target
+                            .get_value()
+                            .to_string()
+                            .replace("\"", "")
+                            .parse::<i32>()
+                            .unwrap_or(100);
+
+                        self.volume = track_value as u16;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
     dispatch_script_call! {
         fn get_proxy();
         fn get_load_artworks();
         fn populate_settings(Value);
         fn set_settings(Value);
         fn save_config();
-        fn setup_volume(Value);
-        fn store_volume(Value);
     }
 }
