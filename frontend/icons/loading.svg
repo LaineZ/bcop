@@ -2,7 +2,6 @@
 <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
 
 <svg
-   fill="#000000"
    height="800px"
    width="800px"
    version="1.1"
@@ -53,8 +52,7 @@
    inkscape:window-maximized="1"
    inkscape:current-layer="Capa_1" />
 <g
-   id="g6"
-   style="stroke-width:7.68;stroke-dasharray:none;stroke:none;fill-opacity:1;fill:#77888c">
+   id="g6">
 	<circle
    cx="256"
    cy="256"

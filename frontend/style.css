@@ -110,7 +110,7 @@ option {
   font-size: 14px;
   background: var(--bg1);
   color: var(--fg);
-  transition: background-color ease 1s;
+  transition: background-color ease 200ms;
 }
 
 popup.list {
@@ -413,20 +413,20 @@ option:hover {
   left: 0;
   top: 0;
   width: 100%;
+  backdrop-filter: blur(20dip);  
   height: 100%;
-  background-color: #150e1000;
   overflow: hidden;
   transition: background-color 200ms;
 }
 
 .modal.active {
   display: block;
-  background-color: #150e10ea;
+  background-color: rgba(0, 0, 0, 0.8);
   transition: background-color 200ms;
 }
 
 .modal.closing {
-  background-color: #150e1000;
+  background-color: rgba(0, 0, 0, 0);
   transition: background-color 200ms;
 }
 
