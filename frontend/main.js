@@ -54,9 +54,6 @@ function showOptionsModal() {
     const modalWindow = document.getElementById("options-modal");
     modalDim.classList.add("active");
     modalWindow.style.display = "block";
-
-    // load settings values into view
-    populateSettings();
 }
 
 function showAlbumImport() {
@@ -339,6 +336,8 @@ $(document).keyup(function (e) {
     }
 
     if (e.keyCode == keys.ESCAPE) {
+        setSettings();
+        saveSettings();
         closeModals();
     }
 });

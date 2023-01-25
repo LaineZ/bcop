@@ -63,24 +63,6 @@ impl Config {
         }
     }
 
-    pub fn populate_settings(&self, settings_window: Element) {
-        let mut proxy_dropdown = settings_window.find_first("#use-proxy").unwrap().unwrap();
-        let mut load_artworks_dropdown = settings_window
-            .find_first("#artwork-quality")
-            .unwrap()
-            .unwrap();
-
-        proxy_dropdown.set_value(self.proxy_type as i32).unwrap();
-        load_artworks_dropdown
-            .set_value(
-                LOAD_ARTWORKS
-                    .iter()
-                    .position(|&v| v == self.load_artworks)
-                    .unwrap_or(0) as i32,
-            )
-            .unwrap();
-    }
-
     pub fn set_settings(&mut self, settings_window: Element) {
         let proxy_dropdown = settings_window.find_first("#use-proxy").unwrap().unwrap();
         let load_artworks_dropdown = settings_window
@@ -148,9 +130,27 @@ impl Config {
 impl sciter::EventHandler for Config {
     fn document_complete(&mut self, root: sciter::HELEMENT, _target: sciter::HELEMENT) {
         let root = Element::from(root);
+        // setting volume
         let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
 
         volume_bar.set_value(self.volume as i32).unwrap();
+        // populate settings
+
+        let mut proxy_dropdown = root.find_first("#use-proxy").unwrap().unwrap();
+        let mut load_artworks_dropdown = root
+            .find_first("#artwork-quality")
+            .unwrap()
+            .unwrap();
+
+        proxy_dropdown.set_value(self.proxy_type as i32).unwrap();
+        load_artworks_dropdown
+            .set_value(
+                LOAD_ARTWORKS
+                    .iter()
+                    .position(|&v| v == self.load_artworks)
+                    .unwrap_or(0) as i32,
+            )
+            .unwrap();
     }
 
     fn on_event(
@@ -176,9 +176,10 @@ impl sciter::EventHandler for Config {
                             .unwrap_or(100);
 
                         self.volume = track_value as u16;
+                        return true
                     }
                 }
-                true
+                false
             }
             _ => false,
         }
@@ -187,7 +188,6 @@ impl sciter::EventHandler for Config {
     dispatch_script_call! {
         fn get_proxy();
         fn get_load_artworks();
-        fn populate_settings(Value);
         fn set_settings(Value);
         fn save_config();
     }

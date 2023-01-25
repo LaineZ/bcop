@@ -18,11 +18,6 @@ function getTags(done_callback) {
     Window.this.xcall("get_tags", done_callback);
 }
 
-function populateSettings() {
-    const settings = document.getElementById("options-modal");
-    Window.this.xcall("populate_settings", settings);
-}
-
 function setSettings() {
     const settings = document.getElementById("options-modal");
     Window.this.xcall("set_settings", settings);
