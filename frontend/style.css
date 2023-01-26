@@ -280,6 +280,7 @@ option:hover {
   border-right: 1px solid var(--bg1);
   width: 1.9*;
   height: "*";
+  overflow-y: hidden;
 }
 
 #discover-heading {
@@ -413,7 +414,6 @@ option:hover {
   left: 0;
   top: 0;
   width: 100%;
-  backdrop-filter: blur(20dip);  
   height: 100%;
   overflow: hidden;
   transition: background-color 200ms;
@@ -436,6 +436,7 @@ option:hover {
   margin: 20% auto;
   padding: 20px;
   border: 1px solid var(--bg1);
+  border-radius: 5px;
   width: 300px;
 }
 
@@ -605,6 +606,10 @@ option:hover {
 .image-button:hover {
   color: var(--fg2);
   transition: color ease 0.5s;
+}
+
+.image-button:disabled {
+  color: var(--fg3);
 }
 
 .main-window {

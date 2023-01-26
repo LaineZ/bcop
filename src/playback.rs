@@ -388,6 +388,9 @@ impl PlayerThread {
                     self.decoder = load_track(&url);
                     self.is_playing = true;
                     cur_url = Some(url);
+
+                    self.stream.play()?;
+                    self.tracker.play();
                 }
 
                 Command::Stop => {
@@ -511,11 +514,11 @@ impl Player {
         self.is_paused = paused;
     }
 
-    pub fn play(&mut self) {
+    fn play(&mut self) {
         self.send(Command::Play);
     }
 
-    pub fn pause(&mut self) {
+    fn pause(&mut self) {
         self.send(Command::Pause);
     }
 
@@ -534,6 +537,7 @@ impl Player {
 
     pub fn switch_track(&mut self, url: impl Into<String>) {
         self.send(Command::SwitchTrack(url.into()));
+        self.is_paused = false;
     }
 
     pub fn seek_forward(&mut self, time: Duration) {

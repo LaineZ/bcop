@@ -10,9 +10,15 @@ class Player {
     setup() {
         var me = this;
 
-        player.setVolume($("#volume").val());
+        this.setVolume($("#volume").val());
 
         this.setStateChangeCallback(function () {
+            $('#controls').each(function () {
+                $(this).attr("disabled", me.queue.length <= 0);
+            });
+
+            $("#seekbar").attr("disabled", me.queue.length <= 0);
+
             if (me.isPaused()) {
                 $('#play-pause').attr("src", "icons/play.svg");
             } else {
@@ -77,14 +83,19 @@ class Player {
             $('#seekbar').attr('max', Math.floor(this.queue[this.queuePosition].duration));
             $('#track-name').text(this.queue[this.queuePosition].artist + " - " + this.queue[this.queuePosition].title);
 
+            // load next track
             if (this.queue.length > this.queuePosition + 1) {
                 if (this.getTime() >= this.queue[this.queuePosition].duration) {
                     this.queuePosition += 1;
-                    this.loadTrack(this.queue[this.queuePosition].file["mp3-128"]);
+                    this.loadTrack( );
                 }
             } else {
                 this.stop();
             }
+        } else {
+            $('#controls').each(function () {
+                $(this).attr("disabled", true);
+            });
         }
     }
 

@@ -18,14 +18,13 @@ player.setup();
 
 function setTheme(theme) {
     for (const [key, value] of Object.entries(themes[theme])) {
-        log('K:' + key + "V: " + value);
         document.style.variable(key, value);
     }
 }
 
 setInterval(function () {
     player.updatePlayerInformation();
-}, 500);
+}, 1000);
 
 function debounce(func, wait, immediate) {
     let timeout;

@@ -46,8 +46,8 @@ impl Player {
     }
 
     pub fn seek(&mut self, seconds: i32) {
+        self.player.seek(Duration::from_secs(seconds as u64));
         self.event.call(None, &make_args!(""), None).unwrap();
-        self.player.seek(Duration::from_secs(seconds as u64))
     }
 
     pub fn get_time(&mut self) -> i32 {
