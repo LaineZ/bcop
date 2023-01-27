@@ -136,12 +136,15 @@ class Player {
 
         queueSelector.empty();
         this.queue.forEach(element => {
-            $('#queue-select').append(
-                queuedTrackCard(element.art_id, element.title, element.artist));
+            const node = createElementFromHTML(queuedTrackCard(element.title, element.artist));
 
-            document.getElementsByClassName("queue_art_" + element.art_id).forEach(card => {
-                setImage(element.art_id, card);
+            $(node).children(function() {
+                if ($(this).prop("className") == "track-img") {
+                    setImage(element.art_id, $(this)[0]);
+                }
             });
+
+            queueSelector.append(node);
         });
     }
 

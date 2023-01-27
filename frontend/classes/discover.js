@@ -24,11 +24,15 @@ class Discover {
             const jsonRes = JSON.parse(response);
             jsonRes.items.forEach(element => {
                 me.discover.push(element.tralbum_url);
-                $('#albums-select')
-                    .append(discoverAlbumCard(element.art_id, element.title, element.artist, element.genre));
-    
-                var card = document.getElementById("art_" + element.art_id);
-                setImage(element.art_id, card);
+                const node = createElementFromHTML(discoverAlbumCard(element.title, element.artist, element.genre));
+
+                $(node).children(function() {
+                    if ($(this).prop("className") == "album-image") {
+                        setImage(element.art_id, $(this)[0]);
+                    }
+                });
+
+                $('#albums-select').append(node);
             });
             loading.style.display = "none";
             me.page += 1;
@@ -40,4 +44,4 @@ class Discover {
         this.discover = [];
         $('#albums-select').empty();
     }
-}
+} ``

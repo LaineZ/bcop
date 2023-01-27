@@ -22,6 +22,12 @@ function setTheme(theme) {
     }
 }
 
+function createElementFromHTML(html) {
+    const placeholder = document.createElement("div");
+    placeholder.insertAdjacentHTML("afterbegin", html);
+    return placeholder.firstElementChild;
+}
+
 setInterval(function () {
     player.updatePlayerInformation();
 }, 1000);
@@ -244,8 +250,6 @@ $('#tags-toggle').on('click', function () {
     const tags = document.getElementById("tags-select");
     if (tags.classList.contains("closed")) {
         tags.classList.remove("closed");
-    } else {
-        tags.classList.add("closed");
     }
 });
 
@@ -267,11 +271,16 @@ const searchRequest = debounce(function () {
         if (json.auto && json.auto.results) {
             json.auto.results.forEach(element => {
                 if (element.type == "a" || element.type == "t") {
-                    $('#search-results').append(
-                        searchResultCard(element.art_id, element.name, element.band_name, element.url));
+                    const card = createElementFromHTML(
+                        searchResultCard(element.name, element.band_name, element.url));
 
-                    var card = document.getElementById("search_art_" + element.art_id);
-                    setImage(element.art_id, card);
+                    $(card).children(function() {
+                        if ($(this).prop("className") == "search-img") {
+                            setImage(element.art_id, $(this)[0]);
+                        }
+                    });
+
+                    $('#search-results').append(card);
                 }
             });
         }
@@ -337,12 +346,18 @@ $('#discover-heading').keyup(function (e) {
 });
 
 $(document).keyup(function (e) {
+    log(e.keyCode);
+
     if ($(e.target).closest("input")[0]) {
         return;
     }
 
     if (e.keyCode == keys.KEY_S) {
         $("#discover-heading")[0].focus();
+    }
+
+    if (e.keyCode == keys.KEY_C) {
+        discover.clearDiscover();
     }
 
     if (e.keyCode == keys.ESCAPE) {

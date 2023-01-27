@@ -1,6 +1,6 @@
-function queuedTrackCard(art_id, title, artist) {
+function queuedTrackCard(title, artist) {
     return `<div class="track-card">
-        <img class="queue_art_${art_id}">
+        <img class="track-img">
         <div class="track-card-desc">
             <h3>${title}</h3>
             <p>${artist}</p>
@@ -8,9 +8,9 @@ function queuedTrackCard(art_id, title, artist) {
     </div>`;
 }
 
-function discoverAlbumCard(art_id, title, artist, genre) {
+function discoverAlbumCard(title, artist, genre) {
     return `<div class="album-card">
-    <img class=album-image id="art_${art_id}">
+    <img class=album-image>
         <div class="album-description">
             <h3 title="${title}">${title}</h3>
             <p>${artist} × ${genre}</p>
@@ -18,9 +18,9 @@ function discoverAlbumCard(art_id, title, artist, genre) {
     </div>`;
 }
 
-function searchResultCard(art_id, title, artist, url) {
+function searchResultCard(title, artist, url) {
     return `<div class="track-card" value="${url}">
-    <img class="search-img" id="search_art_${art_id}" src="icons/audio.jpg">
+    <img class="search-img" src="icons/audio.jpg">
     <div class="track-card-desc">
         <h3>${title}</h3>
         <p>by <strong>${artist}</strong></p>

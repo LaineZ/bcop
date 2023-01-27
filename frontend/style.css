@@ -461,8 +461,14 @@ option:hover {
   color: var(--fg);
   border-radius: 10px;
   border: 1px solid var(--bg2);
-  box-shadow: 0px 0px 20px var(--bg1);
+  box-shadow: 0px 0px 20px var(--bg2);
   transform: scale(1.0, 1.0);
+  transition: transform ease 0.2s;
+}
+
+
+.album-card:hover {
+  transform: scale(1.12, 1.12);
   transition: transform ease 0.2s;
 }
 
@@ -508,11 +514,6 @@ option:hover {
 .track-card img {
   width: 64px;
   height: 64px;
-}
-
-.album-card:hover {
-  transform: scale(1.1, 1.1);
-  transition: transform ease 0.2s;
 }
 
 .album-description {

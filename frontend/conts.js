@@ -6,6 +6,7 @@ const proxyType = {
 
 const keys = {
     KEY_S: 83,
+    KEY_C: 67,
     ESCAPE: 256,
     ENTER: 257,
 }
