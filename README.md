@@ -31,15 +31,14 @@ If you have [https://crates.io/](cargo) installed. bc-rs can be installed using 
 
 ## Building
 
-**WARNING: Currently host-build OS supports only Linux**
-
-1. [Download Rust]([https://www.rust-lang.org/learn/get-started) and run this command
-2. ```git clone https://github.com/LaineZ/bc_rs.git```
-3. ```cd bc_rs```
-4. ```./download.sh``` - This scripts downloads Sciter SDK for build
-5. If you run on Linux you need install these audio libs: ``libaudio``, ``libasound2``, ``libxcb-shape0-dev``, ``libxcb-xfixes0-dev``
+1. [Download Rust](https://www.rust-lang.org/learn/get-started)
+2. ```$ git clone https://github.com/LaineZ/bc_rs.git```
+3. ```$ cd bc_rs```
+4. ```$ ./download.sh``` - This script downloads Sciter SDK for build on linux or mac. On windows you need download sciter manually [here](https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip) and extract in project directory.
+5. If you run on Linux you need install these audio libs: ``libaudio``, ``libasound2``, ``libxcb-shape0``, ``libxcb-xfixes0``
    1. On Ubuntu/Debian you can run that command ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
    2. On Void linux you can install with this command ``sudo xbps-install alsa-lib-devel libxcb-devel``
+   3. On Arch linux you can install with this command ``sudo pacman -S alsa-lib libxcb``
 6. ```cargo build --release```
 7. ```cd target/release```
 8. DONE! You can run it
