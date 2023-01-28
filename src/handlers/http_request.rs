@@ -96,26 +96,66 @@ impl HttpRequest {
         });
     }
 
-    fn http_request_get(&mut self, url: String, done: sciter::Value) {
+    fn http_request_get(&mut self, url: String, done: sciter::Value, failed: sciter::Value) {
         self.pool.execute(move || match ureq::get(&url).call() {
             Ok(response) => {
-                let body = response.into_string().unwrap();
-                done.call(None, &make_args!(body), None).unwrap();
+                if response.status() == 200 {
+                    let body = response.into_string().unwrap();
+                    done.call(None, &make_args!(body), None).unwrap();
+                } else {
+                    failed
+                        .call(
+                            None,
+                            &make_args!(format!(
+                                "Request to address: {} failed. Unsucessful code: {}",
+                                url,
+                                response.status_text()
+                            )),
+                            None,
+                        )
+                        .unwrap();
+                }
             }
             Err(err) => {
-                log::error!("GET: Request to address: {} failed: {}", url, err);
+                failed
+                    .call(None, &make_args!(format!("Request failed: {}", err)), None)
+                    .unwrap();
+                log::error!("POST: Request to address: {} failed: {}", url, err);
             }
         });
     }
 
-    fn http_request_post(&mut self, url: String, body: String, done: sciter::Value) {
+    fn http_request_post(
+        &mut self,
+        url: String,
+        body: String,
+        done: sciter::Value,
+        failed: sciter::Value,
+    ) {
         self.pool
             .execute(move || match ureq::post(&url).send_string(&body) {
                 Ok(response) => {
-                    let body = response.into_string().unwrap();
-                    done.call(None, &make_args!(body), None).unwrap();
+                    if response.status() == 200 {
+                        let body = response.into_string().unwrap();
+                        done.call(None, &make_args!(body), None).unwrap();
+                    } else {
+                        failed
+                            .call(
+                                None,
+                                &make_args!(format!(
+                                    "Request to address: {} failed. Unsucessful code: {}",
+                                    url,
+                                    response.status_text()
+                                )),
+                                None,
+                            )
+                            .unwrap();
+                    }
                 }
                 Err(err) => {
+                    failed
+                        .call(None, &make_args!(format!("Request failed: {}", err)), None)
+                        .unwrap();
                     log::error!("POST: Request to address: {} failed: {}", url, err);
                 }
             });
@@ -168,8 +208,8 @@ impl HttpRequest {
 
 impl sciter::EventHandler for HttpRequest {
     dispatch_script_call! {
-        fn http_request_get(String, Value);
-        fn http_request_post(String, String, Value);
+        fn http_request_get(String, Value, Value);
+        fn http_request_post(String, String, Value, Value);
         fn set_image(String, Element, bool);
         fn parse_album_data(String);
         fn open_in_browser(String);

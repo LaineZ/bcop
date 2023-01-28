@@ -146,7 +146,7 @@ class Player {
 
             me.forceUpdate();
             loading.destroy();
-        });
+        }, showErrorModal);
     }
 
     removeTrackAt(index) {

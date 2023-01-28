@@ -157,25 +157,28 @@ popup.list {
   transition: width 300ms;
 }
 
-#error-modal {
-  visibility: hidden;
-  min-width: 200px;
-  margin-left: -100px;
-  background-color: #410000ff;
-  color: #fff;
+.error-modal {
+  max-width: 50%;
+  background-color: var(--bg2);
+  color: var(--fg);
   text-align: center;
   border-radius: 10px;
-  font-size: 25px;
+  font-size: 16px;
   padding: 5px;
   position: fixed;
-  z-index: 1;
   left: 50%;
-  bottom: 30%;
+  width: auto;
+  z-index: 1;
+  bottom: 20%;
+  transform: translate(-50%);
+  animation: sine-in-out 1000ms fade alternate;
+  z-index: 5;
+  opacity: 1;
 }
 
-#error-modal.show {
-  visibility: visible;
-  animation: sine-in-out 500ms slide alternate;
+.error-modal.closing {
+  opacity: 0;
+  transition: opacity 500ms;
 }
 
 @keyframes slide {

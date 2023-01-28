@@ -6,12 +6,12 @@ function logDebug(msg) {
     Window.this.xcall("log_debug", msg);
 }
 
-function httpRequestGet(url, done_callback) {
-    Window.this.xcall("http_request_get", url, done_callback);
+function httpRequestGet(url, done_callback, failed_callback) {
+    Window.this.xcall("http_request_get", url, done_callback, failed_callback);
 }
 
-function httpRequestPost(url, body, done_callback) {
-    Window.this.xcall("http_request_post", url, body, done_callback);
+function httpRequestPost(url, body, done_callback, failed_callback) {
+    Window.this.xcall("http_request_post", url, body, done_callback, failed_callback);
 }
 
 function getTags(done_callback) {

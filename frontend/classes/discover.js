@@ -36,7 +36,7 @@ class Discover {
             });
             loading.destroy();
             me.page += 1;
-        });
+        }, showErrorModal);
     }
 
     clearDiscover() {

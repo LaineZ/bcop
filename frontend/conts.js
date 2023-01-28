@@ -19,7 +19,6 @@ const themes = {
         "fg": "#77888c",
         "fg2": "#4f5a64",
         "fg3": "#3b4152",
-        "error": "#392727",
     },
 
     hopeless_pearl: {
@@ -29,7 +28,6 @@ const themes = {
         "fg": "#887773",
         "fg2": "#b0a59b",
         "fg3": "#c4bead",
-        "error": "#c6d8d8",
     },
 
     rainy_day: {
@@ -39,7 +37,6 @@ const themes = {
         "fg": "#F1FAEE",
         "fg2": "#A8DADC",
         "fg3": "#77ABBD",
-        "error": "#c6d8d8",
     },
 
     infinity: {
@@ -49,7 +46,6 @@ const themes = {
         "fg": "#1F232D",
         "fg2": "#424242",
         "fg3": "#696969",
-        "error": "#c6d8d8",
     },
 
     molten: {
@@ -59,6 +55,5 @@ const themes = {
         "fg": "#fd724e",
         "fg2": "#a02f40",
         "fg3": "#5f2f45",
-        "error": "#c6d8d8",
     }
 }

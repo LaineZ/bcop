@@ -16,6 +16,21 @@ getTags(function (done) {
 
 player.setup();
 
+
+function showErrorModal(message) {
+    $("body").append(`<div class="error-modal">${message}</div>`);
+    setTimeout(function () {
+        $(".error-modal").each(function() {
+            $(this)[0].classList.add("closing");
+        });
+    }, message.length * 15);
+
+    setTimeout(function () {
+        $(".error-modal").eq(0).remove();
+    }, message.length * 17);
+    loading.destroy();
+}
+
 function setTheme(theme) {
     for (const [key, value] of Object.entries(themes[theme])) {
         document.style.variable(key, value);
@@ -209,15 +224,6 @@ $('#back').on("click", function () {
         player.loadTrack();
     } else {
         seek(0);
-        log("error");
-        const nativeElement = $("#error-modal")[0];
-        nativeElement.style.animation = "500ms slide alternate";
-        $("#error-modal").attr("class", "show");
-        setTimeout(function () {settings
-            void nativeElement.offsetWidth;
-            nativeElement.style.animation = "";
-            $("#error-modal").attr("class", "");
-        }, 1000);
     }
 });
 
@@ -289,7 +295,7 @@ const searchRequest = debounce(function () {
             });
         }
         loading.destroy();
-    });
+    }, showErrorModal);
 }, 500);
 
 $('#album-url-input').on('input', function () {
