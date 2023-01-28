@@ -62,6 +62,10 @@ impl Player {
     pub fn set_volume(&mut self, value: i32) {
         self.player.set_volume(value as u16);
     }
+
+    pub fn force_update(&self) {
+        self.event.call(None, &make_args!(""), None).unwrap();
+    }
 }
 
 impl sciter::EventHandler for Player {
@@ -76,5 +80,6 @@ impl sciter::EventHandler for Player {
         fn set_state_change_callback(Value);
         fn get_volume();
         fn set_volume(i32);
+        fn force_update();
     }
 }

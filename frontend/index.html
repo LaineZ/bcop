@@ -10,6 +10,7 @@
 <body>
     <script src="classes/player.js"></script>
     <script src="classes/discover.js"></script>
+    <script src="classes/indicator.js"></script>
     <script src="fragments.js"></script>
     <script src="event_dispatcher.js"></script>
     <script src="conts.js"></script>
@@ -105,6 +106,10 @@
 
     <div id="error-modal">Not implemented</div>
 
+    <div id="loading">
+        <img src="icons/loading.svg">
+    </div>
+
     <div class="main-window">
         <div class="lists-window">
             <div id="menu">
@@ -116,9 +121,6 @@
             </select>
             <div id="discover-window">
                 <input type="text" id="discover-heading" title="Enter discover tags here, separated by spaces"></input>
-                <div id="loading">
-                    <img src="icons/loading.svg">
-                </div>
                 <div class="album-selector" id="albums-select">
                     <div class="welcome-message">
                         <div id="welcome-message">

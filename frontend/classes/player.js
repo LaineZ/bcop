@@ -12,7 +12,15 @@ class Player {
 
         this.setVolume($("#volume").val());
 
-        this.setStateChangeCallback(function () {
+        this.setStateChangeCallback(function () {            
+            if (me.queue.length <= 0) {
+                $('#queue-select')[0].classList.add("closed");
+                $('#track-name').text("");
+            } else {
+                $('#queue-select')[0].classList.remove("closed");
+                $('#track-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
+            }
+
             $('#controls').each(function () {
                 $(this).attr("disabled", me.queue.length <= 0);
             });
@@ -33,6 +41,8 @@ class Player {
                 }
             });
         });
+
+        this.forceUpdate();
     }
 
     loadTrack() {
@@ -75,13 +85,16 @@ class Player {
         Window.this.xcall("set_state_change_callback", callback);
     }
 
+    forceUpdate() {
+        Window.this.xcall("force_update");
+    }
+
     updatePlayerInformation() {
         if (this.queue.length > 0) {
             $('#current-time').text(this.fmtTime(this.getTime()));
             $('#total-time').text(this.fmtTime(Math.floor(this.queue[this.queuePosition].duration)));
             $('#seekbar').val(this.getTime());
             $('#seekbar').attr('max', Math.floor(this.queue[this.queuePosition].duration));
-            $('#track-name').text(this.queue[this.queuePosition].artist + " - " + this.queue[this.queuePosition].title);
 
             // load next track
             if (this.queue.length > this.queuePosition + 1) {
@@ -92,10 +105,6 @@ class Player {
             } else {
                 this.stop();
             }
-        } else {
-            $('#controls').each(function () {
-                $(this).attr("disabled", true);
-            });
         }
     }
 
@@ -104,14 +113,13 @@ class Player {
         this.queue = [];
         this.queuePosition = 0;
         $('#queue-select').empty();
+        this.forceUpdate();
     }
 
     addToQueue(url) {
-        const loading = document.getElementById("loading");
-        loading.style.display = "block";
-
         var me = this;
 
+        loading.spawn();
         httpRequestGet(url, function (response) {
             const aldata = parseAlbumData(response);
             if (aldata) {
@@ -121,39 +129,40 @@ class Player {
                         element.artist = jsonRes.artist;
                         element.art_id = jsonRes.art_id;
                         me.queue.push(element);
-                        log(element);
+                        //log(element);
+
+                        const node = createElementFromHTML(queuedTrackCard(element.title, element.artist));
+
+                        $(node).children(function() {
+                            if ($(this).prop("className") == "track-img") {
+                                setImage(element.art_id, $(this)[0]);
+                            }
+                        });
+            
+                        $("#queue-select").append(node);
                     }
                 });
             }
 
-            me.renderQueue();
-            loading.style.display = "none";
-        });
-    }
-
-    renderQueue() {
-        const queueSelector = $('#queue-select');
-
-        queueSelector.empty();
-        this.queue.forEach(element => {
-            const node = createElementFromHTML(queuedTrackCard(element.title, element.artist));
-
-            $(node).children(function() {
-                if ($(this).prop("className") == "track-img") {
-                    setImage(element.art_id, $(this)[0]);
-                }
-            });
-
-            queueSelector.append(node);
+            me.forceUpdate();
+            loading.destroy();
         });
     }
 
     removeTrackAt(index) {
-        if (index == queuePosition) {
-            stop();
+        if (index == this.queuePosition) {
+            this.stop();
         }
 
+
+        var idx = 0;
+        $("#queue-select").children(function() {
+            if (idx == index) {
+                $(this).remove();
+            }
+            idx += 1;
+        });
+
         this.queue.splice(index, 1);
-        this.renderQueue();
     }
 } 

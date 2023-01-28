@@ -1,17 +1,17 @@
 let selectedTags = [];
 let player = new Player();
 let discover = new Discover();
+let loading = new LoadingIndicator();
 
 const tagSelector = document.getElementById("tags-select");
-const loading = document.getElementById("loading");
 
-loading.style.display = "block";
+loading.spawn();
 
 getTags(function (done) {
     done.split("\n").forEach(element => {
         tagSelector.innerHTML += `<option class="tag">${element}</option>`
     });
-    loading.style.display = "none";
+    loading.destroy();
 });
 
 player.setup();
@@ -250,6 +250,8 @@ $('#tags-toggle').on('click', function () {
     const tags = document.getElementById("tags-select");
     if (tags.classList.contains("closed")) {
         tags.classList.remove("closed");
+    } else {
+        tags.classList.add("closed");
     }
 });
 
@@ -265,6 +267,8 @@ const searchRequest = debounce(function () {
     var text = $('#album-url-input').text();
 
     $('#search-results').empty();
+
+    loading.spawn();
 
     httpRequestGet("https://bandcamp.com/api/fuzzysearch/1/autocomplete?q=" + text, function (response) {
         var json = JSON.parse(response);
@@ -284,6 +288,7 @@ const searchRequest = debounce(function () {
                 }
             });
         }
+        loading.destroy();
     });
 }, 500);
 

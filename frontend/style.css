@@ -284,8 +284,8 @@ option:hover {
 }
 
 #discover-heading {
-  margin-right: 10px;
-  margin-top: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
   padding-bottom: 0px;
   background: none;
   font-size: large;
@@ -296,9 +296,14 @@ option:hover {
 #queue-select {
   flow: vertical;
   width: 0.5*;
-  min-width: 300px;
   height: "*";
   overflow-y: scroll;
+  transition: width 300ms;
+}
+
+#queue-select.closed {
+  width: 0px;
+  transition: width 300ms;
 }
 
 #options-modal {
@@ -464,6 +469,7 @@ option:hover {
   box-shadow: 0px 0px 20px var(--bg2);
   transform: scale(1.0, 1.0);
   transition: transform ease 0.2s;
+  animation: ease 1000ms fade;
 }
 
 
@@ -556,21 +562,29 @@ option:hover {
 }
 
 #loading {
-  display: none;
   width: 32px;
   height: 32px;
-  position: relative;
-  top: 40%;
-  left: calc(39vw - 32px);
-  margin: -16px 0 0 -16px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin-top: -16px;
+  margin-left: -16px;
   animation: sine-in-out 5000ms loading infinite;
+  color: var(--fg);
+  opacity: 1;
+  transition: opacity 200ms;
+  z-index: 5;
+}
+
+#loading.closing {
+  opacity: 0;
+  transition: opacity 200ms;
 }
 
 #loading img {
   display: block;
   width: 32px;
   height: 32px;
-  color: var(--fg);
 }
 
 .welcome-message h1 {

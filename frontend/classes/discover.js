@@ -18,7 +18,7 @@ class Discover {
 
         var me = this;
 
-        loading.style.display = "block";
+        loading.spawn();
 
         httpRequestPost("https://bandcamp.com/api/hub/2/dig_deeper", JSON.stringify(json), function (response) {
             const jsonRes = JSON.parse(response);
@@ -34,7 +34,7 @@ class Discover {
 
                 $('#albums-select').append(node);
             });
-            loading.style.display = "none";
+            loading.destroy();
             me.page += 1;
         });
     }
