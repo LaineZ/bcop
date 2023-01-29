@@ -70,11 +70,11 @@ button:hover {
 
 ul {
   margin: 0;
-  margin-bottom: 10px;
+  margin-bottom: 10dip;
 }
 
 input[type=text] {
-  margin-bottom: 10px;
+  margin-bottom: 10dip;
   background: var(--bg1);
   color: var(--fg);
   border: 0;
@@ -82,7 +82,7 @@ input[type=text] {
 }
 
 input[type=hslider] {
-  height:16px;
+  height:16dip;
   background:var(--bg1);
   padding: 0;
   display:block;
@@ -115,7 +115,7 @@ menu li {
 }
 
 h2 {
-  margin-bottom: 5px;
+  margin-bottom: 5dip;
 }
 
 p {
@@ -131,7 +131,7 @@ select {
 }
 
 option {
-  font-size: 14px;
+  font-size: 14dip;
   background: var(--bg1);
   color: var(--fg);
   transition: background-color ease 200ms;
@@ -142,7 +142,7 @@ popup.list {
 }
 
 #album-import-modal {
-  margin: 10px;
+  margin: 10dip;
   width: "*";
   height: "*";
   background: none;
@@ -153,12 +153,12 @@ popup.list {
   width: "*";
   font-size: large;
   font-weight: 600;
-  box-shadow: 0px 0px 0px var(--bg1);
+  box-shadow: 0dip 0dip 0dip var(--bg1);
   transition: box-shadow 1s;
 }
 
 #album-import-modal input:focus {
-  box-shadow: 0px 0px 30px var(--bg1);
+  box-shadow: 0dip 0dip 30dip var(--bg1);
   transition: box-shadow 1s;
 }
 
@@ -186,9 +186,9 @@ popup.list {
   background-color: var(--bg2);
   color: var(--fg);
   text-align: center;
-  border-radius: 10px;
-  font-size: 16px;
-  padding: 5px;
+  border-radius: 10dip;
+  font-size: 16dip;
+  padding: 5dip;
   position: fixed;
   left: 50%;
   width: auto;
@@ -242,29 +242,29 @@ option:hover {
 }
 
 #tags-select option {
-  padding: 3px;
-  padding-left: 8px;
+  padding: 3dip;
+  padding-left: 8dip;
 }
 
 #controls {
-  padding-right: 20px;
+  padding-right: 20dip;
 }
 
 #controls .image-button {
-  padding: 16px;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 16dip;
+  padding-left: 8dip;
+  padding-right: 8dip;
 }
 
 #trackbar {
   flow: vertical;
-  height: 24px;
+  height: 24dip;
   width: *;
 }
 
 #bottom-panel {
-  border-top: 1px solid var(--bg1);
-  padding-left: 12px;
+  border-top: 1dip solid var(--bg1);
+  padding-left: 12dip;
   flow: horizontal;
 }
 
@@ -275,13 +275,13 @@ option:hover {
 
 #trackinfo {
   flow: horizontal;
-  padding-right: 10px;
+  padding-right: 10dip;
   vertical-align: middle;
-  height: 32px;
+  height: 32dip;
 }
 
 #trackinfo p {
-  padding-right: 5px;
+  padding-right: 5dip;
 }
 
 #seekbar {
@@ -289,12 +289,12 @@ option:hover {
 }
 
 #volume {
-  width: 100px;
-  padding-right: 10px;
+  width: 100dip;
+  padding-right: 10dip;
   /* Workaround for vslider bugs. Slider stops working if position: relative was set */
   position: fixed;
-  right: 80px;
-  bottom: 8px;
+  right: 80dip;
+  bottom: 8dip;
 }
 
 #total-time {
@@ -302,18 +302,18 @@ option:hover {
 }
 
 #discover-window {
-  margin-left: 10px;
+  margin-left: 10dip;
   flow: vertical;
-  border-right: 1px solid var(--bg1);
+  border-right: 1dip solid var(--bg1);
   width: 1.9*;
   height: "*";
   overflow-y: hidden;
 }
 
 #discover-heading {
-  padding-right: 10px;
-  padding-top: 10px;
-  padding-bottom: 0px;
+  padding-right: 10dip;
+  padding-top: 10dip;
+  padding-bottom: 0dip;
   background: none;
   font-size: large;
   font-weight: bold;
@@ -329,18 +329,18 @@ option:hover {
 }
 
 #queue-select.closed {
-  width: 0px;
+  width: 0dip;
   transition: width 300ms;
 }
 
 #options-modal {
-  padding: 0px;
-  height: 322px;
-  width: 400px;
+  padding: 0dip;
+  height: 322dip;
+  width: 400dip;
 }
 
 #options-modal button {
-  margin: 5px;
+  margin: 5dip;
 }
 
 #options-general {
@@ -358,18 +358,18 @@ option:hover {
 #search-results {
   overflow: scroll;
   height: 90vh;
-  margin-bottom: 10px;
+  margin-bottom: 10dip;
 }
 
 #search-results .track-card {
-  margin-left: 5px;
-  padding-left: 5px;
-  margin-bottom: 10px;
+  margin-left: 5dip;
+  padding-left: 5dip;
+  margin-bottom: 10dip;
   background: none;
   box-shadow: none;
   border: none;
-  border-left: 0px solid #00000000;
-  border-radius: 0px;
+  border-left: 0dip solid #00000000;
+  border-radius: 0dip;
   transition: border-color 200ms;
   animation: ease 200ms fade alternate;
 }
@@ -383,17 +383,17 @@ option:hover {
   background-color: var(--bg2);
   height: "*";
   flow: vertical;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 48dip);
   transition: width ease 0.5s;
 }
 
 #menu img {
-  padding: 8px;
+  padding: 8dip;
 }
 
 #search-results .track-card:hover {
-  margin-left: 0px;
-  border-left: 5px solid var(--fg2);
+  margin-left: 0dip;
+  border-left: 5dip solid var(--fg2);
   transition: border-color 300ms;
 }
 
@@ -405,11 +405,11 @@ option:hover {
 }
 
 .option-tab {
-  width: 100px;
-  height: 100px;
+  width: 100dip;
+  height: 100dip;
   background-size: cover;
   color: var(--fg);
-  margin: 5px;
+  margin: 5dip;
   transform: scale(1.0, 1.0);
   transition: transform 0.2s, color 0.5s;
 }
@@ -423,19 +423,19 @@ option:hover {
 
 .selected {
   color: var(--fg2);
-  border: 2px solid var(--fg);
-  margin: 3px;
+  border: 2dip solid var(--fg);
+  margin: 3dip;
 }
 
 .option-tab h3 {
-  padding-left: 5px;
-  padding-top: 75px;
+  padding-left: 5dip;
+  padding-top: 75dip;
   margin: 0;
 }
 
 .option-tabs {
   background: var(--bg1);
-  margin-right: 20px;
+  margin-right: 20dip;
   height: 100%;
 }
 
@@ -466,34 +466,34 @@ option:hover {
   display: none;
   background-color: var(--bg);
   margin: 20% auto;
-  padding: 20px;
-  border: 1px solid var(--bg1);
-  border-radius: 5px;
-  width: 300px;
+  padding: 20dip;
+  border: 1dip solid var(--bg1);
+  border-radius: 5dip;
+  width: 300dip;
 }
 
 .modal-content h1 {
   padding: 0;
   margin: 0;
-  margin-bottom: 10px;
+  margin-bottom: 10dip;
 }
 
 .modal-content p {
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding-top: 5dip;
+  padding-bottom: 5dip;
 }
 
 .album-card {
-  width: 150px;
-  height: 210px;
-  margin: 20px;
+  width: 150dip;
+  height: 210dip;
+  margin: 20dip;
   margin-bottom: 0;
   overflow: hidden;
   background: var(--bg1);
   color: var(--fg);
-  border-radius: 10px;
-  border: 1px solid var(--bg2);
-  box-shadow: 0px 0px 20px var(--bg2);
+  border-radius: 10dip;
+  border: 1dip solid var(--bg2);
+  box-shadow: 0dip 0dip 20dip var(--bg2);
   transform: scale(1.0, 1.0);
   transition: transform ease 0.2s;
   animation: ease 1000ms fade;
@@ -507,16 +507,16 @@ option:hover {
 
 .track-card {
   width: "*";
-  height: 64px;
-  margin: 10px;
-  margin-bottom: 5px;
-  padding-right: 10px;
+  height: 64dip;
+  margin: 10dip;
+  margin-bottom: 5dip;
+  padding-right: 10dip;
   overflow: hidden;
   flow: horizontal;
   background: var(--bg1);
-  border-radius: 5px;
-  border: 1px solid var(--bg2);
-  box-shadow: 0px 0px 10px var(--bg1);
+  border-radius: 5dip;
+  border: 1dip solid var(--bg2);
+  box-shadow: 0dip 0dip 10dip var(--bg1);
   transition: background 300ms;
 }
 
@@ -525,13 +525,13 @@ option:hover {
 }
 
 .close-button {
-  padding: 5px;
-  height: 10px;
+  padding: 5dip;
+  height: 10dip;
 }
 
 .track-card-desc {
   flow: vertical;
-  margin-left: 5px;
+  margin-left: 5dip;
 }
 
 .track-card-desc h3 {
@@ -540,23 +540,23 @@ option:hover {
 }
 
 .track-card img {
-  width: 64px;
-  height: 64px;
+  width: 64dip;
+  height: 64dip;
 }
 
 .album-description {
-  padding: 8px;
+  padding: 8dip;
 }
 
 .album-image {
-  width: 150px;
-  height: 150px;
-  border-bottom: 1px solid var(--bg2);
+  width: 150dip;
+  height: 150dip;
+  border-bottom: 1dip solid var(--bg2);
 }
 
 .album-description h3 {
   margin: 0;
-  height: 20px;
+  height: 20dip;
   overflow: hidden;
 }
 
@@ -567,25 +567,25 @@ option:hover {
 }
 
 #welcome-message {
-  width: 300px;
-  height: 50px;
+  width: 300dip;
+  height: 50dip;
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -25px 0 0 -150px;
+  margin: -25dip 0 0 -150dip;
   color: var(--bg1);
   text-align: center;
   z-index: -1;
 }
 
 #loading {
-  width: 32px;
-  height: 32px;
+  width: 32dip;
+  height: 32dip;
   position: fixed;
   top: 50%;
   left: 50%;
-  margin-top: -16px;
-  margin-left: -16px;
+  margin-top: -16dip;
+  margin-left: -16dip;
   animation: sine-in-out 5000ms loading infinite;
   color: var(--fg);
   opacity: 1;
@@ -600,8 +600,8 @@ option:hover {
 
 #loading img {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: 32dip;
+  height: 32dip;
 }
 
 .welcome-message h1 {
@@ -610,13 +610,13 @@ option:hover {
 }
 
 .option-selection {
-  margin: 10px;
+  margin: 10dip;
   width: "*";
 }
 
 .option-selection input {
-  padding-top: 10px;
-  padding-right: 5px;
+  padding-top: 10dip;
+  padding-right: 5dip;
 }
 
 .hidden {
@@ -629,8 +629,8 @@ option:hover {
 }
 
 .image-button {
-  width: 16px;
-  height: 16px;
+  width: 16dip;
+  height: 16dip;
   color: var(--fg);
   transition: color ease 0.5s;
 }
