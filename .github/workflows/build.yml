@@ -32,8 +32,6 @@ jobs:
       - run: rustup update
       - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
       - run: Expand-Archive ${{ env.SCITER_ENGINE }} -DestinationPath .
-      - run: cargo build --release
-      - run: cargo build --release --target i686-pc-windows-msvc
       # x86_64
       - run: cargo build --release
       - run: mkdir ./artifacts
