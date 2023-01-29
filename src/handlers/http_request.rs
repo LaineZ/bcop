@@ -82,6 +82,7 @@ fn encode_response(
         Ok(response) => {
             if response.status() == 200 {
                 let body = response.into_string().unwrap();
+                //log::info!("{}", body);
                 done.call(None, &make_args!(body), None).unwrap();
             } else {
                 failed
@@ -117,7 +118,11 @@ impl HttpRequest {
             .call()
             .is_err();
 
-        log::info!("http artwork: {} request http: {}", artwork_http, request_http);
+        log::info!(
+            "http artwork: {} request http: {}",
+            artwork_http,
+            request_http
+        );
 
         Self {
             pool: ThreadPool::new(THREAD_COUNT),
@@ -170,10 +175,22 @@ impl HttpRequest {
         done: sciter::Value,
         failed: sciter::Value,
     ) {
+        let proxy = ureq::Proxy::new("socks5://51.222.146.133:59166").unwrap();
+
+        let agent = if self.request_http {
+            ureq::AgentBuilder::new()
+            .proxy(proxy)
+            .timeout(Duration::from_secs(5))
+            .build()
+        } else {
+            ureq::AgentBuilder::new()
+            .timeout(Duration::from_secs(3))
+            .build()
+        };
+
         self.pool.execute(move || {
             encode_response(
-                ureq::post(&url)
-                    .timeout(Duration::from_secs(3))
+                agent.post(&url)
                     .send_string(&body),
                 done,
                 failed,
@@ -182,7 +199,6 @@ impl HttpRequest {
     }
 
     fn parse_album_data(&self, html_code: String) -> String {
-        log::debug!("parsed");
         parse_album(html_code).unwrap_or(String::new())
     }
 
@@ -190,17 +206,8 @@ impl HttpRequest {
         webbrowser::open(&url).is_ok()
     }
 
-    fn set_image(&self, url: String, mut element: Element, proxy: bool) {
+    fn set_image(&self, url: String, mut element: Element) {
         self.pool.execute(move || {
-            let url = if !proxy {
-                url
-            } else {
-                format!(
-                    "http://79.170.44.75/hostdoctordemo.co.uk/downloads/vpn/index.php?q={}&hl=3ed",
-                    base64::encode(url)
-                )
-            };
-
             let response = ureq::get(&url).timeout(Duration::from_secs(5)).call();
 
             match response {
@@ -230,7 +237,7 @@ impl sciter::EventHandler for HttpRequest {
     dispatch_script_call! {
         fn http_request_get(String, Value, Value);
         fn http_request_post(String, String, Value, Value);
-        fn set_image(String, Element, bool);
+        fn set_image(String, Element);
         fn parse_album_data(String);
         fn open_in_browser(String);
         fn get_tags(Value);

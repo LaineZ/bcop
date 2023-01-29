@@ -10,19 +10,13 @@ function httpRequestGet(url, done_callback, failed_callback) {
     const useHttp = Window.this.xcall("request_http");
 
     if (useHttp) {
-        url.replace("https://", "http://");
+        Window.this.xcall("http_request_get", url, done_callback, failed_callback);
+    } else {
+        Window.this.xcall("http_request_get", url.replace("https", "http"), done_callback, failed_callback);
     }
-
-    Window.this.xcall("http_request_get", url, done_callback, failed_callback);
 }
 
 function httpRequestPost(url, body, done_callback, failed_callback) {
-    const useHttp = Window.this.xcall("request_http");
-
-    if (useHttp) {
-        url.replace("https://", "http://");
-    }
-
     Window.this.xcall("http_request_post", url, body, done_callback, failed_callback);
 }
 
@@ -41,12 +35,12 @@ function setImage(art_id, image) {
 
     if (!http) {
         Window.this.xcall("set_image",
-        "https://f4.bcbits.com/img/a" + art_id + "_" + quality + ".jpg",
-        image, false);
+            "https://f4.bcbits.com/img/a" + art_id + "_" + quality + ".jpg",
+            image);
     } else {
         Window.this.xcall("set_image",
-        "http://f4.bcbits.com/img/a" + art_id + "_" + quality  + ".jpg",
-        image, false);
+            "http://f4.bcbits.com/img/a" + art_id + "_" + quality + ".jpg",
+            image);
     }
 }
 
