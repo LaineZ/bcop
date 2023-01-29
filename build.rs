@@ -67,8 +67,18 @@ fn main() {
         panic!("{} is not supported target by sciter", platform);
     }
 
-    Command::new(sdk_path.join("bin/linux/packfolder"))
+    let path = if cfg!(windows) {
+        "bin/windows"
+    } else if cfg!(unix) {
+        "bin/linux"
+    } else if cfg!(target_os = "macos") {
+        "bin/macosx"
+    } else {
+        panic!("Build platform does not support sciter `packfolder` executable!");
+    };
+
+    Command::new(sdk_path.join(path).join("packfolder"))
         .args(&["frontend/", "src/archive.rc", "-binary"])
         .status()
-        .expect("Unable to find `packfolder` tool in $PATH");
+        .expect("Unable to execute `packfolder` tool");
 }
