@@ -4,6 +4,7 @@ use regex::Regex;
 use sciter::{dispatch_script_call, make_args, Element, Value};
 use scraper::{Html, Selector};
 use threadpool::ThreadPool;
+use ureq::Response;
 
 const THREAD_COUNT: usize = 10;
 
@@ -70,6 +71,39 @@ fn get_tags() -> anyhow::Result<Vec<String>> {
     Ok(tags)
 }
 
+fn encode_response(
+    resp: Result<Response, ureq::Error>,
+    done: sciter::Value,
+    failed: sciter::Value,
+) {
+    match resp {
+        Ok(response) => {
+            if response.status() == 200 {
+                let body = response.into_string().unwrap();
+                done.call(None, &make_args!(body), None).unwrap();
+            } else {
+                failed
+                    .call(
+                        None,
+                        &make_args!(format!(
+                            "Request to address: {} failed. Unsucessful code: {}",
+                            response.get_url(),
+                            response.status_text()
+                        )),
+                        None,
+                    )
+                    .unwrap();
+            }
+        }
+        Err(err) => {
+            failed
+                .call(None, &make_args!(format!("Request failed: {}", err)), None)
+                .unwrap();
+            log::error!("Request failed: {}", err);
+        }
+    }
+}
+
 impl HttpRequest {
     pub fn new() -> Self {
         Self {
@@ -97,31 +131,8 @@ impl HttpRequest {
     }
 
     fn http_request_get(&mut self, url: String, done: sciter::Value, failed: sciter::Value) {
-        self.pool.execute(move || match ureq::get(&url).call() {
-            Ok(response) => {
-                if response.status() == 200 {
-                    let body = response.into_string().unwrap();
-                    done.call(None, &make_args!(body), None).unwrap();
-                } else {
-                    failed
-                        .call(
-                            None,
-                            &make_args!(format!(
-                                "Request to address: {} failed. Unsucessful code: {}",
-                                url,
-                                response.status_text()
-                            )),
-                            None,
-                        )
-                        .unwrap();
-                }
-            }
-            Err(err) => {
-                failed
-                    .call(None, &make_args!(format!("Request failed: {}", err)), None)
-                    .unwrap();
-                log::error!("POST: Request to address: {} failed: {}", url, err);
-            }
+        self.pool.execute(move || {
+            encode_response(ureq::get(&url).call(), done, failed);
         });
     }
 
@@ -132,33 +143,9 @@ impl HttpRequest {
         done: sciter::Value,
         failed: sciter::Value,
     ) {
-        self.pool
-            .execute(move || match ureq::post(&url).send_string(&body) {
-                Ok(response) => {
-                    if response.status() == 200 {
-                        let body = response.into_string().unwrap();
-                        done.call(None, &make_args!(body), None).unwrap();
-                    } else {
-                        failed
-                            .call(
-                                None,
-                                &make_args!(format!(
-                                    "Request to address: {} failed. Unsucessful code: {}",
-                                    url,
-                                    response.status_text()
-                                )),
-                                None,
-                            )
-                            .unwrap();
-                    }
-                }
-                Err(err) => {
-                    failed
-                        .call(None, &make_args!(format!("Request failed: {}", err)), None)
-                        .unwrap();
-                    log::error!("POST: Request to address: {} failed: {}", url, err);
-                }
-            });
+        self.pool.execute(move || {
+            encode_response(ureq::post(&url).send_string(&body), done, failed);
+        });
     }
 
     fn parse_album_data(&self, html_code: String) -> String {
