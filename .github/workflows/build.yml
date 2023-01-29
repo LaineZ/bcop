@@ -1,0 +1,54 @@
+name: CI Build
+
+env:
+  RELEASE_BIN: bc_rs
+  SCITER_ENGINE: sciter-js-sdk-4.4.9.3.zip
+
+on:
+  push:
+
+jobs:
+  linux_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: sudo apt update -y && sudo apt install -y libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libgtk-3-dev
+      - run: rustup update
+      - run: bash ./download.sh
+      - run: cargo build --release
+      - run: strip ./target/release/${{ env.RELEASE_BIN }}
+      - run: mkdir ./artifacts
+      - run: mv ./target/release/${{ env.RELEASE_BIN }} ./artifacts
+      - run: mv ./target/release/libsciter-gtk.so ./artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bc_rs-linux
+          path: ./artifacts
+
+  windows_build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: rustup update
+      - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
+      - run: Expand-Archive ${{ env.SCITER_ENGINE }} -DestinationPath .
+      - run: cargo build --release
+      - run: cargo build --release --target i686-pc-windows-msvc
+      # x86_64
+      - run: cargo build --release
+      - run: mkdir ./artifacts
+      - run: move ./target/release/${{ env.RELEASE_BIN }}.exe ./artifacts
+      - run: move ./target/release/sciter.dll ./artifacts
+      # i686
+      - run: cargo build --release --target i686-pc-windows-msvc
+      - run: mkdir ./artifacts-i686
+      - run: move ./target/i686-pc-windows-msvc/release/${{ env.RELEASE_BIN }}.exe ./artifacts-i686
+      - run: move ./target/i686-pc-windows-msvc/release/sciter.dll ./artifacts-i686
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bc_rs-windows-x64
+          path: ./artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bc_rs-windows-x32
+          path: ./artifacts-i686
