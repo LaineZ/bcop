@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v1
       - run: rustup update
       - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
-      - run: Expand-Archive %FILE% -DestinationPath .
+      - run: Expand-Archive ${{ env.SCITER_ENGINE }} -DestinationPath .
       - run: cargo build --release
       - run: mkdir ./artifacts
       - run: move ./target/release/${{ env.RELEASE_BIN }} ./artifacts
