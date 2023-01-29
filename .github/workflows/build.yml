@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - run: rustup update
-      - run: download.bat
+      - run: cmd.exe download.bat
       - run: cargo build --release
       - run: mkdir ./artifacts
       - run: move ./target/release/${{ env.RELEASE_BIN }} ./artifacts
