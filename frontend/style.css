@@ -20,6 +20,24 @@
   }
 }
 
+@set my-h-scrollbar {
+  .slider {
+    display: none;
+  }
+
+  .slider:active {
+    display: none;
+  }
+
+  .base {
+    display: none;
+  }
+
+  .base:hover {
+    display: none;
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -27,6 +45,7 @@ body {
   color: var(--fg);
   overflow: hidden;
   vertical-scrollbar: my-v-scrollbar;
+  horizontal-scrollbar: my-h-scrollbar;
   font-family: Helvetica, 'Segoe UI', sans-serif;
 }
 
@@ -97,6 +116,11 @@ menu li {
 
 h2 {
   margin-bottom: 5px;
+}
+
+p {
+  margin: 0;
+  padding: 0;
 }
 
 select {
@@ -455,8 +479,8 @@ option:hover {
 }
 
 .modal-content p {
-  margin: 0;
-  padding-bottom: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 .album-card {
@@ -515,11 +539,6 @@ option:hover {
   padding: 0;
 }
 
-.track-card-desc p {
-  margin: 0;
-  padding: 0;
-}
-
 .track-card img {
   width: 64px;
   height: 64px;
@@ -539,11 +558,6 @@ option:hover {
   margin: 0;
   height: 20px;
   overflow: hidden;
-}
-
-.album-description p {
-  padding: 0;
-  margin: 0;
 }
 
 .welcome-message {

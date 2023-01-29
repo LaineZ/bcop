@@ -355,7 +355,8 @@ impl PlayerThread {
                     if let Some(frame) = self.next_frame()? {
                         let len = frame.data.len();
                         if let Ok(mut frames) = self.buffer.frames.lock() {
-                            if self.sample_rate > 44100 {
+                            //log::info!("Frame: {:#?}", frame.data);
+                            if self.sample_rate != 44100 {
                                 let frame_resamp: Vec<f32> =
                                     frame.data.iter().map(|&v| v as f32).collect();
                                 let resampled = convert(
