@@ -7,7 +7,7 @@ on:
   push:
 
 jobs:
-  linux_job:
+  linux_build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -22,4 +22,19 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: bc_rs-linux
+          path: ./artifacts
+
+  windows_build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: rustup update
+      - run: download.bat
+      - run: cargo build --release
+      - run: mkdir ./artifacts
+      - run: move ./target/release/${{ env.RELEASE_BIN }} ./artifacts
+      - run: move ./target/release/sciter.dll ./artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bc_rs-windows
           path: ./artifacts
