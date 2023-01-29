@@ -2,6 +2,7 @@ name: CI Build
 
 env:
   RELEASE_BIN: bc_rs
+  SCITER_ENGINE: sciter-js-sdk-4.4.9.3.zip
 
 on:
   push:
@@ -29,7 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - run: rustup update
-      - run: cmd.exe download.bat
+      - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
+      - run: Expand-Archive %FILE% -DestinationPath .
       - run: cargo build --release
       - run: mkdir ./artifacts
       - run: move ./target/release/${{ env.RELEASE_BIN }} ./artifacts
