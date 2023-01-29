@@ -46,7 +46,14 @@ class Player {
     }
 
     loadTrack() {
-        Window.this.xcall("load_track", this.queue[this.queuePosition].file["mp3-128"]);
+        const useHttp = Window.this.xcall("request_http");
+        const url = this.queue[this.queuePosition].file["mp3-128"];
+
+        if (useHttp) {
+            url.replace("https://", "http://");
+        }
+
+        Window.this.xcall("load_track", url);
     }
 
     setPaused(paused) {

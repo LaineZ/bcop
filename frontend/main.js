@@ -2,7 +2,6 @@ let selectedTags = [];
 let player = new Player();
 let discover = new Discover();
 let loading = new LoadingIndicator();
-
 const tagSelector = document.getElementById("tags-select");
 
 loading.spawn();
@@ -15,7 +14,6 @@ getTags(function (done) {
 });
 
 player.setup();
-
 
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);
@@ -300,7 +298,7 @@ const searchRequest = debounce(function () {
 
 $('#album-url-input').on('input', function () {
     var text = $('#album-url-input').text();
-    if (text.startsWith("https://") && text.includes("bandcamp.com")) {
+    if ((text.startsWith("https://") || text.startsWith("http://")) && text.includes("bandcamp.com")) {
         $('#search-results')
             .html("<h2>Press Enter to load album/track into queue</h2>");
     } else {

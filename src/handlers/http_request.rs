@@ -10,6 +10,8 @@ const THREAD_COUNT: usize = 10;
 
 pub struct HttpRequest {
     pool: ThreadPool,
+    artwork_http: bool,
+    request_http: bool,
 }
 
 fn fix_json(data: &str) -> String {
@@ -106,12 +108,33 @@ fn encode_response(
 
 impl HttpRequest {
     pub fn new() -> Self {
+        let artwork_http = ureq::head("https://f4.bcbits.com/")
+            .timeout(Duration::from_secs(2))
+            .call()
+            .is_err();
+        let request_http = ureq::head("https://bandcamp.com/")
+            .timeout(Duration::from_secs(2))
+            .call()
+            .is_err();
+
+        log::info!("http artwork: {} request http: {}", artwork_http, request_http);
+
         Self {
             pool: ThreadPool::new(THREAD_COUNT),
+            artwork_http,
+            request_http,
         }
     }
 
-    fn get_tags(&mut self, done: sciter::Value) {
+    fn artwork_http(&self) -> bool {
+        self.artwork_http
+    }
+
+    fn request_http(&self) -> bool {
+        self.request_http
+    }
+
+    fn get_tags(&self, done: sciter::Value) {
         self.pool.execute(move || {
             let file = std::fs::read_to_string("tag.cache");
 
@@ -130,21 +153,31 @@ impl HttpRequest {
         });
     }
 
-    fn http_request_get(&mut self, url: String, done: sciter::Value, failed: sciter::Value) {
+    fn http_request_get(&self, url: String, done: sciter::Value, failed: sciter::Value) {
         self.pool.execute(move || {
-            encode_response(ureq::get(&url).call(), done, failed);
+            encode_response(
+                ureq::get(&url).timeout(Duration::from_secs(3)).call(),
+                done,
+                failed,
+            );
         });
     }
 
     fn http_request_post(
-        &mut self,
+        &self,
         url: String,
         body: String,
         done: sciter::Value,
         failed: sciter::Value,
     ) {
         self.pool.execute(move || {
-            encode_response(ureq::post(&url).send_string(&body), done, failed);
+            encode_response(
+                ureq::post(&url)
+                    .timeout(Duration::from_secs(3))
+                    .send_string(&body),
+                done,
+                failed,
+            );
         });
     }
 
@@ -168,7 +201,7 @@ impl HttpRequest {
                 )
             };
 
-            let response = ureq::get(&url).timeout(Duration::from_secs(30)).call();
+            let response = ureq::get(&url).timeout(Duration::from_secs(5)).call();
 
             match response {
                 Ok(resp) => {
@@ -201,5 +234,7 @@ impl sciter::EventHandler for HttpRequest {
         fn parse_album_data(String);
         fn open_in_browser(String);
         fn get_tags(Value);
+        fn artwork_http();
+        fn request_http();
     }
 }
