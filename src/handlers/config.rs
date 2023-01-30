@@ -1,7 +1,8 @@
 use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, Element, Value, make_args};
 use serde::{Deserialize, Serialize};
 
-const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 4] = [
+const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
+    ArtworkThumbnailQuality::VeryHigh,
     ArtworkThumbnailQuality::High,
     ArtworkThumbnailQuality::Medium,
     ArtworkThumbnailQuality::Low,
@@ -13,6 +14,7 @@ const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 4] = [
 /// https://f4.bcbits.com/img/a<ART_ID>_<RESOLUTION>.jpg
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub enum ArtworkThumbnailQuality {
+    VeryHigh = 5,
     High = 7,
     Medium = 6,
     Low = 42,

@@ -38,5 +38,6 @@ function DiscoverContextMenu() {
 function QueueContextMenu() {
     return <menu.context id="discover-queue-menu">
         <li>Delete track</li>
+        <li>Open track page in browser</li>
     </menu>;
 }

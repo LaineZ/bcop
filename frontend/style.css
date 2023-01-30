@@ -1,4 +1,3 @@
-
 @set my-v-scrollbar {
   .slider {
     border: 1dip solid var(--bg1);
@@ -82,13 +81,13 @@ input[type=text] {
 }
 
 input[type=hslider] {
-  height:16dip;
-  background:var(--bg1);
+  height: 16dip;
+  background: var(--bg1);
   padding: 0;
-  display:block;
+  display: block;
 }
 
-input[type=hslider] > button.slider { 
+input[type=hslider]>button.slider {
   display: none;
 }
 
@@ -97,13 +96,13 @@ input[type=hslider] {
   background-repeat: no-repeat;
   background-size: length(slider-position) 100%;
   fill: var(--fg);
-  stroke-width:0;
+  stroke-width: 0;
   padding: 0;
-  display:block;
+  display: block;
 }
 
 menu {
-  background-color: var(--bg2);
+  background-color: var(--fg3);
   border: 0;
   animation: ease 200ms fade;
 }
@@ -646,4 +645,23 @@ option:hover {
 
 .main-window {
   flow: vertical;
+}
+
+@media window-size == "small" {
+  .track-card {
+    height: 64dip;
+    margin: 0dip;
+    margin-bottom: 5dip;
+    padding-right: 0dip;
+  }
+
+  .track-card-desc h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+  }
+
+  .track-card img {
+    display: none;
+  }
 }

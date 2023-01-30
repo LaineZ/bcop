@@ -42,7 +42,7 @@ fn parse_album(html_code: String) -> Option<String> {
 
 fn get_tags() -> anyhow::Result<Vec<String>> {
     let response = ureq::get("https://bandcamp.com/tags").call()?;
-    let fragment = Html::parse_fragment(&response.into_string().unwrap_or(String::new()));
+    let fragment = Html::parse_fragment(&response.into_string().unwrap_or_default());
     let selector = Selector::parse("a").unwrap();
 
     let mut tags: Vec<String> = fragment
@@ -151,7 +151,7 @@ impl HttpRequest {
                     // cache tag in file
                     let tag_string = tags.join("\n");
                     std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                    done.call(None, &make_args!(tag_string.clone()), None)
+                    done.call(None, &make_args!(tag_string), None)
                         .unwrap();
                 }
             }
@@ -199,7 +199,7 @@ impl HttpRequest {
     }
 
     fn parse_album_data(&self, html_code: String) -> String {
-        parse_album(html_code).unwrap_or(String::new())
+        parse_album(html_code).unwrap_or_default()
     }
 
     fn open_in_browser(&self, url: String) -> bool {

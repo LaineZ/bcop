@@ -15,10 +15,25 @@ getTags(function (done) {
 
 player.setup();
 
+let windowSize;
+
+function setupSizeVars() {
+    let [w, h] = Window.this.box("dimension");
+    let ws = "normal";
+    if (w < 1000)
+        ws = "small";
+    if (windowSize !== ws) {
+        Window.this.mediaVars({ "window-size": windowSize = ws });
+    }
+}
+
+Window.this.on("size", setupSizeVars);
+setupSizeVars();
+
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);
     setTimeout(function () {
-        $(".error-modal").each(function() {
+        $(".error-modal").each(function () {
             $(this)[0].classList.add("closing");
         });
     }, message.length * 15);
@@ -146,9 +161,16 @@ $("#search-results").on("click", ".track-card", function () {
     closeModals();
 });
 
+document.on("click", function (evt) {
+    if (evt.target.id == "modal-dim" || evt.target.id == "album-import-modal" || evt.target.id == "search-results") {
+        closeModals();
+        return true;
+    }
+    return false;
+});
+
 document.on("contextmenu", function (evt) {
     // handle discover context menu
-    log(evt.target.className);
     if (evt.target.className == "album-card" || evt.target.parentElement.className == "album-card") {
         evt.source = Element.create(<DiscoverContextMenu />);
         return true;
@@ -186,6 +208,11 @@ $(window).on("click", "#discover-queue-menu", "li", function (e) {
     if (idx == 0) {
         const index = $(e.source.parentElement).index();
         player.removeTrackAt(index);
+    }
+    // open track url in browser
+    if (idx == 1) {
+        const index = $(e.source.parentElement).index();
+        openInBrowser(player.queue[index].title_link);
     }
 });
 
@@ -263,7 +290,7 @@ $('#album-import').on('click', function () {
     showAlbumImport();
 });
 
-$('#theme').on('change', function() {
+$('#theme').on('change', function () {
     setTheme(this.value);
 });
 
@@ -282,7 +309,7 @@ const searchRequest = debounce(function () {
                     const card = createElementFromHTML(
                         searchResultCard(element.name, element.band_name, element.url));
 
-                    $(card).children(function() {
+                    $(card).children(function () {
                         if ($(this).prop("className") == "search-img") {
                             setImage(element.art_id, $(this)[0]);
                         }

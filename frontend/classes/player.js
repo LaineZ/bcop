@@ -125,6 +125,10 @@ class Player {
 
     addToQueue(url) {
         var me = this;
+        
+        // ["https:","","thealgorithm.bandcamp.com","album","brute-force"]
+        //              ^
+        const artistPage = url.split("/")[2];
 
         loading.spawn();
         httpRequestGet(url, function (response) {
@@ -135,6 +139,8 @@ class Player {
                     if (element.file != null) {
                         element.artist = jsonRes.artist;
                         element.art_id = jsonRes.art_id;
+                        element.title_link = "https://" + artistPage + element.title_link;
+
                         me.queue.push(element);
                         //log(element);
 
