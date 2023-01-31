@@ -43,6 +43,7 @@ fn main() -> anyhow::Result<()> {
         .set_options(sciter::window::Options::DebugMode(true))
         .unwrap();
     frame.event_handler(handlers::log::Log);
+    frame.event_handler(handlers::io::Io);
     frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::player::Player::new());
     frame.event_handler(handlers::config::Config::new());

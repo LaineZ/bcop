@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, str::FromStr};
 
 use sciter::{dispatch_script_call, make_args, Value};
 
@@ -65,6 +65,10 @@ impl Player {
 
     pub fn force_update(&self) {
         self.event.call(None, &make_args!(""), None).unwrap();
+    }
+
+    pub fn save_queue(&self, queue_list: Value, position: i32) {
+        std::fs::write("playslist.data", queue_list.to_string()).unwrap();
     }
 }
 

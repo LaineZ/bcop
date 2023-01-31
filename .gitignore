@@ -2,4 +2,5 @@
 *.rc
 *.cache
 configuration.toml
+queue.json
 sciter-js*

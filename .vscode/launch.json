@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'bc_rs_new'",
+            "name": "Debug executable 'bc_rs'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=bc_rs_new",
-                    "--package=bc_rs_new"
+                    "--bin=bc_rs",
+                    "--package=bc_rs"
                 ],
                 "filter": {
-                    "name": "bc_rs_new",
+                    "name": "bc_rs",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'bc_rs_new'",
+            "name": "Debug unit tests in executable 'bc_rs'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=bc_rs_new",
-                    "--package=bc_rs_new"
+                    "--bin=bc_rs",
+                    "--package=bc_rs"
                 ],
                 "filter": {
-                    "name": "bc_rs_new",
+                    "name": "bc_rs",
                     "kind": "bin"
                 }
             },

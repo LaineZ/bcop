@@ -409,5 +409,6 @@ $('#seekbar').on('input', function (e) {
 });
 
 document.on("closerequest", function (evt) {
-    saveSettings()
+    saveSettings();
+    player.saveQueue();
 });

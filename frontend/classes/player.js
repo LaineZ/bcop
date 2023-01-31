@@ -12,7 +12,7 @@ class Player {
 
         this.setVolume($("#volume").val());
 
-        this.setStateChangeCallback(function () {            
+        this.setStateChangeCallback(function () {
             if (me.queue.length <= 0) {
                 $('#queue-select')[0].classList.add("closed");
                 $('#track-name').text("");
@@ -43,6 +43,32 @@ class Player {
         });
 
         this.forceUpdate();
+
+        // restore play queue
+        const file = readFile("queue.json");
+
+        if (file.length != 0) {
+            const jsonRes = JSON.parse(file);
+
+            jsonRes.queue.forEach(element => {
+                this.#addToQueueInternal(element);
+            });
+
+            this.queuePosition = jsonRes.position;
+            this.loadTrack();
+            this.seek(jsonRes.play_position);
+            this.setPaused(true);
+        }
+    }
+
+
+    /** Saves all queue contents and position to disk */
+    saveQueue() {
+        writeFile("queue.json", JSON.stringify({
+            queue: this.queue,
+            position: this.queuePosition,
+            play_position: this.getTime()
+        }))
     }
 
     loadTrack() {
@@ -107,7 +133,7 @@ class Player {
             if (this.queue.length > this.queuePosition + 1) {
                 if (this.getTime() >= this.queue[this.queuePosition].duration) {
                     this.queuePosition += 1;
-                    this.loadTrack( );
+                    this.loadTrack();
                 }
             } else {
                 this.stop();
@@ -123,9 +149,24 @@ class Player {
         this.forceUpdate();
     }
 
+    #addToQueueInternal(element) {
+        this.queue.push(element);
+        //log(element);
+
+        const node = createElementFromHTML(queuedTrackCard(element.title, element.artist));
+
+        $(node).children(function () {
+            if ($(this).prop("className") == "track-img") {
+                setImage(element.art_id, $(this)[0]);
+            }
+        });
+
+        $("#queue-select").append(node);
+    }
+
     addToQueue(url) {
         var me = this;
-        
+
         // ["https:","","thealgorithm.bandcamp.com","album","brute-force"]
         //              ^
         const artistPage = url.split("/")[2];
@@ -136,23 +177,12 @@ class Player {
             if (aldata) {
                 const jsonRes = JSON.parse(aldata);
                 jsonRes.trackinfo.forEach(element => {
+                    element.artist = jsonRes.artist;
+                    element.art_id = jsonRes.art_id;
+                    element.title_link = "https://" + artistPage + element.title_link;
+
                     if (element.file != null) {
-                        element.artist = jsonRes.artist;
-                        element.art_id = jsonRes.art_id;
-                        element.title_link = "https://" + artistPage + element.title_link;
-
-                        me.queue.push(element);
-                        //log(element);
-
-                        const node = createElementFromHTML(queuedTrackCard(element.title, element.artist));
-
-                        $(node).children(function() {
-                            if ($(this).prop("className") == "track-img") {
-                                setImage(element.art_id, $(this)[0]);
-                            }
-                        });
-            
-                        $("#queue-select").append(node);
+                        me.#addToQueueInternal(element);
                     }
                 });
             }
@@ -169,7 +199,7 @@ class Player {
 
 
         var idx = 0;
-        $("#queue-select").children(function() {
+        $("#queue-select").children(function () {
             if (idx == index) {
                 $(this).remove();
             }

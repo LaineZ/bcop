@@ -288,11 +288,11 @@ option:hover {
 }
 
 #volume {
-  width: 100dip;
+  width: 150dip;
   padding-right: 10dip;
   /* Workaround for vslider bugs. Slider stops working if position: relative was set */
   position: fixed;
-  right: 80dip;
+  right: 90dip;
   bottom: 8dip;
 }
 

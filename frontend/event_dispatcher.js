@@ -61,3 +61,11 @@ function getSettings() {
 function saveSettings() {
     Window.this.xcall("save_config");
 }
+
+function writeFile(filename, contents) {
+    Window.this.xcall("write", filename, contents);
+}
+
+function readFile(filename) {
+    return Window.this.xcall("read", filename);
+}
