@@ -1,8 +1,8 @@
-use std::{time::Duration, str::FromStr};
+use std::time::Duration;
 
 use sciter::{dispatch_script_call, make_args, Value};
 
-use crate::playback::FormatTime;
+use crate::playback::{FormatTime, self};
 
 pub struct Player {
     player: crate::playback::Player,
@@ -12,13 +12,12 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         Self {
-            player: crate::playback::Player::new(),
+            player: playback::Player::new(),
             event: sciter::Value::new(),
         }
     }
 
     pub fn set_state_change_callback(&mut self, value: sciter::Value) {
-        log::info!("Handler installed");
         self.event = value;
     }
 
@@ -51,8 +50,15 @@ impl Player {
     }
 
     pub fn get_time(&mut self) -> i32 {
-        let time = self.player.get_time().unwrap_or(Duration::from_secs(0));
-        time.as_secs() as i32
+
+        match self.player.get_time() {
+            Some(t) => t.as_secs() as i32,
+            None => {
+                log::warn!("Restarting player thread...");
+                self.player = playback::Player::new();
+                0
+            }
+        }
     }
 
     pub fn get_volume(&mut self) -> i32 {
@@ -65,10 +71,6 @@ impl Player {
 
     pub fn force_update(&self) {
         self.event.call(None, &make_args!(""), None).unwrap();
-    }
-
-    pub fn save_queue(&self, queue_list: Value, position: i32) {
-        std::fs::write("playslist.data", queue_list.to_string()).unwrap();
     }
 }
 

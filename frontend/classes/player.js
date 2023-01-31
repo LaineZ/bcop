@@ -49,15 +49,18 @@ class Player {
 
         if (file.length != 0) {
             const jsonRes = JSON.parse(file);
+            if (jsonRes.queue.length > 0) {
+                jsonRes.queue.forEach(element => {
+                    this.#addToQueueInternal(element);
+                });
 
-            jsonRes.queue.forEach(element => {
-                this.#addToQueueInternal(element);
-            });
-
-            this.queuePosition = jsonRes.position;
-            this.loadTrack();
-            this.seek(jsonRes.play_position);
-            this.setPaused(true);
+                this.queuePosition = jsonRes.position;
+                this.loadTrack();
+                this.seek(jsonRes.play_position);
+                this.setPaused(true);
+            }
+        } else {
+            log("Unable to find queue cache file");
         }
     }
 
