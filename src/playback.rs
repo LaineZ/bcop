@@ -484,6 +484,10 @@ impl Player {
         }
     }
 
+    pub fn check_dead(&self) -> bool {
+        self.cmd_tx.send(Command::GetTime).is_err()
+    }
+
     pub fn get_time(&self) -> Option<Duration> {
         let res = self
             .cmd_tx

@@ -58,7 +58,7 @@ function createElementFromHTML(html) {
 
 setInterval(function () {
     player.updatePlayerInformation();
-}, 1000);
+}, 500);
 
 function debounce(func, wait, immediate) {
     let timeout;

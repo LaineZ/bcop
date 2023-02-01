@@ -40,6 +40,8 @@ class Player {
                     $(this).attr("class", "track-card");
                 }
             });
+
+            Window.this.xcall("restart_player_on_fault");
         });
 
         this.forceUpdate();

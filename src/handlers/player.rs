@@ -50,14 +50,14 @@ impl Player {
     }
 
     pub fn get_time(&mut self) -> i32 {
+        let time = self.player.get_time().unwrap_or_default();
+        time.as_secs() as i32
+    }
 
-        match self.player.get_time() {
-            Some(t) => t.as_secs() as i32,
-            None => {
-                log::warn!("Restarting player thread...");
-                self.player = playback::Player::new();
-                0
-            }
+    pub fn restart_player_on_fault(&mut self) {
+        if self.player.check_dead() {
+            log::warn!("Restarting player thread");
+            self.player = playback::Player::new();   
         }
     }
 
@@ -87,5 +87,6 @@ impl sciter::EventHandler for Player {
         fn get_volume();
         fn set_volume(i32);
         fn force_update();
+        fn restart_player_on_fault();
     }
 }
