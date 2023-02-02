@@ -66,14 +66,14 @@ impl Config {
         let load_artworks_value = load_artworks_dropdown
             .get_value()
             .to_string()
-            .replace("\"", "")
+            .replace('\"', "")
             .parse::<i32>()
             .unwrap_or(0);
 
         let theme_value = theme_dropdown
             .get_value()
             .to_string()
-            .replace("\"", "");
+            .replace('\"', "");
 
         self.load_artworks = if LOAD_ARTWORKS.len() - 1 < load_artworks_value as usize {
             log::warn!(
@@ -100,7 +100,7 @@ impl Config {
     pub fn save_config(&self) {
         std::fs::write(
             "configuration.toml",
-            toml::to_string(&self).unwrap_or(String::new()),
+            toml::to_string(&self).unwrap_or_default(),
         )
         .unwrap_or_else(|op| {
             log::warn!("Unable to save configuration file: {}", op);
@@ -111,6 +111,12 @@ impl Config {
 
     pub fn get_load_artworks(&self) -> i32 {
         self.load_artworks as i32
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -156,7 +162,7 @@ impl sciter::EventHandler for Config {
                         let track_value = target
                             .get_value()
                             .to_string()
-                            .replace("\"", "")
+                            .replace('\"', "")
                             .parse::<i32>()
                             .unwrap_or(100);
 

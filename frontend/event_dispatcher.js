@@ -6,6 +6,10 @@ function logDebug(msg) {
     Window.this.xcall("log_debug", msg);
 }
 
+function logWarn(msg) {
+    Window.this.xcall("log_warn", msg);
+}
+
 function httpRequestGet(url, done_callback, failed_callback) {
     const useHttp = Window.this.xcall("request_http");
 

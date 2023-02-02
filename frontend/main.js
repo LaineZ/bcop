@@ -36,17 +36,22 @@ function showErrorModal(message) {
         $(".error-modal").each(function () {
             $(this)[0].classList.add("closing");
         });
-    }, message.length * 15);
+    }, message.length * 17);
 
     setTimeout(function () {
         $(".error-modal").eq(0).remove();
-    }, message.length * 17);
+    }, message.length * 19);
     loading.destroy();
 }
 
 function setTheme(theme) {
-    for (const [key, value] of Object.entries(themes[theme])) {
-        document.style.variable(key, value);
+    if (themes[theme]) {
+        for (const [key, value] of Object.entries(themes[theme])) {
+            document.style.variable(key, value);
+        }
+    } else {
+        logWarn("Unable to find theme: " + theme + " reverting to hope_diamond...");
+        setTheme("hope_diamond");
     }
 }
 

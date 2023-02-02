@@ -112,7 +112,7 @@ fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
 
     let mut tries = 0;
     while tries < 10 {
-        let reader = agent.get(&url).call();
+        let reader = agent.get(url).call();
 
         match reader {
             Ok(r) => {
@@ -563,5 +563,11 @@ impl Player {
         } else {
             self.seek_forward(Duration::from_secs(seek_secs.neg() as u64));
         }
+    }
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
     }
 }

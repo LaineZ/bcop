@@ -30,8 +30,7 @@ fn check_options() {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     check_options();
-
-    log::info!("sciter: {}", sciter::version());
+    
     let resources = include_bytes!("archive.rc");
 
     let mut frame = sciter::WindowBuilder::main_window()

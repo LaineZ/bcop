@@ -80,23 +80,9 @@ fn encode_response(
 ) {
     match resp {
         Ok(response) => {
-            if response.status() == 200 {
-                let body = response.into_string().unwrap();
-                //log::info!("{}", body);
-                done.call(None, &make_args!(body), None).unwrap();
-            } else {
-                failed
-                    .call(
-                        None,
-                        &make_args!(format!(
-                            "Request to address: {} failed. Unsucessful code: {}",
-                            response.get_url(),
-                            response.status_text()
-                        )),
-                        None,
-                    )
-                    .unwrap();
-            }
+            let body = response.into_string().unwrap();
+            //log::info!("{}", body);
+            done.call(None, &make_args!(body), None).unwrap();
         }
         Err(err) => {
             failed
@@ -146,14 +132,11 @@ impl HttpRequest {
             if let Ok(tags) = file {
                 // use a cached tag file
                 done.call(None, &make_args!(tags), None).unwrap();
-            } else {
-                if let Ok(tags) = get_tags() {
-                    // cache tag in file
-                    let tag_string = tags.join("\n");
-                    std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                    done.call(None, &make_args!(tag_string), None)
-                        .unwrap();
-                }
+            } else if let Ok(tags) = get_tags() {
+                // cache tag in file
+                let tag_string = tags.join("\n");
+                std::fs::write("tag.cache", tag_string.clone()).unwrap();
+                done.call(None, &make_args!(tag_string), None).unwrap();
             }
         });
     }
@@ -179,22 +162,17 @@ impl HttpRequest {
 
         let agent = if self.request_http {
             ureq::AgentBuilder::new()
-            .proxy(proxy)
-            .timeout(Duration::from_secs(5))
-            .build()
+                .proxy(proxy)
+                .timeout_connect(Duration::from_secs(5))
+                .build()
         } else {
             ureq::AgentBuilder::new()
-            .timeout(Duration::from_secs(3))
-            .build()
+                .timeout(Duration::from_secs(3))
+                .build()
         };
 
         self.pool.execute(move || {
-            encode_response(
-                agent.post(&url)
-                    .send_string(&body),
-                done,
-                failed,
-            );
+            encode_response(agent.post(&url).send_string(&body), done, failed);
         });
     }
 
@@ -230,6 +208,12 @@ impl HttpRequest {
                 }
             }
         });
+    }
+}
+
+impl Default for HttpRequest {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

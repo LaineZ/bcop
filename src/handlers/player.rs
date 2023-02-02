@@ -17,11 +17,11 @@ impl Player {
         }
     }
 
-    pub fn set_state_change_callback(&mut self, value: sciter::Value) {
+    fn set_state_change_callback(&mut self, value: sciter::Value) {
         self.event = value;
     }
 
-    pub fn fmt_time(&mut self, time: i32) -> String {
+    fn fmt_time(&mut self, time: i32) -> String {
         format!("{}", FormatTime(Duration::from_secs(time as u64)))
     }
 
@@ -30,47 +30,53 @@ impl Player {
         self.event.call(None, &make_args!(""), None).unwrap();
     }
 
-    pub fn set_paused(&mut self, state: bool) {
+    fn set_paused(&mut self, state: bool) {
         self.player.set_paused(state);
         self.event.call(None, &make_args!(""), None).unwrap();
     }
 
-    pub fn is_paused(&mut self) -> bool {
+    fn is_paused(&mut self) -> bool {
         self.player.is_paused()
     }
 
-    pub fn stop(&mut self) {
+    fn stop(&mut self) {
         self.player.stop();
         self.event.call(None, &make_args!(""), None).unwrap();
     }
 
-    pub fn seek(&mut self, seconds: i32) {
+    fn seek(&mut self, seconds: i32) {
         self.player.seek(Duration::from_secs(seconds as u64));
         self.event.call(None, &make_args!(""), None).unwrap();
     }
 
-    pub fn get_time(&mut self) -> i32 {
+    fn get_time(&mut self) -> i32 {
         let time = self.player.get_time().unwrap_or_default();
         time.as_secs() as i32
     }
 
-    pub fn restart_player_on_fault(&mut self) {
+    fn restart_player_on_fault(&mut self) {
         if self.player.check_dead() {
             log::warn!("Restarting player thread");
             self.player = playback::Player::new();   
         }
     }
 
-    pub fn get_volume(&mut self) -> i32 {
+    fn get_volume(&mut self) -> i32 {
         self.player.get_volume() as i32
     }
 
-    pub fn set_volume(&mut self, value: i32) {
+    fn set_volume(&mut self, value: i32) {
         self.player.set_volume(value as u16);
     }
 
-    pub fn force_update(&self) {
+    fn force_update(&self) {
         self.event.call(None, &make_args!(""), None).unwrap();
+    }
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

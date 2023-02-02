@@ -281,7 +281,7 @@ popup.list {
   /* Workaround for vslider bugs. Slider stops working if position: relative was set */
   position: fixed;
   right: 90dip;
-  bottom: 8dip;
+  bottom: 13dip;
 }
 
 #total-time {
@@ -309,7 +309,7 @@ popup.list {
 
 #queue-select {
   flow: vertical;
-  width: 0.5*;
+  max-width: 0.3*;
   height: "*";
   overflow-y: scroll;
   transition: width 300ms;
@@ -322,7 +322,7 @@ popup.list {
 
 #options-modal {
   padding: 0dip;
-  height: 322dip;
+  height: 400dip;
   width: 400dip;
 }
 
@@ -370,7 +370,6 @@ popup.list {
   background-color: var(--bg2);
   height: "*";
   flow: vertical;
-  height: calc(100vh - 48dip);
   transition: width ease 0.5s;
 }
 
@@ -617,6 +616,7 @@ popup.list {
 
 .main-window {
   flow: vertical;
+  height: 100%;
 }
 
 .error-modal {
