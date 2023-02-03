@@ -1,4 +1,4 @@
-use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, Element, Value, make_args};
+use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, make_args, Element, Value, Window};
 use serde::{Deserialize, Serialize};
 
 const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
@@ -70,10 +70,7 @@ impl Config {
             .parse::<i32>()
             .unwrap_or(0);
 
-        let theme_value = theme_dropdown
-            .get_value()
-            .to_string()
-            .replace('\"', "");
+        let theme_value = theme_dropdown.get_value().to_string().replace('\"', "");
 
         self.load_artworks = if LOAD_ARTWORKS.len() - 1 < load_artworks_value as usize {
             log::warn!(
@@ -89,10 +86,7 @@ impl Config {
         self.theme_name = if !theme_value.trim().is_empty() {
             theme_value
         } else {
-            log::warn!(
-                "Invalid theme string: `{}`",
-                theme_value
-            );
+            log::warn!("Invalid theme string: `{}`", theme_value);
             "hope_diamond".to_string()
         };
     }
@@ -126,8 +120,8 @@ impl sciter::EventHandler for Config {
 
         // setting volume
         let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
-
         volume_bar.set_value(self.volume as i32).unwrap();
+        
         // populate settings
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
@@ -141,7 +135,8 @@ impl sciter::EventHandler for Config {
             )
             .unwrap();
 
-        root.call_function("setTheme", &make_args!(&self.theme_name)).unwrap();
+        root.call_function("setTheme", &make_args!(&self.theme_name))
+            .unwrap();
     }
 
     fn on_event(

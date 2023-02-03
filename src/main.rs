@@ -1,3 +1,6 @@
+use anyhow::anyhow;
+use sciter::Value;
+
 pub mod handlers;
 pub mod playback;
 
@@ -30,7 +33,7 @@ fn check_options() {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     check_options();
-    
+
     let resources = include_bytes!("archive.rc");
 
     let mut frame = sciter::WindowBuilder::main_window()
@@ -46,7 +49,22 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::player::Player::new());
     frame.event_handler(handlers::config::Config::new());
-    frame.load_file("this://app/index.html");
+    frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
+
+    if cfg!(debug_assertions) {
+        let dir = std::env::current_dir()?.join("frontend");
+
+        if dir.exists() {
+            frame.load_file(dir.join("index.html").to_str().unwrap());
+        } else {
+            return Err(
+                anyhow!("Unable to find {} file. You running in debug mode, you need fronend/ directory in bc_rs
+                working directory or build in release mode", 
+                dir.display()));
+        }
+    } else {
+        frame.load_file("this://app/index.html");
+    }
     frame.run_app();
     Ok(())
 }

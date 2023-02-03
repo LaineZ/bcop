@@ -10,10 +10,8 @@ class Player {
     setup() {
         var me = this;
 
-        this.setVolume($("#volume").val());
-
         this.setStateChangeCallback(function () {
-            if (me.queue.length <= 0) {
+            if (me.queue.length == 0) {
                 $('#queue-select')[0].classList.add("closed");
                 $('#track-name').text("");
             } else {
@@ -22,10 +20,10 @@ class Player {
             }
 
             $('#controls').each(function () {
-                $(this).attr("disabled", me.queue.length <= 0);
+                $(this).attr("disabled", me.queue.length == 0);
             });
 
-            $("#seekbar").attr("disabled", me.queue.length <= 0);
+            $("#seekbar").attr("disabled", me.queue.length == 0);
 
             if (me.isPaused()) {
                 $('#play-pause').attr("src", "icons/play.svg");
@@ -64,6 +62,8 @@ class Player {
         } else {
             log("Unable to find queue cache file");
         }
+
+        this.setVolume($("#volume").val());
     }
 
 
@@ -139,9 +139,9 @@ class Player {
                 if (this.getTime() >= this.queue[this.queuePosition].duration) {
                     this.queuePosition += 1;
                     this.loadTrack();
+                } else {
+                    this.stop();
                 }
-            } else {
-                this.stop();
             }
         }
     }
@@ -198,7 +198,7 @@ class Player {
     }
 
     removeTrackAt(index) {
-        if (index == this.queuePosition) {
+        if (index == this.queuePosition - 1) {
             this.stop();
         }
 

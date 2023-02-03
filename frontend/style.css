@@ -477,7 +477,7 @@ popup.list {
 .modal-content {
   display: none;
   background-color: var(--bg);
-  margin: 20% auto;
+  margin: 100dip auto;
   padding: 20dip;
   border: 1dip solid var(--bg1);
   border-radius: 5dip;
@@ -520,28 +520,28 @@ popup.list {
 .track-card {
   width: "*";
   height: 64dip;
-  margin: 10dip;
-  margin-bottom: 5dip;
-  padding-right: 10dip;
+  padding: 2dip;
   overflow: hidden;
   flow: horizontal;
   background: var(--bg1);
-  border-radius: 5dip;
-  border: 1dip solid var(--bg2);
-  box-shadow: 0dip 0dip 10dip var(--bg1);
   transition: background 300ms;
 }
 
-.current {
+.track-card:hover {
   background: var(--bg2);
+}
+
+.current {
+  background: var(--fg3);
 }
 
 .track-card-desc {
   flow: vertical;
-  margin-left: 5dip;
+  margin: 5dip;
 }
 
 .track-card-desc h3 {
+  font-size: 14dip;
   margin: 0;
   padding: 0;
 }
@@ -650,12 +650,6 @@ popup.list {
     margin: 0dip;
     padding: 5dip;
     box-shadow: none;
-  }
-
-  .track-card-desc h3 {
-    margin: 0;
-    padding: 0;
-    font-size: 14px;
   }
 
   .track-card img {

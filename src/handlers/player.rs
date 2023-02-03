@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use sciter::{dispatch_script_call, make_args, Value};
 
-use crate::playback::{FormatTime, self};
+use crate::playback::{self, FormatTime};
 
 pub struct Player {
     player: crate::playback::Player,
@@ -57,7 +57,7 @@ impl Player {
     fn restart_player_on_fault(&mut self) {
         if self.player.check_dead() {
             log::warn!("Restarting player thread");
-            self.player = playback::Player::new();   
+            self.player = playback::Player::new();
         }
     }
 

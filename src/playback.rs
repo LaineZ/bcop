@@ -164,14 +164,15 @@ impl PlayerThread {
                 cur_format,
             );
 
-            if max >= 44100 && config.channels() == 2 {
-                if selected.is_none() || cur_format == SampleFormat::I16 {
-                    format = config.sample_format();
-                    if cfg!(target_os = "windows") {
-                        stream_config.sample_rate = SampleRate(max);
-                    }
-                    selected = Some(i);
+            if max >= 44100
+                && config.channels() == 2
+                && (selected.is_none() || cur_format == SampleFormat::I16)
+            {
+                format = config.sample_format();
+                if cfg!(target_os = "windows") {
+                    stream_config.sample_rate = SampleRate(max);
                 }
+                selected = Some(i);
             }
         }
 
@@ -264,6 +265,8 @@ impl PlayerThread {
             sample_rate: stream_config.sample_rate.0,
         })
     }
+
+    fn select_device(&mut self) {}
 
     fn skip_samples(&mut self, mut num: usize) -> Result<()> {
         let skipping = num;

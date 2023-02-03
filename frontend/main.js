@@ -258,8 +258,8 @@ $('#back').on("click", function () {
 });
 
 $('#forward').on("click", function () {
-    if (queuePosition < queue.length - 1) {
-        queuePosition += 1;
+    if (player.queuePosition < player.queue.length - 1) {
+        player.queuePosition += 1;
         player.loadTrack();
     }
 });
@@ -387,7 +387,7 @@ $('#discover-heading').keyup(function (e) {
 });
 
 $(document).keyup(function (e) {
-    log(e.keyCode);
+    logDebug(e.keyCode);
 
     if ($(e.target).closest("input")[0]) {
         return;
@@ -395,6 +395,10 @@ $(document).keyup(function (e) {
 
     if (e.keyCode == keys.KEY_S) {
         $("#discover-heading")[0].focus();
+    }
+
+    if (debugMode && e.keyCode == keys.F5) {
+        Window.this.load(location.href);
     }
 
     if (e.keyCode == keys.KEY_C) {
