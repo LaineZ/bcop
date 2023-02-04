@@ -505,16 +505,17 @@ popup.list {
   color: var(--fg);
   border-radius: 10dip;
   border: 1dip solid var(--bg2);
-  box-shadow: 0dip 0dip 20dip var(--bg2);
+  box-shadow: 0dip 0dip 20dip var(--bg1);
   transform: scale(1.0, 1.0);
-  transition: transform ease 0.2s;
+  transition: transform ease 0.2s, box-shadow ease 0.2s;
   animation: ease 1000ms fade;
 }
 
 
 .album-card:hover {
   transform: scale(1.12, 1.12);
-  transition: transform ease 0.2s;
+  box-shadow: 0dip 0dip 20dip var(--bg2);
+  transition: transform ease 0.2s, box-shadow ease 0.2s;
 }
 
 .track-card {
