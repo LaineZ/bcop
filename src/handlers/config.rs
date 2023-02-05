@@ -1,4 +1,4 @@
-use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, make_args, Element, Value, Window};
+use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, make_args, Element, Value};
 use serde::{Deserialize, Serialize};
 
 const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
@@ -25,6 +25,7 @@ pub enum ArtworkThumbnailQuality {
 pub struct Config {
     load_artworks: ArtworkThumbnailQuality,
     volume: u16,
+    tag_pane_hidden: bool,
     theme_name: String,
 }
 
@@ -33,6 +34,7 @@ impl Config {
         Self {
             load_artworks: ArtworkThumbnailQuality::High,
             volume: 100,
+            tag_pane_hidden: false,
             theme_name: String::from("hope_diamond"),
         }
     }
@@ -51,6 +53,7 @@ impl Config {
 
         Self {
             load_artworks: ArtworkThumbnailQuality::High,
+            tag_pane_hidden: false,
             volume: 100,
             theme_name: String::from("hope_diamond"),
         }
@@ -121,7 +124,13 @@ impl sciter::EventHandler for Config {
         // setting volume
         let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
         volume_bar.set_value(self.volume as i32).unwrap();
-        
+
+        // setting tag visiability
+        let mut tags = root.find_first("#tags-select").unwrap().unwrap();
+        if self.tag_pane_hidden {
+            tags.set_attribute("class", "closed").unwrap();
+        }
+
         // populate settings
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
@@ -141,7 +150,7 @@ impl sciter::EventHandler for Config {
 
     fn on_event(
         &mut self,
-        _root: sciter::HELEMENT,
+        root: sciter::HELEMENT,
         _source: sciter::HELEMENT,
         target: sciter::HELEMENT,
         code: sciter::dom::event::BEHAVIOR_EVENTS,
@@ -166,6 +175,17 @@ impl sciter::EventHandler for Config {
                     }
                 }
                 false
+            }
+
+            BEHAVIOR_EVENTS::DOCUMENT_CLOSE_REQUEST => {
+                let root = Element::from(root);
+                let tags = root.find_first("#tags-select").unwrap().unwrap();
+                self.tag_pane_hidden = tags
+                    .get_attribute("class")
+                    .unwrap_or_default()
+                    .contains("closed");
+                self.save_config();
+                true
             }
             _ => false,
         }

@@ -418,6 +418,5 @@ $('#seekbar').on('input', function (e) {
 });
 
 document.on("closerequest", function (evt) {
-    saveSettings();
     player.saveQueue();
 });

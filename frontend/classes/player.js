@@ -125,6 +125,7 @@ class Player {
 
     forceUpdate() {
         Window.this.xcall("force_update");
+        this.updatePlayerInformation();
     }
 
     updatePlayerInformation() {
@@ -139,8 +140,6 @@ class Player {
                 if (this.getTime() >= this.queue[this.queuePosition].duration) {
                     this.queuePosition += 1;
                     this.loadTrack();
-                } else {
-                    this.stop();
                 }
             }
         }
@@ -213,4 +212,4 @@ class Player {
 
         this.queue.splice(index, 1);
     }
-} 
+}

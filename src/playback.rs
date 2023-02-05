@@ -266,8 +266,6 @@ impl PlayerThread {
         })
     }
 
-    fn select_device(&mut self) {}
-
     fn skip_samples(&mut self, mut num: usize) -> Result<()> {
         let skipping = num;
         self.buffer.remaining_samples.store(0, Ordering::SeqCst);
@@ -496,11 +494,11 @@ impl Player {
             .cmd_tx
             .send(Command::GetTime)
             .ok()
-            .and_then(|_| self.time_rx.recv().ok());
+            .and_then(|_| self.time_rx.recv_timeout(Duration::from_millis(10)).ok());
         if let Some(r) = res {
             r
         } else {
-            log::error!("Can't get time: player thread is dead");
+            log::warn!("Can't get time: thread recieve timeout");
             None
         }
     }
