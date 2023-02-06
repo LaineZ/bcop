@@ -185,7 +185,7 @@ impl sciter::EventHandler for Config {
                     .unwrap_or_default()
                     .contains("closed");
                 self.save_config();
-                true
+                false
             }
             _ => false,
         }
