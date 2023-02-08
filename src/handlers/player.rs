@@ -79,7 +79,6 @@ impl Default for Player {
         Self::new()
     }
 }
-
 impl sciter::EventHandler for Player {
     dispatch_script_call! {
         fn load_track(String);

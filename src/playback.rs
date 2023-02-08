@@ -106,26 +106,19 @@ struct PlayerThread {
 
 fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
-        .timeout_connect(std::time::Duration::from_secs(1))
+        .timeout_connect(std::time::Duration::from_secs(5))
         .timeout_read(Duration::from_secs(1))
         .build();
+    let reader = agent.get(url).call();
 
-    let mut tries = 0;
-    while tries < 10 {
-        let reader = agent.get(url).call();
-
-        match reader {
-            Ok(r) => {
-                return Some(Decoder::new(Box::new(r.into_reader())));
-            }
-            Err(error) => {
-                log::error!("Cannot start playback: {}", error.to_string());
-                tries += 1;
-                continue;
-            }
+    match reader {
+        Ok(r) => {
+            return Some(Decoder::new(Box::new(r.into_reader())));
+        }
+        Err(error) => {
+            log::error!("Cannot start playback: {}", error.to_string());
         }
     }
-
     None
 }
 
@@ -383,6 +376,8 @@ impl PlayerThread {
                 _ => continue,
             };
 
+            log::debug!("{:?}", cmd);
+
             match cmd {
                 Command::SwitchTrack(url) => {
                     log::info!("Loading track...");
@@ -439,6 +434,7 @@ impl PlayerThread {
                 }
 
                 Command::GetTime => {
+                    log::debug!("time: {:?}", self.tracker.time());
                     if self.is_playing {
                         self.time_tx.send(Some(self.tracker.time()))?;
                     } else {
@@ -496,6 +492,7 @@ impl Player {
             .ok()
             .and_then(|_| self.time_rx.recv_timeout(Duration::from_millis(10)).ok());
         if let Some(r) = res {
+            log::debug!("main thread time: {:?}", r);
             r
         } else {
             log::warn!("Can't get time: thread recieve timeout");
