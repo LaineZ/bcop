@@ -309,7 +309,7 @@ popup.list {
 
 #queue-select {
   flow: vertical;
-  max-width: 0.3*;
+  max-width: 20%;
   height: "*";
   overflow-y: scroll;
   transition: width 300ms;
@@ -322,8 +322,10 @@ popup.list {
 
 #options-modal {
   padding: 0dip;
-  height: 400dip;
-  width: 400dip;
+  height: 50%;
+  width: 50%;
+  min-width: 500dip;
+  min-height: 256dip;
 }
 
 #options-modal button {

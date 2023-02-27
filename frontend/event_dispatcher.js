@@ -24,6 +24,10 @@ function httpRequestPost(url, body, done_callback, failed_callback) {
     Window.this.xcall("http_request_post", url, body, done_callback, failed_callback);
 }
 
+function setClipboard(url) {
+    Window.this.xcall("copy_to_clipboard", url);
+}
+
 function getTags(done_callback) {
     Window.this.xcall("get_tags", done_callback);
 }

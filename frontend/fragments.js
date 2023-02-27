@@ -32,6 +32,7 @@ function DiscoverContextMenu() {
     return <menu.context id="discover-context-menu">
         <li>Add to queue</li>
         <li>Open album page in browser</li>
+        <li>Copy album URL</li>
     </menu>;
 }
 
@@ -39,5 +40,6 @@ function QueueContextMenu() {
     return <menu.context id="discover-queue-menu">
         <li>Delete track</li>
         <li>Open track page in browser</li>
+        <li>Copy track URL</li>
     </menu>;
 }

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use copypasta::{ClipboardContext, ClipboardProvider};
 use regex::Regex;
 use sciter::{dispatch_script_call, make_args, Element, Value};
 use scraper::{Html, Selector};
@@ -193,6 +194,11 @@ impl HttpRequest {
         webbrowser::open(&url).is_ok()
     }
 
+    fn copy_to_clipboard(&self, url: String) -> bool {
+        let mut ctx = ClipboardContext::new().unwrap();
+        ctx.set_contents(url).is_ok()
+    }
+
     fn set_image(&self, url: String, mut element: Element) {
         self.pool.execute(move || {
             let response = ureq::get(&url).timeout(Duration::from_secs(5)).call();
@@ -233,12 +239,9 @@ impl sciter::EventHandler for HttpRequest {
         fn set_image(String, Element);
         fn parse_album_data(String);
         fn open_in_browser(String);
+        fn copy_to_clipboard(String);
         fn get_tags(Value);
         fn artwork_http();
         fn request_http();
-    }
-
-    fn attached(&mut self, root: sciter::HELEMENT) {
-        log::info!("Handler attached!");
     }
 }

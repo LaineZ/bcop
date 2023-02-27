@@ -46,9 +46,9 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
     frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::log::Log);
+    frame.event_handler(handlers::config::Config::new());
     frame.event_handler(handlers::io::Io);
     frame.event_handler(handlers::player::Player::new());
-    frame.event_handler(handlers::config::Config::new());
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
 
     if cfg!(debug_assertions) {

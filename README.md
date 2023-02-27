@@ -42,8 +42,7 @@ If you have [https://crates.io/](cargo) installed. bc-rs can be installed using 
    1. On Ubuntu/Debian you can run that command ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
    2. On Void linux you can install with this command ``sudo xbps-install alsa-lib-devel libxcb-devel``
    3. On Arch linux you can install with this command ``sudo pacman -S alsa-lib libxcb``
-6. **NOTICE: bc_rs currently works properly ONLY ON Rust 1.64.0** you need install this version with ``rustup install 1.64.0``
-6. ```cargo +1.64.0 build --release```
+6. ```cargo build --release```
 7. ```cd target/release```
 8. DONE! You can run it
 

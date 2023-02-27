@@ -1,4 +1,11 @@
-use sciter::{dispatch_script_call, dom::event::BEHAVIOR_EVENTS, make_args, Element, Value};
+use sciter::{
+    dispatch_script_call,
+    dom::{
+        self,
+        event::{self, BEHAVIOR_EVENTS},
+    },
+    make_args, Element, Value,
+};
 use serde::{Deserialize, Serialize};
 
 const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
@@ -22,6 +29,7 @@ pub enum ArtworkThumbnailQuality {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+#[repr(C)]
 pub struct Config {
     load_artworks: ArtworkThumbnailQuality,
     volume: u16,
@@ -153,9 +161,9 @@ impl sciter::EventHandler for Config {
         root: sciter::HELEMENT,
         _source: sciter::HELEMENT,
         target: sciter::HELEMENT,
-        code: sciter::dom::event::BEHAVIOR_EVENTS,
-        _phase: sciter::dom::event::PHASE_MASK,
-        _reason: sciter::dom::EventReason,
+        code: event::BEHAVIOR_EVENTS,
+        _phase: event::PHASE_MASK,
+        _reason: dom::EventReason,
     ) -> bool {
         match code {
             BEHAVIOR_EVENTS::BUTTON_CLICK => {

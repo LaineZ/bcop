@@ -204,6 +204,11 @@ $(window).on("click", "#discover-context-menu", "li", function (e) {
         const index = $(e.source.parentElement).index();
         openInBrowser(discover.discover[index]);
     }
+
+    // copy url
+    if (idx == 2) {
+        setClipboard(discover.discover[index]);
+    }
 });
 
 $(window).on("click", "#discover-queue-menu", "li", function (e) {
@@ -218,6 +223,11 @@ $(window).on("click", "#discover-queue-menu", "li", function (e) {
     if (idx == 1) {
         const index = $(e.source.parentElement).index();
         openInBrowser(player.queue[index].title_link);
+    }
+
+    // copy url
+    if (idx == 2) {
+        setClipboard(player.queue[index].title_link);
     }
 });
 
