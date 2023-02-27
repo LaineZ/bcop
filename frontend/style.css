@@ -256,6 +256,8 @@ popup.list {
 }
 
 #track-name {
+  white-space: nowrap;
+  
   width: 1*;
   font-weight: bold;
 }
@@ -278,10 +280,7 @@ popup.list {
 #volume {
   width: 150dip;
   padding-right: 10dip;
-  /* Workaround for vslider bugs. Slider stops working if position: relative was set */
-  position: fixed;
-  right: 90dip;
-  bottom: 13dip;
+  position: relative;
 }
 
 #total-time {
@@ -524,7 +523,6 @@ popup.list {
   width: "*";
   height: 64dip;
   padding: 2dip;
-  overflow: hidden;
   flow: horizontal;
   background: var(--bg1);
   transition: background 300ms;
@@ -540,11 +538,15 @@ popup.list {
 
 .track-card-desc {
   flow: vertical;
-  margin: 5dip;
+  text-overflow: ellipsis;
+  height: 64dip;
+  padding: 5dip;
 }
 
 .track-card-desc h3 {
   font-size: 14dip;
+  max-height: 32dip;
+  overflow: hidden;
   margin: 0;
   padding: 0;
 }
