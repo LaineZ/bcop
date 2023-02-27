@@ -44,9 +44,9 @@ fn main() -> anyhow::Result<()> {
     frame
         .set_options(sciter::window::Options::DebugMode(true))
         .unwrap();
+    frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::log::Log);
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::player::Player::new());
     frame.event_handler(handlers::config::Config::new());
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
             frame.load_file(dir.join("index.html").to_str().unwrap());
         } else {
             return Err(
-                anyhow!("Unable to find {} file. You running in debug mode, you need fronend/ directory in bc_rs
+                anyhow!("Unable to find {} directory. You running in debug mode, you need fronend/ directory in bc_rs
                 working directory or build in release mode", 
                 dir.display()));
         }

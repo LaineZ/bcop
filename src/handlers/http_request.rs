@@ -40,9 +40,14 @@ fn parse_album(html_code: String) -> Option<String> {
     Some(album_data_json)
 }
 
-fn get_tags() -> anyhow::Result<Vec<String>> {
+fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
+    log::info!("Loading tags from bandcamp.com...");
     let response = ureq::get("https://bandcamp.com/tags").call()?;
-    let fragment = Html::parse_fragment(&response.into_string().unwrap_or_default());
+
+    let resp = &response.into_string().unwrap_or_default();
+    log::info!("{}", resp);
+
+    let fragment = Html::parse_fragment(resp);
     let selector = Selector::parse("a").unwrap();
 
     let mut tags: Vec<String> = fragment
@@ -126,17 +131,21 @@ impl HttpRequest {
     }
 
     fn get_tags(&self, done: sciter::Value) {
+        log::info!("{}", self.pool.active_count());
         self.pool.execute(move || {
             let file = std::fs::read_to_string("tag.cache");
 
             if let Ok(tags) = file {
                 // use a cached tag file
                 done.call(None, &make_args!(tags), None).unwrap();
-            } else if let Ok(tags) = get_tags() {
-                // cache tag in file
-                let tag_string = tags.join("\n");
-                std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                done.call(None, &make_args!(tag_string), None).unwrap();
+            } else {
+                if let Ok(tags) = get_tags_from_internet() {
+                    // cache tag in file
+                    let tag_string = tags.join("\n");
+                    std::fs::write("tag.cache", tag_string.clone()).unwrap();
+                    done.call(None, &make_args!(tag_string), None)
+                        .unwrap();
+                }
             }
         });
     }
@@ -227,5 +236,9 @@ impl sciter::EventHandler for HttpRequest {
         fn get_tags(Value);
         fn artwork_http();
         fn request_http();
+    }
+
+    fn attached(&mut self, root: sciter::HELEMENT) {
+        log::info!("Handler attached!");
     }
 }

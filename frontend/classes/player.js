@@ -47,7 +47,7 @@ class Player {
         // restore play queue
         const file = readFile("queue.json");
 
-        if (file.length != 0) {
+        if (file && file.length != 0) {
             const jsonRes = JSON.parse(file);
             if (jsonRes.queue.length > 0) {
                 jsonRes.queue.forEach(element => {
