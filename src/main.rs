@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use bass_rs::{Bass, prelude::{PlaybackState, StreamChannel}};
-use players::bass::BassPlayer;
+use players::{bass::BassPlayer, internal::InternalPlayer, Player};
 use sciter::Value;
 
 pub mod handlers;
@@ -42,7 +42,12 @@ fn main() -> anyhow::Result<()> {
         .with_size((1000, 600))
         .create();
 
-    let mut player = Box::new(BassPlayer::new(frame.get_hwnd()));
+    let player_handler = if let Ok(pl) = BassPlayer::new() {
+        handlers::player::Player::new(Box::new(pl))
+    } else {
+        log::error!("BASS library initialization failed: falling back to default player implementation");
+        handlers::player::Player::new(Box::new(InternalPlayer::new()))
+    };
 
     frame.archive_handler(resources).expect("Invalid archive");
     frame
@@ -52,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::log::Log);
     frame.event_handler(handlers::config::Config::new());
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player::Player::new(player));
+    frame.event_handler(player_handler);
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
 
     if cfg!(debug_assertions) {

@@ -1,9 +1,11 @@
-use std::time::Duration;
+use std::{time::Duration, env};
 
+use anyhow::bail;
 use bass_rs::{
     prelude::{PlaybackState, StreamChannel},
     Bass,
 };
+use sciter::graphics::Path;
 
 use crate::players::Player;
 
@@ -13,11 +15,27 @@ pub struct BassPlayer {
 }
 
 impl BassPlayer {
-    pub fn new<W>(_window_ptr: *mut W) -> Self {
-        log::info!("Initialized bass");
-        Self {
-            stream_channel: None,
-            _bass: Bass::init_default().unwrap(),
+    pub fn new() -> anyhow::Result<Self> {
+
+        let mut exe = env::current_exe().unwrap_or_default();
+
+        exe.pop();
+
+        if !exe.join("bass.dll").exists() {
+            bail!("Bass library not found!")
+        }
+
+
+        let bass = Bass::init_default();
+
+        match bass {
+            Ok(b) => {
+                Ok(Self {
+                    stream_channel: None,
+                    _bass: b,
+                })
+            },
+            Err(err) => bail!("Bass initialization error: {:?}", err),
         }
     }
 }

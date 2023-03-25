@@ -23,14 +23,14 @@ This simple and user-friendly desktop-oriented client for Bandcamp.com makes it 
 You can download latest dev version from "actions" menu:
 https://github.com/LaineZ/bc_rs/actions
 
-## Installation
+<!-- ## Installation
 If you have [https://crates.io/](cargo) installed. bc-rs can be installed using this commands:
 
 1. If you run on Linux you need install these audio libs: ``libaudio``, ``libasound2``, ``libxcb-shape0-dev``, ``libxcb-xfixes0-dev``
    1. On Ubuntu/Debian you can install with this command: ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
    2. On Void linux you can install with this command ``sudo xbps-install alsa-lib-devel libxcb-devel``
 2. Run this command: ``cargo install --git https://github.com/LaineZ/bc_rs.git``
-3. DONE! You can run it with ``bc_rs`` command
+3. DONE! You can run it with ``bc_rs`` command -->
 
 ## Building
 

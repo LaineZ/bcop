@@ -72,6 +72,7 @@ checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
 [[package]]
 name = "bass-rs"
 version = "0.2.3"
+source = "git+https://github.com/LaineZ/bass-rs#5cd6ac3959913bdd5c4b2cc1d225b762dd17b2b8"
 dependencies = [
  "bass-sys",
  "once_cell",
