@@ -5,7 +5,6 @@ use bass_rs::{
     prelude::{PlaybackState, StreamChannel},
     Bass,
 };
-use sciter::graphics::Path;
 
 use crate::players::Player;
 
@@ -118,10 +117,12 @@ impl Player for BassPlayer {
 
     fn switch_track(&mut self, url: String) {
         if let Some(stream) = &self.stream_channel {
-            stream.stop();
+            stream.stop().unwrap_or_else(|op| {
+                log::error!("Failed to start stop stream: {:?}", op);
+            });
             self.stream_channel = None;
         }
-        let http = url.clone().replace("https://", "http://");
+        let http = url.replace("https://", "http://");
         match StreamChannel::load_from_url(http.clone(), 0) {
             Ok(stream) => {
                 stream.play(true).unwrap_or_else(|op| {

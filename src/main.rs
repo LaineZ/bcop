@@ -1,6 +1,5 @@
 use anyhow::anyhow;
-use bass_rs::{Bass, prelude::{PlaybackState, StreamChannel}};
-use players::{bass::BassPlayer, internal::InternalPlayer, Player};
+use players::{bass::BassPlayer, internal::InternalPlayer};
 use sciter::Value;
 
 pub mod handlers;

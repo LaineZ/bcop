@@ -78,7 +78,7 @@ fn main() {
     };
 
     Command::new(sdk_path.join(path).join("packfolder"))
-        .args(&["frontend/", "src/archive.rc", "-binary"])
+        .args(["frontend/", "src/archive.rc", "-binary"])
         .status()
         .expect("Unable to execute `packfolder` tool");
 }
