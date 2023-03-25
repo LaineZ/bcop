@@ -1,6 +1,8 @@
 /target
 *.rc
 *.cache
+*.dll
+
 configuration.toml
 queue.json
 sciter-js*

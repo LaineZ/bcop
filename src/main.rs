@@ -1,8 +1,10 @@
 use anyhow::anyhow;
+use bass_rs::{Bass, prelude::{PlaybackState, StreamChannel}};
+use players::bass::BassPlayer;
 use sciter::Value;
 
 pub mod handlers;
-pub mod playback;
+pub mod players;
 
 fn check_options() {
     for arg in std::env::args() {
@@ -40,6 +42,8 @@ fn main() -> anyhow::Result<()> {
         .with_size((1000, 600))
         .create();
 
+    let mut player = Box::new(BassPlayer::new(frame.get_hwnd()));
+
     frame.archive_handler(resources).expect("Invalid archive");
     frame
         .set_options(sciter::window::Options::DebugMode(true))
@@ -48,7 +52,7 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::log::Log);
     frame.event_handler(handlers::config::Config::new());
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player::Player::new());
+    frame.event_handler(handlers::player::Player::new(player));
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
 
     if cfg!(debug_assertions) {
@@ -65,6 +69,8 @@ fn main() -> anyhow::Result<()> {
     } else {
         frame.load_file("this://app/index.html");
     }
+
     frame.run_app();
+
     Ok(())
 }

@@ -256,8 +256,7 @@ popup.list {
 }
 
 #track-name {
-  white-space: nowrap;
-  
+  text-overflow: ellipsis;
   width: 1*;
   font-weight: bold;
 }

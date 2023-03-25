@@ -4,7 +4,6 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{
-    fmt::{self, Display},
     ops::Neg,
 };
 
@@ -14,6 +13,21 @@ use minimp3::Decoder;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BufferSize, ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig};
 use samplerate::{convert, ConverterType};
+
+use super::Player;
+
+#[derive(Debug)]
+pub enum Command {
+    GetTime,
+    SwitchTrack(String),
+    Play,
+    Pause,
+    Stop,
+    SeekForward(Duration),
+    SeekBackwards(Duration),
+    AddVolume(u16),
+}
+
 
 struct TimeTracker {
     started_at: Instant,
@@ -59,31 +73,9 @@ impl TimeTracker {
     }
 }
 
-pub struct FormatTime(pub Duration);
-
-impl Display for FormatTime {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let total_secs = self.0.as_secs();
-        let mins = total_secs / 60;
-        let secs = total_secs % 60;
-        write!(f, "{:02}:{:02}", mins, secs)
-    }
-}
 
 fn time_to_samples(time: Duration, rate: SampleRate, channels: ChannelCount) -> usize {
     (time.as_secs_f64() * (rate.0 as f64) * (channels as f64)) as usize
-}
-
-#[derive(Debug)]
-enum Command {
-    GetTime,
-    SwitchTrack(String),
-    Play,
-    Pause,
-    Stop,
-    SeekForward(Duration),
-    SeekBackwards(Duration),
-    AddVolume(u16),
 }
 
 struct Buffer {
@@ -446,46 +438,21 @@ impl PlayerThread {
     }
 }
 
-pub struct Player {
+
+/// Internal player backend
+pub struct InternalPlayer {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
     is_paused: bool,
     volume: u16,
 }
 
-impl Player {
-    pub fn new() -> Player {
-        let (cmd_tx, cmd_rx) = mpsc::channel();
-        let (time_tx, time_rx) = mpsc::channel();
-
-        std::thread::Builder::new()
-            .name("player".into())
-            .spawn(move || {
-                if let Err(e) = PlayerThread::new(cmd_rx, time_tx).and_then(|v| v.run()) {
-                    log::error!("{}", e);
-                }
-            })
-            .expect("Can't spawn player thread");
-
-        Player {
-            cmd_tx,
-            time_rx,
-            is_paused: false,
-            volume: 100,
-        }
-    }
-
-    fn send(&self, cmd: Command) {
-        if self.cmd_tx.send(cmd).is_err() {
-            log::error!("Player thread is dead");
-        }
-    }
-
-    pub fn check_dead(&self) -> bool {
+impl Player for InternalPlayer {
+    fn restart_on_fault(&self) -> bool {
         self.cmd_tx.send(Command::GetTime).is_err()
     }
 
-    pub fn get_time(&self) -> Option<Duration> {
+    fn get_time(&self) -> Option<Duration> {
         let res = self
             .cmd_tx
             .send(Command::GetTime)
@@ -500,15 +467,15 @@ impl Player {
         }
     }
 
-    pub fn is_playing(&self) -> bool {
+    fn is_playing(&self) -> bool {
         self.get_time().is_some()
     }
 
-    pub fn is_paused(&self) -> bool {
+    fn is_paused(&self) -> bool {
         self.is_paused
     }
 
-    pub fn set_paused(&mut self, paused: bool) {
+    fn set_paused(&mut self, paused: bool) {
         if self.is_paused && !paused {
             self.play();
         } else if !self.is_paused && paused {
@@ -517,41 +484,25 @@ impl Player {
         self.is_paused = paused;
     }
 
-    fn play(&mut self) {
-        self.send(Command::Play);
-    }
-
-    fn pause(&mut self) {
-        self.send(Command::Pause);
-    }
-
-    pub fn set_volume(&mut self, value: u16) {
+    fn set_volume(&mut self, value: u16) {
         self.volume = value;
         self.send(Command::AddVolume(self.volume));
     }
 
-    pub fn get_volume(&mut self) -> u16 {
+    fn get_volume(&mut self) -> u16 {
         self.volume
     }
 
-    pub fn stop(&mut self) {
+    fn stop(&mut self) {
         self.send(Command::Stop);
     }
 
-    pub fn switch_track(&mut self, url: impl Into<String>) {
+    fn switch_track(&mut self, url: String) {
         self.send(Command::SwitchTrack(url.into()));
         self.is_paused = false;
     }
 
-    pub fn seek_forward(&mut self, time: Duration) {
-        self.send(Command::SeekForward(time));
-    }
-
-    pub fn seek_backward(&mut self, time: Duration) {
-        self.send(Command::SeekBackwards(time));
-    }
-
-    pub fn seek(&mut self, time: Duration) {
+    fn seek(&mut self, time: Duration) {
         let seek_secs = self.get_time().unwrap_or(Duration::from_secs(0)).as_secs() as i32
             - time.as_secs() as i32;
 
@@ -564,7 +515,52 @@ impl Player {
     }
 }
 
-impl Default for Player {
+impl InternalPlayer {
+    pub fn new() -> InternalPlayer {
+        let (cmd_tx, cmd_rx) = mpsc::channel();
+        let (time_tx, time_rx) = mpsc::channel();
+
+        std::thread::Builder::new()
+            .name("player".into())
+            .spawn(move || {
+                if let Err(e) = PlayerThread::new(cmd_rx, time_tx).and_then(|v| v.run()) {
+                    log::error!("{}", e);
+                }
+            })
+            .expect("Can't spawn player thread");
+
+        InternalPlayer {
+            cmd_tx,
+            time_rx,
+            is_paused: false,
+            volume: 100,
+        }
+    }
+
+    fn send(&self, cmd: Command) {
+        if self.cmd_tx.send(cmd).is_err() {
+            log::error!("Player thread is dead");
+        }
+    }
+
+    fn play(&mut self) {
+        self.send(Command::Play);
+    }
+
+    fn pause(&mut self) {
+        self.send(Command::Pause);
+    }
+
+    fn seek_forward(&mut self, time: Duration) {
+        self.send(Command::SeekForward(time));
+    }
+
+    fn seek_backward(&mut self, time: Duration) {
+        self.send(Command::SeekBackwards(time));
+    }
+}
+
+impl Default for InternalPlayer {
     fn default() -> Self {
         Self::new()
     }

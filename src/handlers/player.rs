@@ -2,17 +2,17 @@ use std::time::Duration;
 
 use sciter::{dispatch_script_call, make_args, Value};
 
-use crate::playback::{self, FormatTime};
+use crate::players::{self, internal};
 
 pub struct Player {
-    player: crate::playback::Player,
+    player: Box<dyn players::Player>,
     event: sciter::Value,
 }
 
 impl Player {
-    pub fn new() -> Self {
+    pub fn new(player: Box<dyn players::Player>) -> Self {
         Self {
-            player: playback::Player::new(),
+            player,
             event: sciter::Value::new(),
         }
     }
@@ -22,7 +22,7 @@ impl Player {
     }
 
     fn fmt_time(&mut self, time: i32) -> String {
-        format!("{}", FormatTime(Duration::from_secs(time as u64)))
+        format!("{}", players::FormatTime(Duration::from_secs(time as u64)))
     }
 
     pub fn load_track(&mut self, url: String) {
@@ -55,9 +55,9 @@ impl Player {
     }
 
     fn restart_player_on_fault(&mut self) {
-        if self.player.check_dead() {
+        if self.player.restart_on_fault() {
             log::warn!("Restarting player thread");
-            self.player = playback::Player::new();
+            self.player = Box::new(internal::InternalPlayer::new())
         }
     }
 
@@ -74,11 +74,6 @@ impl Player {
     }
 }
 
-impl Default for Player {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 impl sciter::EventHandler for Player {
     dispatch_script_call! {
         fn load_track(String);
