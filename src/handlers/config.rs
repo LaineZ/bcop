@@ -16,6 +16,8 @@ const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
     ArtworkThumbnailQuality::VeryLow,
 ];
 
+const AUDIO_SYSTEM: [AudioSystem; 2] = [AudioSystem::Internal, AudioSystem::Bass];
+
 /// Artwork quality.
 /// Bandcamp returns artworks in different resolutions. This can be set with number in URL
 /// https://f4.bcbits.com/img/a<ART_ID>_<RESOLUTION>.jpg
@@ -28,6 +30,28 @@ pub enum ArtworkThumbnailQuality {
     VeryLow = 22,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum AudioSystem {
+    Internal = 0,
+    Bass = 1,
+}
+
+macro_rules! set_enum {
+    ($arr:expr, $idx:expr) => {
+        match $arr.get($idx as usize) {
+            Some(val) => *val,
+            None => {
+                log::warn!(
+                    "Value out of range {} > {}",
+                    $idx,
+                    $arr.len() - 1
+                );
+                $arr[0]
+            }
+        }
+    };
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[repr(C)]
 pub struct Config {
@@ -35,6 +59,7 @@ pub struct Config {
     volume: u16,
     tag_pane_hidden: bool,
     theme_name: String,
+    audio_system: AudioSystem,
 }
 
 impl Config {
@@ -44,6 +69,7 @@ impl Config {
             volume: 100,
             tag_pane_hidden: false,
             theme_name: String::from("hope_diamond"),
+            audio_system: AudioSystem::Internal,
         }
     }
 
@@ -64,6 +90,7 @@ impl Config {
             tag_pane_hidden: false,
             volume: 100,
             theme_name: String::from("hope_diamond"),
+            audio_system: AudioSystem::Internal,
         }
     }
 
@@ -72,9 +99,20 @@ impl Config {
             .find_first("#artwork-quality")
             .unwrap()
             .unwrap();
-
         let theme_dropdown = settings_window.find_first("#theme").unwrap().unwrap();
+        let audio_system_dropdown = settings_window
+            .find_first("#audio-backend")
+            .unwrap()
+            .unwrap();
+
         let load_artworks_value = load_artworks_dropdown
+            .get_value()
+            .to_string()
+            .replace('\"', "")
+            .parse::<i32>()
+            .unwrap_or(0);
+
+        let audio_backend_value = audio_system_dropdown
             .get_value()
             .to_string()
             .replace('\"', "")
@@ -83,16 +121,8 @@ impl Config {
 
         let theme_value = theme_dropdown.get_value().to_string().replace('\"', "");
 
-        self.load_artworks = if LOAD_ARTWORKS.len() - 1 < load_artworks_value as usize {
-            log::warn!(
-                "Value out of range {} > {}",
-                load_artworks_value,
-                LOAD_ARTWORKS.len() - 1
-            );
-            ArtworkThumbnailQuality::High
-        } else {
-            LOAD_ARTWORKS[load_artworks_value as usize]
-        };
+        self.load_artworks = set_enum!(LOAD_ARTWORKS, load_artworks_value);
+        self.audio_system = set_enum!(AUDIO_SYSTEM, audio_backend_value);
 
         self.theme_name = if !theme_value.trim().is_empty() {
             theme_value
@@ -116,6 +146,10 @@ impl Config {
 
     pub fn get_load_artworks(&self) -> i32 {
         self.load_artworks as i32
+    }
+
+    pub fn get_audio_system(&self) -> AudioSystem {
+        self.audio_system
     }
 }
 
@@ -142,12 +176,23 @@ impl sciter::EventHandler for Config {
         // populate settings
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
+        let mut audio_system_dropdown = root.find_first("#audio-backend").unwrap().unwrap();
+
         theme_dropdown.set_value(&self.theme_name).unwrap();
         load_artworks_dropdown
             .set_value(
                 LOAD_ARTWORKS
                     .iter()
                     .position(|&v| v == self.load_artworks)
+                    .unwrap_or(0) as i32,
+            )
+            .unwrap();
+
+        audio_system_dropdown
+            .set_value(
+                AUDIO_SYSTEM
+                    .iter()
+                    .position(|&v| v == self.audio_system)
                     .unwrap_or(0) as i32,
             )
             .unwrap();

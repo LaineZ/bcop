@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use handlers::config::AudioSystem;
 use players::{bass::BassPlayer, internal::InternalPlayer};
 use sciter::Value;
 
@@ -36,16 +37,22 @@ fn main() -> anyhow::Result<()> {
     check_options();
 
     let resources = include_bytes!("archive.rc");
+    let config = handlers::config::Config::new();
 
     let mut frame = sciter::WindowBuilder::main_window()
         .with_size((1000, 600))
         .create();
 
-    let player_handler = if let Ok(pl) = BassPlayer::new() {
-        handlers::player::Player::new(Box::new(pl))
-    } else {
-        log::error!("BASS library initialization failed: falling back to default player implementation");
-        handlers::player::Player::new(Box::new(InternalPlayer::new()))
+    let player_handler = match config.get_audio_system() {
+        AudioSystem::Internal => handlers::player::Player::new(Box::new(InternalPlayer::new())),
+        AudioSystem::Bass => {
+            if let Ok(pl) = BassPlayer::new() {
+                handlers::player::Player::new(Box::new(pl))
+            } else {
+                log::error!("BASS library initialization failed: falling back to default player implementation");
+                handlers::player::Player::new(Box::new(InternalPlayer::new()))
+            }
+        }
     };
 
     frame.archive_handler(resources).expect("Invalid archive");
@@ -54,7 +61,7 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
     frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::log::Log);
-    frame.event_handler(handlers::config::Config::new());
+    frame.event_handler(config);
     frame.event_handler(handlers::io::Io);
     frame.event_handler(player_handler);
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;

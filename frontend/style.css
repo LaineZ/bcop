@@ -323,7 +323,7 @@ popup.list {
   height: 50%;
   width: 50%;
   min-width: 500dip;
-  min-height: 256dip;
+  min-height: 320dip;
 }
 
 #options-modal button {
@@ -460,18 +460,20 @@ popup.list {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  transition: background-color 200ms;
+  transition: background-color 200ms, backdrop-filter 200ms;
+  backdrop-filter: blur(2px);
 }
 
 .modal.active {
   display: block;
   background-color: rgba(0, 0, 0, 0.8);
-  transition: background-color 200ms;
+  transition: background-color 200ms, backdrop-filter 200ms;
 }
 
 .modal.closing {
   background-color: rgba(0, 0, 0, 0);
-  transition: background-color 200ms;
+  transition: background-color 200ms, backdrop-filter 200ms;
+  backdrop-filter: none;
 }
 
 .modal-content {
