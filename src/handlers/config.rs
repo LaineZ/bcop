@@ -41,11 +41,7 @@ macro_rules! set_enum {
         match $arr.get($idx as usize) {
             Some(val) => *val,
             None => {
-                log::warn!(
-                    "Value out of range {} > {}",
-                    $idx,
-                    $arr.len() - 1
-                );
+                log::warn!("Value out of range {} > {}", $idx, $arr.len() - 1);
                 $arr[0]
             }
         }
@@ -58,6 +54,7 @@ pub struct Config {
     load_artworks: ArtworkThumbnailQuality,
     volume: u16,
     tag_pane_hidden: bool,
+    save_queue_on_exit: bool,
     theme_name: String,
     audio_system: AudioSystem,
 }
@@ -68,6 +65,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             volume: 100,
             tag_pane_hidden: false,
+            save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Internal,
         }
@@ -89,6 +87,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             tag_pane_hidden: false,
             volume: 100,
+            save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Internal,
         }
@@ -102,6 +101,10 @@ impl Config {
         let theme_dropdown = settings_window.find_first("#theme").unwrap().unwrap();
         let audio_system_dropdown = settings_window
             .find_first("#audio-backend")
+            .unwrap()
+            .unwrap();
+        let save_queue_on_exit = settings_window
+            .find_first("#save-queue-on-exit")
             .unwrap()
             .unwrap();
 
@@ -120,8 +123,8 @@ impl Config {
             .unwrap_or(0);
 
         let theme_value = theme_dropdown.get_value().to_string().replace('\"', "");
-
         self.load_artworks = set_enum!(LOAD_ARTWORKS, load_artworks_value);
+        self.save_queue_on_exit = save_queue_on_exit.get_value().to_bool().unwrap_or(true);
         self.audio_system = set_enum!(AUDIO_SYSTEM, audio_backend_value);
 
         self.theme_name = if !theme_value.trim().is_empty() {
@@ -151,6 +154,10 @@ impl Config {
     pub fn get_audio_system(&self) -> AudioSystem {
         self.audio_system
     }
+
+    pub fn get_save_queue_on_exit(&self) -> bool {
+        self.save_queue_on_exit
+    }
 }
 
 impl Default for Config {
@@ -177,8 +184,11 @@ impl sciter::EventHandler for Config {
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
         let mut audio_system_dropdown = root.find_first("#audio-backend").unwrap().unwrap();
+        let mut save_queue_checkbox = root.find_first("#save-queue-on-exit").unwrap().unwrap();
 
         theme_dropdown.set_value(&self.theme_name).unwrap();
+        save_queue_checkbox.set_value(self.save_queue_on_exit).unwrap();
+
         load_artworks_dropdown
             .set_value(
                 LOAD_ARTWORKS
@@ -246,6 +256,7 @@ impl sciter::EventHandler for Config {
 
     dispatch_script_call! {
         fn get_load_artworks();
+        fn get_save_queue_on_exit();
         fn set_settings(Value);
         fn save_config();
     }

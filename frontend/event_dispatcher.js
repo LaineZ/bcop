@@ -77,3 +77,7 @@ function writeFile(filename, contents) {
 function readFile(filename) {
     return Window.this.xcall("read", filename);
 }
+
+function deleteFile(filename) {
+    return Window.this.xcall("delete", filename);
+}

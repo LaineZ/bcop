@@ -18,7 +18,14 @@ fn main() {
     //println!("cargo:warning=path: {:?}", out_dir);
 
     if !sdk_path.exists() {
-        panic!("Unable to find sciter sdk installation... please run ./download.sh script...");
+        if cfg!(windows) {
+            panic!("Unable to find sciter sdk installation... please run ./download.ps1 script first!\n
+            If script fails to run please type in powershell:
+            PS > Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
+            ");
+        } else {
+            panic!("Unable to find sciter sdk installation... please run ./download.sh script first!");
+        }
     }
 
     if platform.starts_with("x86_64-pc-windows") {

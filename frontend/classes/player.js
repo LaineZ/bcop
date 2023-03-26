@@ -86,8 +86,8 @@ class Player {
     }
 
     /** Saves all queue contents and position to disk */
-    saveQueue() {
-        writeFile("queue.json", JSON.stringify({
+    saveQueue(filename = "queue.json") {
+        writeFile(filename, JSON.stringify({
             queue: this.queue,
             position: this.queuePosition,
             play_position: this.getTime()

@@ -37,7 +37,7 @@ If you have [https://crates.io/](cargo) installed. bc-rs can be installed using 
 1. [Download Rust](https://www.rust-lang.org/learn/get-started) and follow installation instructions
 2. ```$ git clone https://github.com/LaineZ/bc_rs.git```
 3. ```$ cd bc_rs```
-4. ```$ ./download.sh``` - This script downloads Sciter SDK for build on linux or mac. On windows you need download sciter manually [here](https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip) and extract in project directory.
+4. ```$ ./download.sh``` - This script downloads Sciter SDK for build on linux or mac. On Windows you can use ``download.ps1`` script. If powershell script fails to run. Try run this command: ``Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser`` and try again.
 5. If you run on Linux you need install these audio libs: ``libaudio``, ``libasound2``, ``libxcb-shape0``, ``libxcb-xfixes0``
    1. On Ubuntu/Debian you can run that command ``sudo apt install libaudio-dev libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev``
    2. On Void linux you can install with this command ``sudo xbps-install alsa-lib-devel libxcb-devel``

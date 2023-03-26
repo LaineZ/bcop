@@ -251,11 +251,15 @@ $('#play-pause').on("click", function () {
 
 $('#github').on("click", function () {
     openInBrowser("https://github.com/lainez/bc_rs")
-})
+});
 
 $('#sciter-link').on("click", function () {
     openInBrowser("https://sciter.com")
-})
+});
+
+$('#bass-link').on("click", function () {
+    openInBrowser("http://www.un4seen.com")
+});
 
 $('#back').on("click", function () {
     player.previous();
@@ -419,5 +423,9 @@ $('#seekbar').on('input', function (e) {
 });
 
 document.on("closerequest", function (evt) {
-    player.saveQueue();
+    if (Window.this.xcall("get_save_queue_on_exit")) {
+        player.saveQueue();
+    } else {
+        deleteFile("queue.json");
+    }
 });
