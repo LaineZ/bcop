@@ -21,9 +21,12 @@ threadpool = "1.8.1"
 webbrowser = "0.8.4"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.7.1"
-scraper = "0.14.0"
+scraper = "0.15.0"
 copypasta = "0.8.2"
 bass-rs = { git = "https://github.com/LaineZ/bass-rs" }
 
 [profile.release]
 opt-level = "s"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

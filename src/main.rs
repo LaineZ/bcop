@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
     };
-
+    
     frame.archive_handler(resources).expect("Invalid archive");
     frame
         .set_options(sciter::window::Options::DebugMode(true))

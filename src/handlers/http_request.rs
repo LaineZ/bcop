@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use base64::{engine::general_purpose, Engine};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use regex::Regex;
 use sciter::{dispatch_script_call, make_args, Element, Value};
@@ -212,7 +213,7 @@ impl HttpRequest {
                         element
                             .set_attribute(
                                 "src",
-                                &format!("data:image/jpeg;base64,{}", base64::encode(buf)),
+                                &format!("data:image/jpeg;base64,{}", general_purpose::STANDARD_NO_PAD.encode(buf)),
                             )
                             .unwrap();
                     }

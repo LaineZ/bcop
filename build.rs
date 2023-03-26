@@ -4,6 +4,8 @@ use std::{
     str::FromStr,
 };
 
+use winres::WindowsResource;
+
 fn main() {
     let sdk_path = Path::new("sciter-js-sdk-4.4.9.3");
     let mut out_dir = PathBuf::from_str(&std::env::var("OUT_DIR").unwrap()).unwrap();
@@ -81,4 +83,16 @@ fn main() {
         .args(["frontend/", "src/archive.rc", "-binary"])
         .status()
         .expect("Unable to execute `packfolder` tool");
+
+    #[cfg(windows)]
+    {
+        WindowsResource::new()
+            .set_icon("frontend/icons/icon.ico")
+            .set_language(0x0009)
+            .set("LegalCopyright", "© 140bpmdubstep")
+            .set("ProductName", "BandcampOnlinePlayer")
+            .set("FileDescription", 
+            "Simple and user-friendly desktop-oriented client for Bandcamp.com to listen to albums from tags or URLs.")
+            .compile().unwrap();
+    }
 }
