@@ -4,8 +4,6 @@ use std::{
     str::FromStr,
 };
 
-use winres::WindowsResource;
-
 fn main() {
     let sdk_path = Path::new("sciter-js-sdk-4.4.9.3");
     let mut out_dir = PathBuf::from_str(&std::env::var("OUT_DIR").unwrap()).unwrap();
@@ -86,6 +84,7 @@ fn main() {
 
     #[cfg(windows)]
     {
+        use winres::WindowsResource;
         WindowsResource::new()
             .set_icon("frontend/icons/icon.ico")
             .set_language(0x0009)
