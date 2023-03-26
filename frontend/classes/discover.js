@@ -44,4 +44,4 @@ class Discover {
         this.discover = [];
         $('#albums-select').empty();
     }
-} ``
+}

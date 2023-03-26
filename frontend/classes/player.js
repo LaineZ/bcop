@@ -66,6 +66,24 @@ class Player {
         this.setVolume($("#volume").val());
     }
 
+    previous() {
+        if (player.queuePosition > 0) {
+            player.queuePosition -= 1;
+            player.loadTrack();
+        } else {
+            seek(0);
+        }
+    }
+
+    next() {
+        const result = player.queuePosition < player.queue.length - 1;
+        if (result) {
+            player.queuePosition += 1;
+            player.loadTrack();
+        }
+
+        return result;
+    }
 
     /** Saves all queue contents and position to disk */
     saveQueue() {
@@ -200,7 +218,6 @@ class Player {
         if (index == this.queuePosition - 1) {
             this.stop();
         }
-
 
         var idx = 0;
         $("#queue-select").children(function () {

@@ -224,7 +224,6 @@ $(window).on("click", "#discover-queue-menu", "li", function (e) {
         const index = $(e.source.parentElement).index();
         openInBrowser(player.queue[index].title_link);
     }
-
     // copy url
     if (idx == 2) {
         setClipboard(player.queue[index].title_link);
@@ -259,19 +258,11 @@ $('#sciter-link').on("click", function () {
 })
 
 $('#back').on("click", function () {
-    if (player.queuePosition > 0) {
-        player.queuePosition -= 1;
-        player.loadTrack();
-    } else {
-        seek(0);
-    }
+    player.previous();
 });
 
 $('#forward').on("click", function () {
-    if (player.queuePosition < player.queue.length - 1) {
-        player.queuePosition += 1;
-        player.loadTrack();
-    }
+    player.next();
 });
 
 $('#stop').on("click", function () {
