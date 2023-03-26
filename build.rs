@@ -6,6 +6,8 @@ use std::{
 
 fn main() {
     let sdk_path = Path::new("sciter-js-sdk-4.4.9.3");
+    let bass_path = Path::new("bass24");
+
     let mut out_dir = PathBuf::from_str(&std::env::var("OUT_DIR").unwrap()).unwrap();
 
     let platform = std::env::var("TARGET").unwrap();
@@ -24,7 +26,9 @@ fn main() {
             PS > Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
             ");
         } else {
-            panic!("Unable to find sciter sdk installation... please run ./download.sh script first!");
+            panic!(
+                "Unable to find sciter sdk installation... please run ./download.sh script first!"
+            );
         }
     }
 
@@ -34,6 +38,8 @@ fn main() {
             out_dir.join("sciter.dll"),
         )
         .unwrap();
+        // copy the bass.dll
+        std::fs::copy(bass_path.join("x64/bass.dll"), out_dir.join("bass.dll")).unwrap();
     } else if platform.starts_with("aarch64-pc-windows") {
         std::fs::copy(
             sdk_path.join("bin/windows/arm64/sciter.dll"),
@@ -46,6 +52,8 @@ fn main() {
             out_dir.join("sciter.dll"),
         )
         .unwrap();
+        // copy the bass.dll
+        std::fs::copy(bass_path.join("bass.dll"), out_dir.join("bass.dll")).unwrap();
     } else if platform.starts_with("x86_64-unknown-linux") {
         std::fs::copy(
             sdk_path.join("bin/linux/x64/libsciter-gtk.so"),

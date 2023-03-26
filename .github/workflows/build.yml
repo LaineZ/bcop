@@ -3,7 +3,7 @@ name: CI Build
 env:
   RELEASE_BIN: bc_rs
   SCITER_ENGINE: sciter-js-sdk-4.4.9.3.zip
-
+  BASS: bass24
 on:
   push:
 
@@ -31,7 +31,10 @@ jobs:
       - uses: actions/checkout@v1
       - run: rustup update
       - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
+      - run: curl https://www.un4seen.com/files/bass24.zip --output --output ${{ env.BASS }}.zip
       - run: Expand-Archive ${{ env.SCITER_ENGINE }} -DestinationPath .
+      - run: New-Item -Path ${{ env.BASS }} -ItemType Directory
+      - run: Expand-Archive ${{ env.BASS }}.zip -DestinationPath ./${{ env.BASS }}
       # x86_64
       - run: cargo build --release
       - run: mkdir ./artifacts
