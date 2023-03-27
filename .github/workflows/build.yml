@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v1
       - run: rustup update
       - run: curl https://gitlab.com/sciter-engine/sciter-js-sdk/-/archive/4.4.9.3/sciter-js-sdk-4.4.9.3.zip --output ${{ env.SCITER_ENGINE }}
-      - run: curl https://www.un4seen.com/files/bass24.zip --output --output ${{ env.BASS }}.zip
+      - run: curl https://www.un4seen.com/files/bass24.zip --output ${{ env.BASS }}.zip
       - run: Expand-Archive ${{ env.SCITER_ENGINE }} -DestinationPath .
       - run: New-Item -Path ${{ env.BASS }} -ItemType Directory
       - run: Expand-Archive ${{ env.BASS }}.zip -DestinationPath ./${{ env.BASS }}

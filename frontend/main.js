@@ -34,7 +34,10 @@ getTags(function (done) {
     loading.destroy();
 });
 
-player.setup();
+
+window.addEventListener('load', function () {
+    player.setup();
+});
 
 function setupSizeVars() {
     let [w, h] = Window.this.box("dimension");

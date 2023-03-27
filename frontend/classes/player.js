@@ -3,6 +3,7 @@ class Player {
     constructor() {
         this.queue = [];
         this.queuePosition = 0;
+        this.shuffle = false;
     }
 
     /** Setups all required player callbacks and handlers. 
@@ -62,7 +63,7 @@ class Player {
         } else {
             log("Unable to find queue cache file");
         }
-
+        
         this.setVolume($("#volume").val());
     }
 
