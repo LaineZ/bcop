@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.7.1"
 scraper = "0.15.0"
 copypasta = "0.8.2"
-bass-rs = { git = "https://github.com/LaineZ/bass-rs" }
+bass-rs = { git = "https://github.com/LaineZ/bass-rs", rev = "390f12bfcc0cbcd291edf47085130a95c0696b18" }
 
 [profile.release]
 opt-level = "s"

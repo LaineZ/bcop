@@ -67,6 +67,11 @@
   }
 }
 
+html {
+  min-width: 640dip;
+  min-height: 200dip;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -461,7 +466,7 @@ popup.list {
   height: 100%;
   overflow: hidden;
   transition: background-color 200ms, backdrop-filter 200ms;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
 }
 
 .modal.active {
@@ -479,11 +484,12 @@ popup.list {
 .modal-content {
   display: none;
   background-color: var(--bg);
-  margin: 100dip auto;
+  margin: calc(50% - 200dip) auto;
   padding: 20dip;
   border: 1dip solid var(--bg1);
   border-radius: 5dip;
   width: 300dip;
+  box-shadow: 0dip 0dip 10dip #00000022;
 }
 
 .modal-content h1 {
@@ -622,7 +628,7 @@ popup.list {
 
 .main-window {
   flow: vertical;
-  height: 100%;
+  height: 100vh;
 }
 
 .error-modal {
@@ -660,5 +666,9 @@ popup.list {
 
   .track-card img {
     display: none;
+  }
+
+  #volume {
+    width: 100dip;
   }
 }

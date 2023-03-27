@@ -22,8 +22,10 @@ class Discover {
 
         httpRequestPost("https://bandcamp.com/api/hub/2/dig_deeper", JSON.stringify(json), function (response) {
             const jsonRes = JSON.parse(response);
+
             jsonRes.items.forEach(element => {
                 me.discover.push(element.tralbum_url);
+                //log(element);
                 const node = createElementFromHTML(discoverAlbumCard(element.title, element.artist, element.genre));
 
                 $(node).children(function() {
@@ -34,6 +36,7 @@ class Discover {
 
                 $('#albums-select').append(node);
             });
+            
             loading.destroy();
             me.page += 1;
         }, showErrorModal);

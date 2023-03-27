@@ -74,7 +74,7 @@ fn main() -> anyhow::Result<()> {
         } else {
             return Err(
                 anyhow!("Unable to find {} directory. You running in debug mode, you need fronend/ directory in bc_rs
-                working directory or build in release mode", 
+                working directory. If you don't want that please build in release mode.", 
                 dir.display()));
         }
     } else {

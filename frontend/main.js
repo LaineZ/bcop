@@ -2,9 +2,30 @@ let selectedTags = [];
 let player = new Player();
 let discover = new Discover();
 let loading = new LoadingIndicator();
+let windowSize;
 const tagSelector = document.getElementById("tags-select");
 
 loading.spawn();
+
+const clearQueueModal = new Modal("clear-queue-modal");
+const optionsModal = new Modal("options-modal");
+
+optionsModal.modalWindow.addEventListener("closed", (_) => {
+    setSettings();
+    saveSettings();
+});
+
+const albumImportModal = new Modal("album-import-modal");
+
+albumImportModal.modalWindow.addEventListener("closed", (_) => {
+    $('#search-results').empty();
+});
+
+albumImportModal.modalWindow.addEventListener("open", (_) => {
+    if ($("#album-url-input").text()) {
+        searchRequest();
+    }
+});
 
 getTags(function (done) {
     done.split("\n").forEach(element => {
@@ -14,8 +35,6 @@ getTags(function (done) {
 });
 
 player.setup();
-
-let windowSize;
 
 function setupSizeVars() {
     let [w, h] = Window.this.box("dimension");
@@ -78,56 +97,16 @@ function debounce(func, wait, immediate) {
         };
 
         const callNow = immediate && !timeout;
-
         clearTimeout(timeout);
-
         timeout = setTimeout(later, wait);
-
         if (callNow) func.apply(context, args);
     };
 };
 
-function showQueueClearModal() {
-    const modalDim = document.getElementById("modal-dim");
-    const modalWindow = document.getElementById("clear-queue-modal");
-    modalDim.classList.add("active");
-    modalWindow.style.display = "block";
-}
-
-function showOptionsModal() {
-    const modalDim = document.getElementById("modal-dim");
-    const modalWindow = document.getElementById("options-modal");
-    modalDim.classList.add("active");
-    modalWindow.style.display = "block";
-}
-
-function showAlbumImport() {
-    const modalDim = document.getElementById("modal-dim");
-    const modalWindow = document.getElementById("album-import-modal");
-
-    if ($("#album-url-input").text()) {
-        searchRequest();
-    }
-
-    modalDim.classList.add("active");
-    modalWindow.style.display = "block";
-}
-
 function closeModals() {
-    const modalDim = document.getElementById("modal-dim");
-
-    $('#search-results').empty();
-
-    $(".modal-content").each(function () {
-        $(this)[0].style.display = "none";
-    });
-
-    modalDim.classList.add("closing");
-
-    setTimeout(function () {
-        modalDim.classList.remove("active");
-        modalDim.classList.remove("closing");
-    }, 200);
+    clearQueueModal.hide();
+    optionsModal.hide();
+    albumImportModal.hide();
 }
 
 // HANDLERS
@@ -145,9 +124,17 @@ $("#tags-select").on("click", function () {
     discover.clearDiscover();
     selectedTags = [$(this).val()];
     $('#discover-heading').text(selectedTags);
-    for (let index = 0; index < 3; index++) {
-        discover.extend(selectedTags)
-    }
+    let interval = setInterval(() => {
+        const newScrollHeight = $("#albums-select").prop("scrollHeight");
+        const clientHeight = $("#albums-select").height();
+
+        log(clientHeight + " " + newScrollHeight);
+        discover.extend(selectedTags);
+
+        if (newScrollHeight > clientHeight) {
+            clearInterval(interval);
+        }
+    }, 1000);
 });
 
 $("#albums-select").on("click", ".album-card", function () {
@@ -198,13 +185,11 @@ $(window).on("click", "#discover-context-menu", "li", function (e) {
         const index = $(e.source.parentElement).index();
         player.addToQueue(discover.discover[index]);
     }
-
     // open in browser
     if (idx == 1) {
         const index = $(e.source.parentElement).index();
         openInBrowser(discover.discover[index]);
     }
-
     // copy url
     if (idx == 2) {
         setClipboard(discover.discover[index]);
@@ -274,17 +259,15 @@ $('#stop').on("click", function () {
 });
 
 $('#clear-queue').on('click', function () {
-    showQueueClearModal();
+    clearQueueModal.show();
 });
 
 $('#close-settings').on('click', function () {
-    setSettings();
-    saveSettings();
     closeModals();
 });
 
 $('#settings').on('click', function () {
-    showOptionsModal();
+    optionsModal.show();
 });
 
 $('#tags-toggle').on('click', function () {
@@ -297,7 +280,7 @@ $('#tags-toggle').on('click', function () {
 });
 
 $('#album-import').on('click', function () {
-    showAlbumImport();
+    albumImportModal.show();
 });
 
 $('#theme').on('change', function () {
