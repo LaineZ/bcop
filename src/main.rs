@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use handlers::config::AudioSystem;
 use players::{bass::BassPlayer, internal::InternalPlayer};
-use sciter::Value;
+use sciter::{Value, window::Rectangle};
 
 pub mod handlers;
 pub mod players;
@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     let config = handlers::config::Config::new();
 
     let mut frame = sciter::WindowBuilder::main_window()
-        .with_size((1000, 600))
+        .with_rect(config.window_geometry.into())
         .create();
 
     let player_handler = match config.get_audio_system() {

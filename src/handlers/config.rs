@@ -4,7 +4,9 @@ use sciter::{
         self,
         event::{self, BEHAVIOR_EVENTS},
     },
-    make_args, Element, Value,
+    make_args,
+    window::Rectangle,
+    Element, Value, Window,
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,10 +50,51 @@ macro_rules! set_enum {
     };
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub struct WindowGeometry {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+}
+
+impl From<Rectangle> for WindowGeometry {
+    fn from(value: Rectangle) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+            w: value.width,
+            h: value.height,
+        }
+    }
+}
+
+impl Into<Rectangle> for WindowGeometry {
+    fn into(self) -> Rectangle {
+        Rectangle {
+            x: self.x,
+            y: self.y,
+            width: self.w,
+            height: self.h,
+        }
+    }
+}
+
+impl Default for WindowGeometry {
+    fn default() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            w: 900,
+            h: 600,
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
-#[repr(C)]
 pub struct Config {
     load_artworks: ArtworkThumbnailQuality,
+    pub window_geometry: WindowGeometry,
     volume: u16,
     tag_pane_hidden: bool,
     save_queue_on_exit: bool,
@@ -65,6 +108,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             volume: 100,
             tag_pane_hidden: false,
+            window_geometry: WindowGeometry::default(),
             save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Internal,
@@ -87,6 +131,7 @@ impl Config {
             load_artworks: ArtworkThumbnailQuality::High,
             tag_pane_hidden: false,
             volume: 100,
+            window_geometry: WindowGeometry::default(),
             save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Internal,
@@ -158,6 +203,13 @@ impl Config {
     pub fn get_save_queue_on_exit(&self) -> bool {
         self.save_queue_on_exit
     }
+
+    pub fn set_geometry(&mut self, x: i32, y: i32, w: i32, h: i32) {
+        self.window_geometry.x = x;
+        self.window_geometry.y = y;
+        self.window_geometry.w = w;
+        self.window_geometry.h = h;
+    }
 }
 
 impl Default for Config {
@@ -187,7 +239,9 @@ impl sciter::EventHandler for Config {
         let mut save_queue_checkbox = root.find_first("#save-queue-on-exit").unwrap().unwrap();
 
         theme_dropdown.set_value(&self.theme_name).unwrap();
-        save_queue_checkbox.set_value(self.save_queue_on_exit).unwrap();
+        save_queue_checkbox
+            .set_value(self.save_queue_on_exit)
+            .unwrap();
 
         load_artworks_dropdown
             .set_value(
@@ -258,6 +312,7 @@ impl sciter::EventHandler for Config {
         fn get_load_artworks();
         fn get_save_queue_on_exit();
         fn set_settings(Value);
+        fn set_geometry(i32, i32, i32, i32);
         fn save_config();
     }
 }

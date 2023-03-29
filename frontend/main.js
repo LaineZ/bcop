@@ -10,6 +10,8 @@ loading.spawn();
 const clearQueueModal = new Modal("clear-queue-modal");
 const optionsModal = new Modal("options-modal");
 
+const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
+
 optionsModal.modalWindow.addEventListener("closed", (_) => {
     setSettings();
     saveSettings();
@@ -52,17 +54,24 @@ function setupSizeVars() {
 Window.this.on("size", setupSizeVars);
 setupSizeVars();
 
+function reloadStylesheets() {
+    var queryString = '?reload=' + new Date().getTime();
+    $('link[rel="stylesheet"]').each(function () {
+        this.href = this.href.replace(/\?.*|$/, queryString);
+    });
+}
+
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);
     setTimeout(function () {
         $(".error-modal").each(function () {
             $(this)[0].classList.add("closing");
         });
-    }, message.length * 17);
+    }, clamp(message.length * 18, 1000));
 
     setTimeout(function () {
         $(".error-modal").eq(0).remove();
-    }, message.length * 19);
+    }, clamp(message.length * 20, 2000));
     loading.destroy();
 }
 
@@ -112,6 +121,20 @@ function closeModals() {
     albumImportModal.hide();
 }
 
+function extendDiscoverFromUI() {
+    let interval = setInterval(() => {
+        const newScrollHeight = $("#albums-select").prop("scrollHeight");
+        const clientHeight = $("#albums-select").height();
+    
+        logDebug(clientHeight + " " + newScrollHeight);
+        discover.extend(selectedTags);
+    
+        if (newScrollHeight > clientHeight) {
+            clearInterval(interval);
+        }
+    }, 800);
+}
+
 // HANDLERS
 
 $(".no").on("click", function () {
@@ -123,21 +146,11 @@ $("#clear-queue-yes").on("click", function () {
     closeModals();
 });
 
-$("#tags-select").on("click", function () {
+$(tagSelector).on("click", function () {
     discover.clearDiscover();
     selectedTags = [$(this).val()];
     $('#discover-heading').text(selectedTags);
-    let interval = setInterval(() => {
-        const newScrollHeight = $("#albums-select").prop("scrollHeight");
-        const clientHeight = $("#albums-select").height();
-
-        log(clientHeight + " " + newScrollHeight);
-        discover.extend(selectedTags);
-
-        if (newScrollHeight > clientHeight) {
-            clearInterval(interval);
-        }
-    }, 1000);
+    extendDiscoverFromUI();
 });
 
 $("#albums-select").on("click", ".album-card", function () {
@@ -373,7 +386,8 @@ $('#volume').on('input', function (e) {
 $('#discover-heading').keyup(function (e) {
     if (e.keyCode == keys.ENTER) {
         discover.clearDiscover();
-        discover.extend($(this).val().split(" "));
+        selectedTags = $(this).val().split(" ");
+        extendDiscoverFromUI();
     }
 });
 
@@ -390,6 +404,10 @@ $(document).keyup(function (e) {
 
     if (debugMode && e.keyCode == keys.F5) {
         Window.this.load(location.href);
+    }
+
+    if (debugMode && e.keyCode == keys.F6) {
+        reloadStylesheets();
     }
 
     if (e.keyCode == keys.KEY_C) {
@@ -414,4 +432,5 @@ document.on("closerequest", function (evt) {
     } else {
         deleteFile("queue.json");
     }
+    setGeometry();
 });

@@ -2,6 +2,7 @@ const keys = {
     KEY_S: 83,
     KEY_C: 67,
     F5: 294,
+    F6: 295,
     ESCAPE: 256,
     ENTER: 257,
 }

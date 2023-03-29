@@ -81,3 +81,8 @@ function readFile(filename) {
 function deleteFile(filename) {
     return Window.this.xcall("delete", filename);
 }
+
+function setGeometry() {
+    const [x, y, w, h] = Window.this.box("xywh", "border", "desktop");
+    Window.this.xcall("set_geometry", x, y, w, h);
+}
