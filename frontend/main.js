@@ -54,13 +54,6 @@ function setupSizeVars() {
 Window.this.on("size", setupSizeVars);
 setupSizeVars();
 
-function reloadStylesheets() {
-    var queryString = '?reload=' + new Date().getTime();
-    $('link[rel="stylesheet"]').each(function () {
-        this.href = this.href.replace(/\?.*|$/, queryString);
-    });
-}
-
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);
     setTimeout(function () {
@@ -125,14 +118,14 @@ function extendDiscoverFromUI() {
     let interval = setInterval(() => {
         const newScrollHeight = $("#albums-select").prop("scrollHeight");
         const clientHeight = $("#albums-select").height();
-    
+
         logDebug(clientHeight + " " + newScrollHeight);
         discover.extend(selectedTags);
-    
+
         if (newScrollHeight > clientHeight) {
             clearInterval(interval);
         }
-    }, 800);
+    }, 500);    
 }
 
 // HANDLERS
@@ -151,11 +144,6 @@ $(tagSelector).on("click", function () {
     selectedTags = [$(this).val()];
     $('#discover-heading').text(selectedTags);
     extendDiscoverFromUI();
-});
-
-$("#albums-select").on("click", ".album-card", function () {
-    var idx = $(this).index();
-    player.addToQueue(discover.discover[idx]);
 });
 
 $("#albums-select").on("click", ".album-card", function () {
@@ -406,12 +394,12 @@ $(document).keyup(function (e) {
         Window.this.load(location.href);
     }
 
-    if (debugMode && e.keyCode == keys.F6) {
-        reloadStylesheets();
-    }
-
     if (e.keyCode == keys.KEY_C) {
         discover.clearDiscover();
+    }
+
+    if (e.keyCode == keys.KEY_F) {
+        albumImportModal.show();
     }
 
     if (e.keyCode == keys.ESCAPE) {

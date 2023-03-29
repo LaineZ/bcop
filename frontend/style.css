@@ -80,7 +80,7 @@ body {
   overflow: hidden;
   vertical-scrollbar: my-v-scrollbar;
   horizontal-scrollbar: my-h-scrollbar;
-  font-family: Helvetica, 'Segoe UI', sans-serif;
+  font-family: Helvetica, sans-serif;
 }
 
 a {
@@ -545,15 +545,17 @@ popup.list {
 
 .track-card-desc {
   flow: vertical;
-  text-overflow: ellipsis;
+  overflow: hidden;
   height: 64dip;
   padding: 5dip;
 }
 
 .track-card-desc h3 {
   font-size: 14dip;
-  max-height: 32dip;
   overflow: hidden;
+  max-height: 24dip;
+  text-overflow: ellipsis;
+  overflow-wrap: break-word;
   margin: 0;
   padding: 0;
 }
@@ -564,7 +566,11 @@ popup.list {
 }
 
 .album-description {
-  padding: 8dip;
+  margin-top: 4dip;
+  margin-left: 8dip;
+  margin-right: 8dip;
+  margin-bottom: 4dip;
+  overflow-wrap: break-word;
 }
 
 .album-image {
