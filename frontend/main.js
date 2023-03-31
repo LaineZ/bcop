@@ -9,15 +9,13 @@ loading.spawn();
 
 const clearQueueModal = new Modal("clear-queue-modal");
 const optionsModal = new Modal("options-modal");
-
+const albumImportModal = new Modal("album-import-modal");
 const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
 
 optionsModal.modalWindow.addEventListener("closed", (_) => {
     setSettings();
     saveSettings();
 });
-
-const albumImportModal = new Modal("album-import-modal");
 
 albumImportModal.modalWindow.addEventListener("closed", (_) => {
     $('#search-results').empty();
@@ -28,6 +26,7 @@ albumImportModal.modalWindow.addEventListener("open", (_) => {
         searchRequest();
     }
 });
+
 
 getTags(function (done) {
     done.split("\n").forEach(element => {
@@ -125,7 +124,7 @@ function extendDiscoverFromUI() {
         if (newScrollHeight > clientHeight) {
             clearInterval(interval);
         }
-    }, 500);    
+    }, 500);
 }
 
 // HANDLERS
@@ -202,15 +201,14 @@ $(window).on("click", "#discover-context-menu", "li", function (e) {
 
 $(window).on("click", "#discover-queue-menu", "li", function (e) {
     const idx = $(e.target).index();
+    const index = $(e.source.parentElement).index();
 
     // remove track
     if (idx == 0) {
-        const index = $(e.source.parentElement).index();
         player.removeTrackAt(index);
     }
     // open track url in browser
     if (idx == 1) {
-        const index = $(e.source.parentElement).index();
         openInBrowser(player.queue[index].title_link);
     }
     // copy url

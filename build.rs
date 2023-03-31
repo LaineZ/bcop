@@ -106,7 +106,7 @@ fn main() {
             .set("LegalCopyright", "© 140bpmdubstep")
             .set("ProductName", "BandcampOnlinePlayer")
             .set("FileDescription", 
-            "Simple and user-friendly desktop-oriented client for Bandcamp.com to listen to albums from tags or URLs.")
+            "Simple and user-friendly desktop-oriented client for Bandcamp.com to listen albums from tags or URLs.")
             .compile().unwrap();
     }
 }

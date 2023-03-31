@@ -11,6 +11,7 @@ use crate::players::Player;
 pub struct BassPlayer {
     stream_channel: Option<StreamChannel>,
     _bass: Bass,
+    volume: f32,
 }
 
 impl BassPlayer {
@@ -32,9 +33,20 @@ impl BassPlayer {
                 Ok(Self {
                     stream_channel: None,
                     _bass: b,
+                    volume: 1.0,
                 })
             },
             Err(err) => bail!("Bass initialization error: {}", err),
+        }
+    }
+
+    fn setup_stream_volume(&mut self) {
+        if let Some(stream) = &self.stream_channel {
+            stream
+                .set_volume(self.volume)
+                .unwrap_or_else(|op| {
+                    log::error!("Unable to change volume due to error: {}", op);
+                });
         }
     }
 }
@@ -90,13 +102,8 @@ impl Player for BassPlayer {
     }
 
     fn set_volume(&mut self, value: u16) {
-        if let Some(stream) = &self.stream_channel {
-            stream
-                .set_volume(value as f32 / 100.0)
-                .unwrap_or_else(|op| {
-                    log::error!("Unable to change volume due to error: {}", op);
-                });
-        }
+        self.volume = value as f32 / 100.0;
+        self.setup_stream_volume();
     }
 
     fn get_volume(&mut self) -> u16 {
@@ -130,6 +137,7 @@ impl Player for BassPlayer {
                     log::error!("Failed to start start stream: {}", op);
                 });
                 self.stream_channel = Some(stream);
+                self.setup_stream_volume();
             }
             Err(err) => log::error!("Unable to load stream: {} {}", err, http),
         }
