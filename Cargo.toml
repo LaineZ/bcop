@@ -25,6 +25,9 @@ scraper = "0.15.0"
 copypasta = "0.8.2"
 bass-rs = { git = "https://github.com/LaineZ/bass-rs", rev = "390f12bfcc0cbcd291edf47085130a95c0696b18" }
 
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["wincon", "winuser"] }
+
 [profile.release]
 opt-level = "s"
 

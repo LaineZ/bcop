@@ -109,6 +109,7 @@ dependencies = [
  "toml 0.7.1",
  "ureq",
  "webbrowser",
+ "winapi",
  "winres",
 ]
 

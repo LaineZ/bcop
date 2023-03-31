@@ -6,7 +6,7 @@ use sciter::{
     },
     make_args,
     window::Rectangle,
-    Element, Value, Window,
+    Element, Value,
 };
 use serde::{Deserialize, Serialize};
 

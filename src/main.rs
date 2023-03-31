@@ -1,10 +1,30 @@
 use anyhow::anyhow;
 use handlers::config::AudioSystem;
 use players::{bass::BassPlayer, internal::InternalPlayer};
-use sciter::{Value, window::Rectangle};
+use sciter::Value;
 
 pub mod handlers;
 pub mod players;
+
+#[cfg(target_os = "windows")]
+fn hide_console_window() {
+    use std::ptr;
+    use winapi::um::wincon::GetConsoleWindow;
+    use winapi::um::winuser::{ShowWindow, SW_HIDE};
+
+    let window = unsafe { GetConsoleWindow() };
+    // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+    if window != ptr::null_mut() {
+        unsafe {
+            ShowWindow(window, SW_HIDE);
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn hide_console_window() {
+    // just do nothing
+}
 
 fn check_options() {
     for arg in std::env::args() {
@@ -33,10 +53,10 @@ fn check_options() {
 }
 
 fn main() -> anyhow::Result<()> {
+    hide_console_window();
     env_logger::init();
     check_options();
 
-    let resources = include_bytes!("archive.rc");
     let config = handlers::config::Config::new();
 
     let mut frame = sciter::WindowBuilder::main_window()
@@ -54,8 +74,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
     };
-    
-    frame.archive_handler(resources).expect("Invalid archive");
+
     frame
         .set_options(sciter::window::Options::DebugMode(true))
         .unwrap();
@@ -78,6 +97,8 @@ fn main() -> anyhow::Result<()> {
                 dir.display()));
         }
     } else {
+        let resources = include_bytes!("archive.rc");
+        frame.archive_handler(resources).expect("Invalid archive");
         frame.load_file("this://app/index.html");
     }
 
