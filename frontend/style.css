@@ -436,7 +436,6 @@ popup.list {
   transition: transform 0.2s, color 0.5s;
 }
 
-
 .selected {
   color: var(--fg2);
   border: 2dip solid var(--fg);
