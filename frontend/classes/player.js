@@ -63,8 +63,12 @@ class Player {
         } else {
             log("Unable to find queue cache file");
         }
-        
+
         this.setVolume($("#volume").val());
+    }
+
+    switchBackend(to) {
+        return Window.this.xcall("switch_backend", to);
     }
 
     previous() {
@@ -103,7 +107,18 @@ class Player {
             url.replace("https://", "http://");
         }
 
-        Window.this.xcall("load_track", url);
+        if (!Window.this.xcall("load_track", url)) {
+            // probably needs revoke track URL
+            //loading.spawn();
+            //log(this.queue[this.queuePosition].title_link);
+            //var me = this;
+            //httpRequestGet(this.queue[this.queuePosition].title_link, function (response) {
+                //const aldata = parseAlbumData(response);
+                //me.queue[me.queuePosition].file["mp3-128"] = aldata.trackinfo[0].file["mp3-128"];
+                //Window.this.xcall("load_track", url);
+                //loading.destroy();
+            //});
+        }
     }
 
     setPaused(paused) {

@@ -15,7 +15,7 @@ This simple and user-friendly desktop-oriented client for Bandcamp.com makes it 
 ## Features
 
 * Audio playback from site in mp3 128k quality
-* Playback control: seek, pause, next, prev, volume ...
+* Playback control: seek, pause, next, prev, volume control ...
 * Play queue: add/remove album tracks
 * Album explorer: allows to explore albums in specified tag
 * Global search aroud website

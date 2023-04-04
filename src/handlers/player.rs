@@ -2,7 +2,12 @@ use std::time::Duration;
 
 use sciter::{dispatch_script_call, make_args, Value};
 
-use crate::players::{self, internal};
+use crate::players::{
+    self,
+    bass::BassPlayer,
+    internal::{self, InternalPlayer},
+    AudioSystem,
+};
 
 pub struct Player {
     player: Box<dyn players::Player>,
@@ -10,10 +15,46 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(player: Box<dyn players::Player>) -> Self {
-        Self {
-            player,
-            event: sciter::Value::new(),
+    pub fn new(backend: AudioSystem) -> Self {
+        match backend {
+            AudioSystem::Internal => Self {
+                event: sciter::Value::new(),
+                player: Box::new(InternalPlayer::new()),
+            },
+            AudioSystem::Bass => {
+                if let Ok(bass) = BassPlayer::new() {
+                    Self {
+                        event: sciter::Value::new(),
+                        player: Box::new(bass),
+                    }
+                } else {
+                    Self {
+                        event: sciter::Value::new(),
+                        player: Box::new(InternalPlayer::new()),
+                    }
+                }
+            }
+        }
+    }
+
+    fn switch_backend(&mut self, backend: i32) -> bool {
+        match backend {
+            0 => {
+                self.player = Box::new(InternalPlayer::new());
+                true
+            },
+            1 => {
+                if let Ok(bass) = BassPlayer::new() {
+                    self.player = Box::new(bass);
+                    true
+                } else {
+                    false
+                }
+            },
+            _ => {
+                log::error!("Invalid backend value out of range 1 < {}", backend);
+                false
+            }
         }
     }
 
@@ -25,9 +66,10 @@ impl Player {
         format!("{}", players::FormatTime(Duration::from_secs(time as u64)))
     }
 
-    pub fn load_track(&mut self, url: String) {
-        self.player.switch_track(url);
+    pub fn load_track(&mut self, url: String) -> bool {
+        let res = self.player.switch_track(url).is_err();
         self.event.call(None, &make_args!(""), None).unwrap();
+        res
     }
 
     fn set_paused(&mut self, state: bool) {
@@ -83,6 +125,7 @@ impl sciter::EventHandler for Player {
         fn seek(i32);
         fn get_time();
         fn fmt_time(i32);
+        fn switch_backend(i32);
         fn set_state_change_callback(Value);
         fn get_volume();
         fn set_volume(i32);

@@ -1,4 +1,4 @@
-use std::{time::Duration, env};
+use std::{env, time::Duration};
 
 use anyhow::bail;
 use bass_rs::{
@@ -16,7 +16,6 @@ pub struct BassPlayer {
 
 impl BassPlayer {
     pub fn new() -> anyhow::Result<Self> {
-
         let mut exe = env::current_exe().unwrap_or_default();
 
         exe.pop();
@@ -25,28 +24,23 @@ impl BassPlayer {
             bail!("Bass library not found!")
         }
 
-
         let bass = Bass::init_default();
 
         match bass {
-            Ok(b) => {
-                Ok(Self {
-                    stream_channel: None,
-                    _bass: b,
-                    volume: 1.0,
-                })
-            },
+            Ok(b) => Ok(Self {
+                stream_channel: None,
+                _bass: b,
+                volume: 1.0,
+            }),
             Err(err) => bail!("Bass initialization error: {}", err),
         }
     }
 
     fn setup_stream_volume(&mut self) {
         if let Some(stream) = &self.stream_channel {
-            stream
-                .set_volume(self.volume)
-                .unwrap_or_else(|op| {
-                    log::error!("Unable to change volume due to error: {}", op);
-                });
+            stream.set_volume(self.volume).unwrap_or_else(|op| {
+                log::error!("Unable to change volume due to error: {}", op);
+            });
         }
     }
 }
@@ -122,25 +116,26 @@ impl Player for BassPlayer {
         }
     }
 
-    fn switch_track(&mut self, url: String) {
+    fn switch_track(&mut self, url: String) -> anyhow::Result<()> {
         if let Some(stream) = &self.stream_channel {
-            stream.stop().unwrap_or_else(|op| {
-                log::error!("Failed to start stop stream: {}", op);
-            });
+            stream
+                .stop()
+                .map_err(|e| anyhow::anyhow!("Failed to stop stream: {}", e))?;
             drop(stream);
             self.stream_channel = None;
         }
         let http = url.replace("https://", "http://");
         match StreamChannel::load_from_url(http.clone(), 0) {
             Ok(stream) => {
-                stream.play(true).unwrap_or_else(|op| {
-                    log::error!("Failed to start start stream: {}", op);
-                });
+                stream
+                    .play(true)
+                    .map_err(|e| anyhow::anyhow!("Failed to start stream: {}", e))?;
                 self.stream_channel = Some(stream);
                 self.setup_stream_volume();
             }
-            Err(err) => log::error!("Unable to load stream: {} {}", err, http),
+            Err(err) => bail!("Unable to load stream: {}", err),
         }
+        Ok(())
     }
 
     fn seek(&mut self, time: std::time::Duration) {

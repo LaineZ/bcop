@@ -10,6 +10,8 @@ use sciter::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::players::AudioSystem;
+
 const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
     ArtworkThumbnailQuality::VeryHigh,
     ArtworkThumbnailQuality::High,
@@ -30,12 +32,6 @@ pub enum ArtworkThumbnailQuality {
     Medium = 6,
     Low = 42,
     VeryLow = 22,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
-pub enum AudioSystem {
-    Internal = 0,
-    Bass = 1,
 }
 
 macro_rules! set_enum {

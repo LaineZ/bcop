@@ -289,6 +289,10 @@ $('#theme').on('change', function () {
     setTheme(this.value);
 });
 
+$('#audio-backend').on('change', function () {
+    player.switchBackend(parseInt(this.value));
+});
+
 const searchRequest = debounce(function () {
     var text = $('#album-url-input').text();
 

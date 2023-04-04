@@ -1,6 +1,4 @@
 use anyhow::anyhow;
-use handlers::config::AudioSystem;
-use players::{bass::BassPlayer, internal::InternalPlayer};
 use sciter::Value;
 
 pub mod handlers;
@@ -58,22 +56,11 @@ fn main() -> anyhow::Result<()> {
     check_options();
 
     let config = handlers::config::Config::new();
+    let audio_system = config.get_audio_system();
 
     let mut frame = sciter::WindowBuilder::main_window()
         .with_rect(config.window_geometry.into())
         .create();
-
-    let player_handler = match config.get_audio_system() {
-        AudioSystem::Internal => handlers::player::Player::new(Box::new(InternalPlayer::new())),
-        AudioSystem::Bass => {
-            if let Ok(pl) = BassPlayer::new() {
-                handlers::player::Player::new(Box::new(pl))
-            } else {
-                log::error!("BASS library initialization failed: falling back to default player implementation");
-                handlers::player::Player::new(Box::new(InternalPlayer::new()))
-            }
-        }
-    };
 
     frame
         .set_options(sciter::window::Options::DebugMode(true))
@@ -82,7 +69,7 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::log::Log);
     frame.event_handler(config);
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(player_handler);
+    frame.event_handler(handlers::player::Player::new(audio_system));
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
 
     if cfg!(debug_assertions) {

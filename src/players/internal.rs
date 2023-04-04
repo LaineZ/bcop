@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io::Read;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
@@ -96,22 +97,14 @@ struct PlayerThread {
     sample_rate: u32,
 }
 
-fn load_track(url: &str) -> Option<Decoder<Box<dyn Read>>> {
+fn load_track(url: &str) -> anyhow::Result<(Decoder<Box<dyn Read>>)> {
     let agent = ureq::builder()
         .timeout_connect(std::time::Duration::from_secs(5))
         .timeout_read(Duration::from_secs(1))
         .build();
-    let reader = agent.get(url).call();
+    let reader = agent.get(url).call()?;
 
-    match reader {
-        Ok(r) => {
-            return Some(Decoder::new(Box::new(r.into_reader())));
-        }
-        Err(error) => {
-            log::error!("Cannot start playback: {}", error.to_string());
-        }
-    }
-    None
+    Ok(Decoder::new(Box::new(reader.into_reader())))
 }
 
 impl PlayerThread {
@@ -133,7 +126,7 @@ impl PlayerThread {
 
         let supported_configs = device
             .supported_output_configs()
-            .context("Can't querying device configs")?;
+            .context("Can't query device configs")?;
         log::info!("Supported configurations:");
         let mut selected = None;
         let mut format = SampleFormat::I16;
@@ -374,7 +367,7 @@ impl PlayerThread {
                 Command::SwitchTrack(url) => {
                     log::info!("Loading track...");
                     self.reset();
-                    self.decoder = load_track(&url);
+                    self.decoder = Some(load_track(&url)?);
                     self.is_playing = true;
                     cur_url = Some(url);
 
@@ -403,7 +396,7 @@ impl PlayerThread {
                     }
 
                     self.reset();
-                    self.decoder = load_track(cur_url.as_ref().unwrap());
+                    self.decoder = Some(load_track(cur_url.as_ref().unwrap())?);
                     self.is_playing = true;
 
                     self.tracker.seek_forward(time);
@@ -445,6 +438,7 @@ pub struct InternalPlayer {
     time_rx: Receiver<Option<Duration>>,
     is_paused: bool,
     volume: u16,
+    last_error: Arc<Mutex<Option<anyhow::Error>>>,
 }
 
 impl Player for InternalPlayer {
@@ -462,7 +456,7 @@ impl Player for InternalPlayer {
             log::debug!("main thread time: {:?}", r);
             r
         } else {
-            log::warn!("Can't get time: thread recieve timeout");
+            //log::warn!("Can't get time: thread recieve timeout");
             None
         }
     }
@@ -497,9 +491,22 @@ impl Player for InternalPlayer {
         self.send(Command::Stop);
     }
 
-    fn switch_track(&mut self, url: String) {
+    fn switch_track(&mut self, url: String) -> Result<(), anyhow::Error> {
         self.send(Command::SwitchTrack(url.into()));
         self.is_paused = false;
+
+        let cl = self.last_error.clone();
+        let mut lock = cl.lock().unwrap();
+        let err = lock.take();
+
+        match err {
+            Some(err) => {
+                return Err(anyhow!(err))
+            },
+            None => {
+                return Ok(())
+            },
+        }
     }
 
     fn seek(&mut self, time: Duration) {
@@ -520,11 +527,15 @@ impl InternalPlayer {
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let (time_tx, time_rx) = mpsc::channel();
 
+        let error = Arc::new(Mutex::new(None));
+
+        let error_clone = error.clone();
         std::thread::Builder::new()
             .name("player".into())
             .spawn(move || {
                 if let Err(e) = PlayerThread::new(cmd_rx, time_tx).and_then(|v| v.run()) {
-                    log::error!("{}", e);
+                    let mut err = error_clone.lock().unwrap();
+                    *err = Some(e);
                 }
             })
             .expect("Can't spawn player thread");
@@ -534,6 +545,7 @@ impl InternalPlayer {
             time_rx,
             is_paused: false,
             volume: 100,
+            last_error: error,
         }
     }
 

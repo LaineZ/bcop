@@ -3,6 +3,14 @@ pub mod bass;
 
 use std::{time::Duration, fmt::{Display, self}};
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+pub enum AudioSystem {
+    Internal = 0,
+    Bass = 1,
+}
+
 pub trait Player {
     fn restart_on_fault(&self) -> bool;
     fn get_time(&self) -> Option<Duration>;
@@ -12,7 +20,7 @@ pub trait Player {
     fn set_volume(&mut self, value: u16);
     fn get_volume(&mut self) -> u16;
     fn stop(&mut self);
-    fn switch_track(&mut self, url: String);
+    fn switch_track(&mut self, url: String) -> anyhow::Result<()>;
     fn seek(&mut self, time: Duration);
 }
 

@@ -8,6 +8,11 @@ const keys = {
     ENTER: 257,
 }
 
+const player_backends = {
+    BASS: 0,
+    INTERNAL: 1
+}
+
 const themes = {
     hope_diamond: {
         "bg": "#150e10",
