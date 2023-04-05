@@ -442,8 +442,8 @@ pub struct InternalPlayer {
 }
 
 impl Player for InternalPlayer {
-    fn restart_on_fault(&self) -> bool {
-        self.cmd_tx.send(Command::GetTime).is_err()
+    fn is_initialized(&self) -> bool {
+        self.cmd_tx.send(Command::GetTime).is_ok()
     }
 
     fn get_time(&self) -> Option<Duration> {

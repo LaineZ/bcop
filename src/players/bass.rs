@@ -46,7 +46,7 @@ impl BassPlayer {
 }
 
 impl Player for BassPlayer {
-    fn restart_on_fault(&self) -> bool {
+    fn is_initialized(&self) -> bool {
         false
     }
 

@@ -11,26 +11,30 @@ use crate::players::{
 
 pub struct Player {
     player: Box<dyn players::Player>,
+    selected_audiosystem: AudioSystem,
     event: sciter::Value,
 }
 
 impl Player {
     pub fn new(backend: AudioSystem) -> Self {
         match backend {
-            AudioSystem::Internal => Self {
+            AudioSystem::Internal => return Self {
                 event: sciter::Value::new(),
                 player: Box::new(InternalPlayer::new()),
+                selected_audiosystem: AudioSystem::Internal
             },
             AudioSystem::Bass => {
-                if let Ok(bass) = BassPlayer::new() {
+                return if let Ok(bass) = BassPlayer::new() {
                     Self {
                         event: sciter::Value::new(),
                         player: Box::new(bass),
+                        selected_audiosystem: AudioSystem::Bass
                     }
                 } else {
-                    Self {
+                    return Self {
                         event: sciter::Value::new(),
                         player: Box::new(InternalPlayer::new()),
+                        selected_audiosystem: AudioSystem::Internal
                     }
                 }
             }
@@ -67,7 +71,7 @@ impl Player {
     }
 
     pub fn load_track(&mut self, url: String) -> bool {
-        let res = self.player.switch_track(url).is_err();
+        let res = self.player.switch_track(url).is_ok();
         self.event.call(None, &make_args!(""), None).unwrap();
         res
     }
@@ -97,7 +101,7 @@ impl Player {
     }
 
     fn restart_player_on_fault(&mut self) {
-        if self.player.restart_on_fault() {
+        if !self.player.is_initialized() {
             log::warn!("Restarting player thread");
             self.player = Box::new(internal::InternalPlayer::new())
         }

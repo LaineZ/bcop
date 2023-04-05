@@ -12,7 +12,7 @@ pub enum AudioSystem {
 }
 
 pub trait Player {
-    fn restart_on_fault(&self) -> bool;
+    fn is_initialized(&self) -> bool;
     fn get_time(&self) -> Option<Duration>;
     fn is_playing(&self) -> bool;
     fn is_paused(&self) -> bool;

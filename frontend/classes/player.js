@@ -99,7 +99,7 @@ class Player {
         }))
     }
 
-    loadTrack() {
+    #loadTrackInternal() {
         const useHttp = Window.this.xcall("request_http");
         const url = this.queue[this.queuePosition].file["mp3-128"];
 
@@ -107,17 +107,30 @@ class Player {
             url.replace("https://", "http://");
         }
 
-        if (!Window.this.xcall("load_track", url)) {
+        return Window.this.xcall("load_track", url);
+    }
+
+    loadTrack() {
+        const useHttp = Window.this.xcall("request_http");
+        const url = this.queue[this.queuePosition].file["mp3-128"];
+
+        if (useHttp) {
+            url.replace("https://", "http://");
+        }
+        var me = this;
+
+        if (!me.#loadTrackInternal()) {
             // probably needs revoke track URL
-            //loading.spawn();
-            //log(this.queue[this.queuePosition].title_link);
-            //var me = this;
-            //httpRequestGet(this.queue[this.queuePosition].title_link, function (response) {
-                //const aldata = parseAlbumData(response);
-                //me.queue[me.queuePosition].file["mp3-128"] = aldata.trackinfo[0].file["mp3-128"];
-                //Window.this.xcall("load_track", url);
-                //loading.destroy();
-            //});
+            loading.spawn();
+            httpRequestGet(this.queue[this.queuePosition].title_link, function (response) {
+                const aldata = parseAlbumData(response);
+                if (aldata) {
+                    const jsonRes = JSON.parse(aldata);
+                    me.queue[me.queuePosition].file["mp3-128"] = jsonRes.trackinfo[0].file["mp3-128"];
+                    me.#loadTrackInternal()
+                }
+                loading.destroy();
+            });
         }
     }
 
