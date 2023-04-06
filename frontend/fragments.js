@@ -41,5 +41,6 @@ function QueueContextMenu() {
         <li>Delete track</li>
         <li>Open track page in browser</li>
         <li>Copy track URL</li>
+        <li>Update queue URL's (use this if you encounter track loading errors)</li>
     </menu>;
 }

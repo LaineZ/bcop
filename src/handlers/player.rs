@@ -44,11 +44,13 @@ impl Player {
     fn switch_backend(&mut self, backend: i32) -> bool {
         match backend {
             0 => {
+                self.player.stop();
                 self.player = Box::new(InternalPlayer::new());
                 true
             },
             1 => {
                 if let Ok(bass) = BassPlayer::new() {
+                    self.player.stop();
                     self.player = Box::new(bass);
                     true
                 } else {
@@ -103,7 +105,7 @@ impl Player {
     fn restart_player_on_fault(&mut self) {
         if !self.player.is_initialized() {
             log::warn!("Restarting player thread");
-            self.player = Box::new(internal::InternalPlayer::new())
+            self.switch_backend(self.selected_audiosystem as i32);
         }
     }
 

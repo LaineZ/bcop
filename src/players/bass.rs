@@ -47,7 +47,7 @@ impl BassPlayer {
 
 impl Player for BassPlayer {
     fn is_initialized(&self) -> bool {
-        false
+        true
     }
 
     fn get_time(&self) -> Option<std::time::Duration> {

@@ -60,6 +60,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut frame = sciter::WindowBuilder::main_window()
         .with_rect(config.window_geometry.into())
+        .glassy()
         .create();
 
     frame

@@ -110,13 +110,23 @@ class Player {
         return Window.this.xcall("load_track", url);
     }
 
-    loadTrack() {
-        const useHttp = Window.this.xcall("request_http");
-        const url = this.queue[this.queuePosition].file["mp3-128"];
+    revokeAudioUrlForAll() {
+        var me = this;
 
-        if (useHttp) {
-            url.replace("https://", "http://");
-        }
+        me.queue.forEach(element => {
+            loading.spawn();
+            httpRequestGet(element.title_link, function (response) {
+                const aldata = parseAlbumData(response);
+                if (aldata) {
+                    const jsonRes = JSON.parse(aldata);
+                    element.file["mp3-128"] = jsonRes.trackinfo[0].file["mp3-128"];
+                }
+                loading.destroy();
+            });
+        });
+    }
+
+    loadTrack() {
         var me = this;
 
         if (!me.#loadTrackInternal()) {

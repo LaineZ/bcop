@@ -7,7 +7,7 @@ const tagSelector = document.getElementById("tags-select");
 
 loading.spawn();
 
-const genericModal = new Modal("generic-modal");
+//const genericModal = new Modal("generic-modal");
 const clearQueueModal = new Modal("clear-queue-modal");
 const optionsModal = new Modal("options-modal");
 const albumImportModal = new Modal("album-import-modal");
@@ -108,10 +108,8 @@ function debounce(func, wait, immediate) {
     };
 };
 
-genericModal.show();
-
 function closeModals() {
-    genericModal.hide();
+    //genericModal.hide();
     clearQueueModal.hide();
     optionsModal.hide();
     albumImportModal.hide();
@@ -218,6 +216,10 @@ $(window).on("click", "#discover-queue-menu", "li", function (e) {
     // copy url
     if (idx == 2) {
         setClipboard(player.queue[index].title_link);
+    }
+    // revoke track url
+    if (idx == 3) {
+        player.revokeAudioUrlForAll();
     }
 });
 
