@@ -5,7 +5,7 @@ use sciter::{dispatch_script_call, make_args, Value};
 use crate::players::{
     self,
     bass::BassPlayer,
-    internal::{self, InternalPlayer},
+    internal::InternalPlayer,
     AudioSystem,
 };
 

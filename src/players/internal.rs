@@ -1,12 +1,9 @@
-use std::error::Error;
 use std::io::Read;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::{
-    ops::Neg,
-};
+use std::ops::Neg;
 
 use anyhow::{anyhow, Context, Result};
 use minimp3::Decoder;
@@ -97,7 +94,7 @@ struct PlayerThread {
     sample_rate: u32,
 }
 
-fn load_track(url: &str) -> anyhow::Result<(Decoder<Box<dyn Read>>)> {
+fn load_track(url: &str) -> anyhow::Result<Decoder<Box<dyn Read>>> {
     let agent = ureq::builder()
         .timeout_connect(std::time::Duration::from_secs(5))
         .timeout_read(Duration::from_secs(1))

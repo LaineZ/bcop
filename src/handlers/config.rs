@@ -34,6 +34,8 @@ pub enum ArtworkThumbnailQuality {
     VeryLow = 22,
 }
 
+
+/// Converts integer value to enum
 macro_rules! set_enum {
     ($arr:expr, $idx:expr) => {
         match $arr.get($idx as usize) {
