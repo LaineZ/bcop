@@ -195,8 +195,7 @@ class Player {
             // load next track
             if (this.queue.length > this.queuePosition + 1) {
                 if (this.getTime() >= Math.floor(this.queue[this.queuePosition].duration)) {
-                    this.queuePosition += 1;
-                    this.loadTrack();
+                    this.next();
                 }
             }
         }

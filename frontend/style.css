@@ -503,7 +503,7 @@ popup.list {
 
 .album-card {
   width: 150dip;
-  height: 210dip;
+  height: 250dip;
   margin: 20dip;
   margin-bottom: 0;
   overflow: hidden;
@@ -579,7 +579,7 @@ popup.list {
 
 .album-description h3 {
   margin: 0;
-  height: 20dip;
+  max-height: 40dip;
   overflow: hidden;
 }
 
