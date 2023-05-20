@@ -2,6 +2,8 @@ let selectedTags = [];
 let player = new Player();
 let discover = new Discover();
 let loading = new LoadingIndicator();
+let console = new Console();
+
 let windowSize;
 const tagSelector = document.getElementById("tags-select");
 
@@ -406,6 +408,10 @@ $(document).keyup(function (e) {
         discover.clearDiscover();
     }
 
+    if (e.keyCode == keys.KEY_GRAVE) {
+        console.toggle();
+    }
+
     if (e.keyCode == keys.KEY_F) {
         albumImportModal.show();
     }
@@ -430,3 +436,5 @@ document.on("closerequest", function (evt) {
     }
     setGeometry();
 });
+
+console.print("BandcampOnlinePlayer loaded");
