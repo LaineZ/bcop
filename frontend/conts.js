@@ -23,13 +23,13 @@ const themes = {
         "fg3": "#3b4152",
     },
 
-    hopeless_pearl: {
-        "bg": "#eaf1ef",
-        "bg1": "#d8d8c6",
-        "bg2": "#c6c7b6",
-        "fg": "#887773",
-        "fg2": "#b0a59b",
-        "fg3": "#c4bead",
+    rust: {
+        "bg": "#230000",
+        "bg1": "#712f30",
+        "bg2": "#a54932",
+        "fg": "#ffe2c6",
+        "fg2": "#f0bb9c",
+        "fg3": "#e18866",
     },
 
     rainy_day: {

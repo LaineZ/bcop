@@ -227,8 +227,10 @@ class Player {
     addToQueue(url) {
         var me = this;
 
+        // find the artist page domain
         // ["https:","","thealgorithm.bandcamp.com","album","brute-force"]
         //              ^
+        //              index is 2
         const artistPage = url.split("/")[2];
 
         loading.spawn();
@@ -253,7 +255,7 @@ class Player {
     }
 
     removeTrackAt(index) {
-        if (index == this.queuePosition - 1) {
+        if (index == this.queuePosition) {
             this.stop();
         }
 
@@ -266,5 +268,9 @@ class Player {
         });
 
         this.queue.splice(index, 1);
+
+        if (index < this.queuePosition) {
+            this.queuePosition -= 1;
+        }
     }
 }

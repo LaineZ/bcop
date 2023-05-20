@@ -1,3 +1,7 @@
+/* * {
+  border: 1px solid red;
+} */
+
 @set my-v-scrollbar {
   .slider {
     border: 1dip solid var(--bg1);
@@ -422,12 +426,28 @@ popup.list {
 
 .option-tab {
   width: 100dip;
-  height: 100dip;
+  height: 99dip;
   background-size: cover;
   color: var(--fg);
   margin: 5dip;
   transform: scale(1.0, 1.0);
   transition: transform 0.2s, color 0.5s;
+}
+
+.option-tab.selected {
+  height: 100dip;
+}
+
+.option-tab-heading {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.5), var(--bg));
+  width: 100dip;
+  height: 100dip;
+  overflow: hidden;
+}
+
+.option-tab-heading h3 {
+  margin-left: 10dip;
+  margin-top: 70dip;
 }
 
 .option-tab:hover {
@@ -440,12 +460,7 @@ popup.list {
   color: var(--fg2);
   border: 2dip solid var(--fg);
   margin: 3dip;
-}
-
-.option-tab h3 {
-  padding-left: 5dip;
-  padding-top: 75dip;
-  margin: 0;
+  z-index: 5;
 }
 
 .option-tabs {
