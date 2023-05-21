@@ -1,7 +1,3 @@
-/* * {
-  border: 1px solid red;
-} */
-
 @set my-v-scrollbar {
   .slider {
     border: 1dip solid var(--bg1);
@@ -187,7 +183,7 @@ popup.list {
 
 #console.close {
   bottom: -100%;
-  transition: bottom 0.2s;
+  transition: bottom 0.3s;
 }
 
 #console {
@@ -195,14 +191,17 @@ popup.list {
   bottom: 10dip;
   width: 100%;
   height: 50%;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.5), var(--bg));
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.7), var(--bg));
   font-family: monospace;
   z-index: 9999;
-  transition: bottom 0.2s;
+  transition: bottom 0.3s;
 }
 
 #console > p {
-  margin-left: 50%;
+  height: 10dip;
+  width: 640dip;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #console > main {
@@ -488,7 +487,7 @@ popup.list {
   transition: transform 0.2s, color 0.5s;
 }
 
-.selected {
+.option-tab.selected {
   color: var(--fg2);
   border: 2dip solid var(--fg);
   margin: 3dip;
@@ -693,7 +692,6 @@ popup.list {
   position: fixed;
   left: 50%;
   width: auto;
-  z-index: 1;
   bottom: 20%;
   transform: translate(-50%);
   animation: sine-in-out 1000ms fade alternate;
