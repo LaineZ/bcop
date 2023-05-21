@@ -191,7 +191,7 @@ popup.list {
   bottom: 10dip;
   width: 100%;
   height: 50%;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.7), var(--bg));
+  background: linear-gradient(90deg, var(--bg1_gradient), var(--bg));
   font-family: monospace;
   z-index: 9999;
   transition: bottom 0.3s;

@@ -101,6 +101,14 @@ class Console {
                 $(element).find("*").css("border", "none");
             }
 
+            const clear = () => {
+                this.consoleContents.text("");
+            }
+
+            const qqq = () => {
+                Window.this.close();
+            }
+
             let result = eval(input);
 
             if (typeof (result) == "object") {

@@ -7,7 +7,7 @@ class Player {
     }
 
     /** Setups all required player callbacks and handlers. 
-     * Should be called after creation player instance */
+     * Should be called ONCE after creation player instance */
     setup() {
         var me = this;
 
