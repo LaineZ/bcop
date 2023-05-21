@@ -55,31 +55,35 @@ class Console {
     executeCommand(input) {
         try {
             let result = eval(input);
-            this.print(result);
+            if (typeof (result) == "object") {
+                this.print(JSON.stringify(result, null, 2));
+            } else {
+                this.print(result);
+            }
         } catch (error) {
             let command = input.split(" ");
             this.print("> " + input);
             this.#domCommand(command, "remove", () => {
                 $(this.selectedDomElement).remove();
             });
-    
+
             this.#domCommand(command, "text", () => {
                 $(this.selectedDomElement).text(command[1]);
             });
-    
+
             this.#domCommand(command, "disable", () => {
                 $(this.selectedDomElement).attr("disabled", true);
             });
-    
+
             this.#domCommand(command, "enable", () => {
                 $(this.selectedDomElement).attr("disabled", false);
             });
-    
+
             this.#domCommand(command, "box", () => {
                 $(this.selectedDomElement).css("border", "1px solid red");
                 $(this.selectedDomElement).find("*").css("border", "1px solid red");
             });
-    
+
             this.#domCommand(command, "rbox", () => {
                 $(this.selectedDomElement).css("border", "none");
                 $(this.selectedDomElement).find("*").css("border", "none");
@@ -110,6 +114,6 @@ class Console {
     }
 
     print(...any) {
-        this.consoleContents.append(`<p>${any}</p>`);
+        this.consoleContents.append(`${any}<br>`);
     }
 }

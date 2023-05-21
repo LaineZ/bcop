@@ -37,19 +37,16 @@ function setSettings() {
     Window.this.xcall("set_settings", settings);
 }
 
-function setImage(art_id, image) {
+
+function genUrlImage(art_id) {
     const quality = Window.this.xcall("get_load_artworks");
     const http = Window.this.xcall("artwork_http");
 
-    if (!http) {
-        Window.this.xcall("set_image",
-            "https://f4.bcbits.com/img/a" + art_id + "_" + quality + ".jpg",
-            image);
-    } else {
-        Window.this.xcall("set_image",
-            "http://f4.bcbits.com/img/a" + art_id + "_" + quality + ".jpg",
-            image);
-    }
+    return `${(http ? "http" : "https")}://f4.bcbits.com/img/a${art_id}_${quality}.jpg`;
+}
+
+function setImage(art_id, image) {
+    Window.this.xcall("set_image", genUrlImage(art_id), image);
 }
 
 function parseAlbumData(html) {

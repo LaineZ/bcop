@@ -18,6 +18,12 @@ class Player {
             } else {
                 $('#queue-select')[0].classList.remove("closed");
                 $('#track-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
+
+                Window.this.xcall("update_metadata", 
+                me.queue[me.queuePosition].title,  
+                "",
+                me.queue[me.queuePosition].artist,
+                genUrlImage(me.queue[me.queuePosition].art_id));
             }
 
             $('#controls').each(function () {
