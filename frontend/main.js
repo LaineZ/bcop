@@ -436,5 +436,3 @@ document.on("closerequest", function (evt) {
     }
     setGeometry();
 });
-
-console.print("BandcampOnlinePlayer loaded");

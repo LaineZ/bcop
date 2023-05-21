@@ -7,6 +7,8 @@ const keys = {
     F6: 295,
     ESCAPE: 256,
     ENTER: 257,
+    UPARROW: 265,
+    DOWNARROW: 264,
 }
 
 const player_backends = {

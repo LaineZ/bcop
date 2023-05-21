@@ -198,10 +198,9 @@ popup.list {
 }
 
 #console > p {
-  height: 10dip;
-  width: 640dip;
-  margin-left: auto;
-  margin-right: auto;
+  height: 16dip;
+  width: 100%;
+  text-align: center;
 }
 
 #console > main {
