@@ -147,4 +147,22 @@ impl Player for BassPlayer {
                 });
         }
     }
+
+    fn get_samples(&mut self) -> Vec<f32> {
+
+        let mut vc = vec![];
+        if let Some(stream) = &self.stream_channel {
+            match stream.channel.get_data(bass_rs::prelude::DataType::FFT4096, 4096) {
+                Ok(v) => {
+                    //log::debug!("{:?}", v);
+                    vc = v;
+                },
+                Err(value) => {
+                    log::warn!("Unable to get info: {}", value);
+                },
+            }
+        }
+
+        vc
+    }
 }

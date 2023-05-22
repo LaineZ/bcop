@@ -3,6 +3,7 @@ let player = new Player();
 let discover = new Discover();
 let loading = new LoadingIndicator();
 let console = new Console();
+let visualizer = new Visualizer(300, 64);
 
 let windowSize;
 const tagSelector = document.getElementById("tags-select");
@@ -14,6 +15,11 @@ const clearQueueModal = new Modal("clear-queue-modal");
 const optionsModal = new Modal("options-modal");
 const albumImportModal = new Modal("album-import-modal");
 const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
+
+
+function update() {
+    visualizer.update();
+}
 
 optionsModal.modalWindow.addEventListener("closed", (_) => {
     setSettings();

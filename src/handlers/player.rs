@@ -1,7 +1,7 @@
 use std::{sync::mpsc, time::Duration};
 
 use raw_window_handle::Win32WindowHandle;
-use sciter::{dispatch_script_call, make_args, Element, Value};
+use sciter::{dispatch_script_call, make_args, Element, Value, value::VALUE_TYPE};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 
 use crate::players::{self, bass::BassPlayer, internal::InternalPlayer, AudioSystem};
@@ -175,6 +175,16 @@ impl Player {
     fn force_update(&self) {
         self.event.call(None, &make_args!(""), None).unwrap();
     }
+
+    fn get_samples(&mut self) -> Value {
+        let mut value = Value::new();
+
+        for sample in self.player.get_samples() {
+            value.push(sample as f64);
+        }
+
+        value
+    }
 }
 
 impl sciter::EventHandler for Player {
@@ -193,18 +203,21 @@ impl sciter::EventHandler for Player {
         fn force_update();
         fn restart_player_on_fault();
         fn update_metadata(String, String, String, String);
+        fn get_samples();
     }
 
     fn on_event(
         &mut self,
         root: sciter::HELEMENT,
-        source: sciter::HELEMENT,
-        target: sciter::HELEMENT,
-        code: sciter::dom::event::BEHAVIOR_EVENTS,
-        phase: sciter::dom::event::PHASE_MASK,
-        reason: sciter::dom::EventReason,
+        _source: sciter::HELEMENT,
+        _target: sciter::HELEMENT,
+        _code: sciter::dom::event::BEHAVIOR_EVENTS,
+        _phase: sciter::dom::event::PHASE_MASK,
+        _reason: sciter::dom::EventReason,
     ) -> bool {
-        let mut event = self.rx.try_recv();
+        let event = self.rx.try_recv();
+        let root = Element::from(root);
+
 
         if let Ok(event) = event {
             match event {
@@ -212,11 +225,13 @@ impl sciter::EventHandler for Player {
                 MediaControlEvent::Play => self.set_paused(false),
                 MediaControlEvent::Pause => self.set_paused(true),
                 MediaControlEvent::Stop => self.stop(),
-                MediaControlEvent::SeekBy(direction, duration) => self.player.seek(duration),
+                MediaControlEvent::SeekBy(_, duration) => self.player.seek(duration),
                 _ => (),
             }
         }
 
+        root.call_function("update", &make_args!(""))
+        .unwrap();
         false
     }
 

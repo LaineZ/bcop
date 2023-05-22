@@ -1,21 +1,24 @@
 use std::io::Read;
+use std::ops::Neg;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::ops::Neg;
 
 use anyhow::{anyhow, Context, Result};
 use minimp3::Decoder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BufferSize, ChannelCount, Sample, SampleFormat, SampleRate, Stream, StreamConfig};
+use rustfft::num_complex::Complex;
+use rustfft::FftPlanner;
 use samplerate::{convert, ConverterType};
 
 use super::Player;
 
 #[derive(Debug)]
 pub enum Command {
+    GetSamples,
     GetTime,
     SwitchTrack(String),
     Play,
@@ -25,7 +28,6 @@ pub enum Command {
     SeekBackwards(Duration),
     AddVolume(u16),
 }
-
 
 struct TimeTracker {
     started_at: Instant,
@@ -71,7 +73,6 @@ impl TimeTracker {
     }
 }
 
-
 fn time_to_samples(time: Duration, rate: SampleRate, channels: ChannelCount) -> usize {
     (time.as_secs_f64() * (rate.0 as f64) * (channels as f64)) as usize
 }
@@ -86,6 +87,7 @@ struct Buffer {
 struct PlayerThread {
     cmd_rx: Receiver<Command>,
     time_tx: Sender<Option<Duration>>,
+    samples_tx: Sender<Vec<f32>>,
     buffer: Arc<Buffer>,
     decoder: Option<Decoder<Box<dyn Read>>>,
     stream: Stream,
@@ -105,7 +107,11 @@ fn load_track(url: &str) -> anyhow::Result<Decoder<Box<dyn Read>>> {
 }
 
 impl PlayerThread {
-    fn new(cmd_rx: Receiver<Command>, time_tx: Sender<Option<Duration>>) -> Result<Self> {
+    fn new(
+        cmd_rx: Receiver<Command>,
+        time_tx: Sender<Option<Duration>>,
+        samples_tx: Sender<Vec<f32>>,
+    ) -> Result<Self> {
         log::info!("Starting player thread");
 
         let host = cpal::default_host();
@@ -232,6 +238,7 @@ impl PlayerThread {
         Ok(Self {
             cmd_rx,
             time_tx,
+            samples_tx,
             buffer,
             decoder: None,
             stream,
@@ -423,16 +430,26 @@ impl PlayerThread {
                         self.time_tx.send(None)?;
                     }
                 }
+                Command::GetSamples => {
+                    let smp = self.buffer.frames.lock().unwrap();
+                    let mut smp_frame = vec![];
+                    if smp.len() > 0 {
+                        for sample in &smp[0] {
+                            smp_frame.push(*sample as f32 / 32768.0 * 1.0);
+                        }
+                        self.samples_tx.send(smp_frame)?;
+                    }
+                }
             }
         }
     }
 }
 
-
 /// Internal player backend
 pub struct InternalPlayer {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
+    samples_rx: Receiver<Vec<f32>>,
     is_paused: bool,
     volume: u16,
     last_error: Arc<Mutex<Option<anyhow::Error>>>,
@@ -497,12 +514,8 @@ impl Player for InternalPlayer {
         let err = lock.take();
 
         match err {
-            Some(err) => {
-                return Err(anyhow!(err))
-            },
-            None => {
-                return Ok(())
-            },
+            Some(err) => return Err(anyhow!(err)),
+            None => return Ok(()),
         }
     }
 
@@ -517,12 +530,51 @@ impl Player for InternalPlayer {
             self.seek_forward(Duration::from_secs(seek_secs.neg() as u64));
         }
     }
+
+    fn get_samples(&mut self) -> Vec<f32> {
+        let res = self
+            .cmd_tx
+            .send(Command::GetSamples)
+            .ok()
+            .and_then(|_| self.samples_rx.recv_timeout(Duration::from_millis(10)).ok());
+        if let Some(r) = res {
+            let mut planner = FftPlanner::new();
+            let fft = planner.plan_fft(r.len(), rustfft::FftDirection::Forward);
+
+            let window: Vec<f32> = (0..r.len())
+                .map(|i| {
+                    0.54 - 0.46
+                        * (2.0 * std::f32::consts::PI * i as f32 / (r.len() - 1) as f32).cos()
+                })
+                .collect();
+
+            let mut input: Vec<Complex<f32>> = r
+                .iter()
+                .zip(window.iter())
+                .map(|(sample, window_value)| Complex::new(*sample * window_value, 0.0))
+                .collect();
+
+            fft.process(&mut input);
+
+            input
+                .iter()
+                .map(|f| f.re)
+                .map(|f| f.abs())
+                .map(|f| f.max(0.0))
+                .map(|f| f * 0.1)
+                .collect()
+        } else {
+            //log::warn!("Can't get time: thread recieve timeout");
+            vec![]
+        }
+    }
 }
 
 impl InternalPlayer {
     pub fn new() -> InternalPlayer {
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let (time_tx, time_rx) = mpsc::channel();
+        let (samples_tx, samples_rx) = mpsc::channel();
 
         let error = Arc::new(Mutex::new(None));
 
@@ -530,7 +582,8 @@ impl InternalPlayer {
         std::thread::Builder::new()
             .name("player".into())
             .spawn(move || {
-                if let Err(e) = PlayerThread::new(cmd_rx, time_tx).and_then(|v| v.run()) {
+                if let Err(e) = PlayerThread::new(cmd_rx, time_tx, samples_tx).and_then(|v| v.run())
+                {
                     let mut err = error_clone.lock().unwrap();
                     *err = Some(e);
                 }
@@ -540,6 +593,7 @@ impl InternalPlayer {
         InternalPlayer {
             cmd_tx,
             time_rx,
+            samples_rx,
             is_paused: false,
             volume: 100,
             last_error: error,
