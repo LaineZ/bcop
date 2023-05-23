@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Cursor};
 use std::ops::Neg;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
@@ -90,20 +90,23 @@ struct PlayerThread {
     samples_tx: Sender<Vec<f32>>,
     buffer: Arc<Buffer>,
     decoder: Option<Decoder<Box<dyn Read>>>,
+    url_data: Vec<u8>,
     stream: Stream,
     tracker: TimeTracker,
     is_playing: bool,
     sample_rate: u32,
 }
 
-fn load_track(url: &str) -> anyhow::Result<Decoder<Box<dyn Read>>> {
+fn get_bytes(url: &str) -> anyhow::Result<Vec<u8>> {
     let agent = ureq::builder()
         .timeout_connect(std::time::Duration::from_secs(5))
         .timeout_read(Duration::from_secs(1))
         .build();
     let reader = agent.get(url).call()?;
+    let mut buffer = vec![];
+    reader.into_reader().read_to_end(&mut buffer)?;
 
-    Ok(Decoder::new(Box::new(reader.into_reader())))
+    Ok(buffer)
 }
 
 impl PlayerThread {
@@ -241,6 +244,7 @@ impl PlayerThread {
             samples_tx,
             buffer,
             decoder: None,
+            url_data: Vec::new(),
             stream,
             tracker: TimeTracker::new(),
             is_playing: true,
@@ -308,14 +312,14 @@ impl PlayerThread {
     }
 
     fn reset(&mut self) {
+        self.tracker.reset();
+        self.is_playing = false;
         self.decoder = None;
         if let Ok(mut frames) = self.buffer.frames.lock() {
             frames.clear();
         }
         self.buffer.submitted_samples.store(0, Ordering::SeqCst);
         self.buffer.remaining_samples.store(0, Ordering::SeqCst);
-        self.tracker.reset();
-        self.is_playing = false;
     }
 
     fn run(mut self) -> Result<()> {
@@ -371,7 +375,11 @@ impl PlayerThread {
                 Command::SwitchTrack(url) => {
                     log::info!("Loading track...");
                     self.reset();
-                    self.decoder = Some(load_track(&url)?);
+
+                    let rsp = get_bytes(&url)?;
+                    self.url_data = rsp;
+
+                    self.decoder = Some(Decoder::new(Box::new(Cursor::new(self.url_data.clone()))));
                     self.is_playing = true;
                     cur_url = Some(url);
 
@@ -400,7 +408,8 @@ impl PlayerThread {
                     }
 
                     self.reset();
-                    self.decoder = Some(load_track(cur_url.as_ref().unwrap())?);
+                    let data = self.url_data.clone();
+                    self.decoder = Some(Decoder::new(Box::new(Cursor::new(data))));
                     self.is_playing = true;
 
                     self.tracker.seek_forward(time);
