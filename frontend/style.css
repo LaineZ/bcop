@@ -274,7 +274,7 @@ popup.list {
   padding-left: 8dip;
 }
 
-#welcome-message {
+.welcome-message-container {
   width: 300dip;
   height: 50dip;
   position: absolute;
@@ -284,6 +284,46 @@ popup.list {
   color: var(--fg3);
   text-align: center;
   z-index: -1;
+}
+
+.now-playing-container {
+  margin-top: 10%;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 80%;
+  flow: horizontal;
+  color: var(--fg3);
+  z-index: -1;
+}
+
+.now-playing-container > .track-info {
+  margin-left: 100dip;
+  color: var(--fg);
+}
+
+.now-playing-container h1 {
+  font-size: 64dip;
+  margin: 0;
+  padding: 0;
+}
+
+.now-playing-container h2 {
+  font-size: 56dip;
+  margin: 0;
+  padding: 0;
+  color: var(--fg2);
+}
+
+.now-playing-container img {
+  transform: scale(1, 1);
+  transition: transform 50ms;
+  height: 50%;
+  box-shadow: 0dip 0dip 50dip #00000093;
+}
+
+.now-playing-container canvas {
+  width: 100%;
+  min-height: 200dip;
 }
 
 #controls {
@@ -308,7 +348,7 @@ popup.list {
   flow: horizontal;
 }
 
-#track-name {
+#track-info-name {
   text-overflow: ellipsis;
   width: 1*;
   font-weight: bold;
@@ -659,6 +699,11 @@ popup.list {
 }
 
 .welcome-message h1 {
+  margin: 0;
+  padding: 0;
+}
+
+.welcome-message h2 {
   margin: 0;
   padding: 0;
 }

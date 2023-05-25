@@ -16,13 +16,18 @@ class Player {
                 $('#queue-select')[0].classList.add("closed");
                 $('#track-name').text("");
             } else {
-                $('#track-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
+                $('#track-name').text(me.queue[me.queuePosition].title);
+                $("#artist-name").text(me.queue[me.queuePosition].artist);
 
-                Window.this.xcall("update_metadata", 
-                me.queue[me.queuePosition].title,  
-                "",
-                me.queue[me.queuePosition].artist,
-                genUrlImage(me.queue[me.queuePosition].art_id));
+                $('#track-info-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
+
+                setImage(me.queue[me.queuePosition].art_id, $("#now-playing-img")[0], 5);
+
+                Window.this.xcall("update_metadata",
+                    me.queue[me.queuePosition].title,
+                    "",
+                    me.queue[me.queuePosition].artist,
+                    genUrlImage(me.queue[me.queuePosition].art_id));
             }
 
             $('#controls').each(function () {

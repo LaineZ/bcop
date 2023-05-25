@@ -38,15 +38,15 @@ function setSettings() {
 }
 
 
-function genUrlImage(art_id) {
-    const quality = Window.this.xcall("get_load_artworks");
+function genUrlImage(art_id, q) {
+    const quality = q != undefined ? q : Window.this.xcall("get_load_artworks");
     const http = Window.this.xcall("artwork_http");
 
     return `${(http ? "http" : "https")}://f4.bcbits.com/img/a${art_id}_${quality}.jpg`;
 }
 
-function setImage(art_id, image) {
-    Window.this.xcall("set_image", genUrlImage(art_id), image);
+function setImage(art_id, image, q) {
+    Window.this.xcall("set_image", genUrlImage(art_id, q), image);
 }
 
 function parseAlbumData(html) {

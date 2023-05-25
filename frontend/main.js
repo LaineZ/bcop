@@ -3,7 +3,7 @@ let player = new Player();
 let loading = new LoadingIndicator();
 let console = new Console();
 
-//let visualizer = new Visualizer(300, 64);
+let visualizer = new Visualizer(300, 64);
 
 let windowSize;
 

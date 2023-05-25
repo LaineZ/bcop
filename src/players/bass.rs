@@ -153,8 +153,9 @@ impl Player for BassPlayer {
         let mut vc = vec![];
         if let Some(stream) = &self.stream_channel {
             match stream.channel.get_data(bass_rs::prelude::DataType::FFT4096, 4096) {
-                Ok(v) => {
+                Ok(mut v) => {
                     //log::debug!("{:?}", v);
+                    v.sort_by(|a, b| b.partial_cmp(a).unwrap());
                     vc = v;
                 },
                 Err(value) => {
