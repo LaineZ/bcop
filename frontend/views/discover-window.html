@@ -5,15 +5,6 @@
     <div id="discover-view">
         <input type="text" id="discover-heading" title="Enter discover tags here, separated by spaces"></input>
         <div class="album-selector" id="albums-select">
-            <div class="welcome-message">
-                <div id="welcome-message">
-                    <h1>BandcampOnlinePlayer</h1>
-                    <p><strong>S</strong> to enter discover tags</p>
-                    <p><strong>F</strong> to search</p>
-
-                    <canvas></canvas>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -21,6 +12,7 @@
 <script src="classes/discover.js"></script>
 <script>
     let discover = new Discover();
+    const tagSelector = document.getElementById("tags-select");
 
     function extendDiscoverFromUI() {
         let interval = setInterval(() => {
@@ -35,6 +27,13 @@
             }
         }, 500);
     }
+
+    getTags(function (done) {
+        done.split("\n").forEach(element => {
+            tagSelector.innerHTML += `<option class="tag">${element}</option>`
+        });
+        loading.destroy();
+    });
 
     $(tagSelector).on("click", function () {
         discover.clearDiscover();

@@ -2,17 +2,28 @@ let selectedTags = [];
 let player = new Player();
 let loading = new LoadingIndicator();
 let console = new Console();
+
 //let visualizer = new Visualizer(300, 64);
 
 let windowSize;
-const tagSelector = document.getElementById("tags-select");
 
 loading.spawn();
 
 //const genericModal = new Modal("generic-modal");
+
+// MODALS
 const clearQueueModal = new Modal("clear-queue-modal");
 const optionsModal = new Modal("options-modal");
 const albumImportModal = new Modal("album-import-modal");
+
+// VIEWS
+const homeView = new View("home-window", "home");
+const discoverView = new View("discover-window", "discover");
+const nowPlayingView = new View("now-playing-window", "now-playing");
+
+homeView.show();
+
+
 const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
 
 
@@ -34,15 +45,6 @@ albumImportModal.modalWindow.addEventListener("open", (_) => {
         searchRequest();
     }
 });
-
-
-getTags(function (done) {
-    done.split("\n").forEach(element => {
-        tagSelector.innerHTML += `<option class="tag">${element}</option>`
-    });
-    loading.destroy();
-});
-
 
 window.addEventListener('load', function () {
     player.setup();
@@ -120,6 +122,12 @@ function closeModals() {
     clearQueueModal.hide();
     optionsModal.hide();
     albumImportModal.hide();
+}
+
+function closeViews() {
+    homeView.hide();
+    discoverView.hide();
+    nowPlayingView.hide();
 }
 
 // HANDLERS
@@ -224,8 +232,8 @@ $('#settings').on('click', function () {
     optionsModal.show();
 });
 
-$('#tags-toggle').on('click', function () {
-    const tags = document.getElementById("tags-select");
+$('#player-queue-toggle').on('click', function () {
+    const tags = document.getElementById("queue-select");
     if (tags.classList.contains("closed")) {
         tags.classList.remove("closed");
     } else {
@@ -236,6 +244,23 @@ $('#tags-toggle').on('click', function () {
 $('#album-import').on('click', function () {
     albumImportModal.show();
 });
+
+$('#home').on('click', function () {
+    closeViews();
+    homeView.show();
+});
+
+$('#discover').on('click', function () {
+    closeViews();
+    discoverView.show();
+});
+
+$('#now-playing').on('click', function () {
+    closeViews();
+    nowPlayingView.show();
+});
+
+
 
 $('#theme').on('change', function () {
     setTheme(this.value);

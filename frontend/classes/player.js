@@ -16,7 +16,6 @@ class Player {
                 $('#queue-select')[0].classList.add("closed");
                 $('#track-name').text("");
             } else {
-                $('#queue-select')[0].classList.remove("closed");
                 $('#track-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
 
                 Window.this.xcall("update_metadata", 

@@ -67,6 +67,19 @@
   }
 }
 
+@keyframes view-change {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+}
+
+
 html {
   min-width: 640dip;
   min-height: 480dip;
@@ -330,7 +343,7 @@ popup.list {
   margin-left: 10dip;
   flow: vertical;
   border-right: 1dip solid var(--bg1);
-  width: 1.9*;
+  width: 1*;
   height: "*";
   overflow-y: hidden;
 }
@@ -346,11 +359,16 @@ popup.list {
 }
 
 #queue-select {
+  position: absolute;
+  right: 0%;
+  box-shadow: 0dip 0dip 50dip #00000093;
+  background-color: var(--bg1);
   flow: vertical;
   width: 20%;
   height: "*";
   overflow-y: scroll;
   transition: width 300ms;
+  z-index: 5;
 }
 
 #queue-select.closed {
@@ -447,6 +465,10 @@ popup.list {
   display: block;
   width: 32dip;
   height: 32dip;
+}
+
+.slide-animation {
+  animation: ease 200ms view-change;
 }
 
 .album-selector {
@@ -574,7 +596,7 @@ popup.list {
 .track-card {
   width: "*";
   height: 64dip;
-  padding: 2dip;
+  padding: 8dip;
   flow: horizontal;
   background: var(--bg1);
   transition: background 300ms;
@@ -656,6 +678,9 @@ popup.list {
 }
 
 .lists-window {
+  width: *1.0;
+  translate: scale(1, 1);
+  opacity: 1;
   flow: horizontal;
   height: "*";
 }
@@ -665,12 +690,18 @@ popup.list {
   height: 16dip;
   padding: 5px;
   color: var(--fg);
-  transition: color ease 0.5s;
+  background-color: none;
+  transition: color ease 0.3s, background-color ease 0.2s;
+}
+
+.image-button.selected {
+  background-color: var(--bg) !important;
+  transition: color ease 0.3s, background-color ease 0.2s;
 }
 
 .image-button:hover {
   color: var(--fg2);
-  transition: color ease 0.5s;
+  transition: color ease 0.3s, background-color ease 0.2s;
 }
 
 .image-button:disabled {

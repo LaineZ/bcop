@@ -4,10 +4,6 @@ class Modal {
         this.modalWindow = document.getElementById(id);
     }
 
-    setHandler(handle) {
-        this.closeHandler = handle;
-    }
-
     show() {
         this.modalDim.classList.add("active");
         this.modalWindow.style.display = "block";

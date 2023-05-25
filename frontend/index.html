@@ -15,10 +15,10 @@
     <script src="classes/modal.js"></script>
     <script src="classes/console.js"></script>
     <script src="classes/visualizer.js"></script>
+    <script src="classes/view.js"></script>
     <script src="fragments.js"></script>
     <script src="event_dispatcher.js"></script>
     <script src="conts.js"></script>
-    <script src="main.js"></script>
 
     <div id="modal-dim" class="modal">
         <div id="generic-modal" class="modal-content">
@@ -42,9 +42,7 @@
             <div>
                 <input type="text" id="album-url-input" placeholder="Enter album or track URL, or search term...">
             </div>
-            <div id="search-results">
-
-            </div>
+            <div id="search-results"></div>
         </div>
 
         <div class="modal-content" id="options-modal">
@@ -128,11 +126,15 @@
     <div class="main-window">
         <div class="lists-window">
             <div id="menu">
-                <img src="icons/tags.svg" class="image-button" id="tags-toggle" title="Toggle tags">
+                <img src="icons/home.svg" class="image-button" id="home" title="Home">
+                <img src="icons/loading.svg" class="image-button" id="now-playing" title="Now playing">
+                <img src="icons/tags.svg" class="image-button" id="discover" title="Discover by tags">
                 <img src="icons/cog.svg" class="image-button" id="settings" title="Settings">
                 <img src="icons/search.svg" class="image-button" id="album-import" title="Search">
             </div>
+            <include src="views/home-window.html"></include>
             <include src="views/discover-window.html"></include>
+            <include src="views/now-playing-window.html"></include>
             <div id="queue-select">
             </div>
         </div>
@@ -143,6 +145,7 @@
                 <img src="icons/fast-forward.svg" class="image-button" id="forward" title="Next">
                 <img src="icons/stop.svg" class="image-button" id="stop" title="Stop">
                 <img src="icons/remove.svg" id="clear-queue" class="image-button" title="Clear player queue">
+                <img src="icons/bars.svg" class="image-button" id="player-queue-toggle" title="Toggle player queue view">
             </div>
             <div id="trackbar">
                 <input id="seekbar" type="hslider" min="0" max="100">
@@ -161,6 +164,8 @@
         </main>
         <input id="console-input" type="text">
     </div>
+
+    <script src="main.js"></script>
 </body>
 
 </html>
