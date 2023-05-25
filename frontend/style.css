@@ -119,6 +119,7 @@ input[type=hslider] {
   height: 16dip;
   background: var(--bg1);
   padding: 0;
+  transition: background-size 0.1s;
   display: block;
 }
 
@@ -130,6 +131,7 @@ input[type=hslider] {
   background-image: url(stock:block);
   background-repeat: no-repeat;
   background-size: length(slider-position) 100%;
+  transition: background-size 0.1s;
   fill: var(--fg);
   stroke-width: 0;
   padding: 0;
@@ -254,6 +256,11 @@ popup.list {
   transition: width 300ms;
 }
 
+#tags-select option {
+  padding: 3dip;
+  padding-left: 8dip;
+}
+
 #welcome-message {
   width: 300dip;
   height: 50dip;
@@ -264,11 +271,6 @@ popup.list {
   color: var(--fg3);
   text-align: center;
   z-index: -1;
-}
-
-#tags-select option {
-  padding: 3dip;
-  padding-left: 8dip;
 }
 
 #controls {
@@ -324,7 +326,7 @@ popup.list {
   color: var(--fg2);
 }
 
-#discover-window {
+#discover-view {
   margin-left: 10dip;
   flow: vertical;
   border-right: 1dip solid var(--bg1);
@@ -345,7 +347,7 @@ popup.list {
 
 #queue-select {
   flow: vertical;
-  max-width: 20%;
+  width: 20%;
   height: "*";
   overflow-y: scroll;
   transition: width 300ms;

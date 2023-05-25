@@ -11,7 +11,6 @@
 
 <body>
     <script src="classes/player.js"></script>
-    <script src="classes/discover.js"></script>
     <script src="classes/indicator.js"></script>
     <script src="classes/modal.js"></script>
     <script src="classes/console.js"></script>
@@ -20,9 +19,8 @@
     <script src="event_dispatcher.js"></script>
     <script src="conts.js"></script>
     <script src="main.js"></script>
-    
-    <div id="modal-dim" class="modal">
 
+    <div id="modal-dim" class="modal">
         <div id="generic-modal" class="modal-content">
             <p></p>
             <button class="no">
@@ -65,7 +63,7 @@
                     <div class="option-tab" id="options-about">
                         <div class="option-tab-heading">
                             <h3>about</h3>
-                        </div>    
+                        </div>
                     </div>
                 </div>
 
@@ -88,7 +86,8 @@
                         <option value="rainy_day">Rainy Day (Light)</option>
                         <option value="infinity">Infinity (Light)</option>
                     </select>
-                    <p><input type="checkbox" id="save-queue-on-exit" title="Saving queued tracks and queue position"> Save queue on exit</p>
+                    <p><input type="checkbox" id="save-queue-on-exit" title="Saving queued tracks and queue position">
+                        Save queue on exit</p>
                 </div>
 
                 <div id="audio" class="option-selection hidden">
@@ -113,7 +112,8 @@
                     </ul>
                     <p>This Application uses Sciter Engine <a href="" id="sciter-link">https://sciter.com</a> © Terra
                         Informatica Software, Inc.</p>
-                    <p>This Application uses BASS Audio Library - Ian Luck, <a href="" id="bass-link">http://www.un4seen.com</a></p>
+                    <p>This Application uses BASS Audio Library - Ian Luck, <a href=""
+                            id="bass-link">http://www.un4seen.com</a></p>
                 </div>
                 <img class="image-button" id="close-settings" src="icons/remove.svg">
             </div>
@@ -132,24 +132,7 @@
                 <img src="icons/cog.svg" class="image-button" id="settings" title="Settings">
                 <img src="icons/search.svg" class="image-button" id="album-import" title="Search">
             </div>
-            <select size="5" id="tags-select">
-            </select>
-            <div id="discover-window">
-                <input type="text" id="discover-heading" title="Enter discover tags here, separated by spaces"></input>
-                <div class="album-selector" id="albums-select">
-                    <div class="welcome-message">
-                        <div id="welcome-message">
-                            <h1>BandcampOnlinePlayer</h1>
-                            <p><strong>S</strong> to enter discover tags</p>
-                            <p><strong>F</strong> to search</p>
-
-                            <canvas>
-                                
-                            </canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <include src="views/discover-window.html"></include>
             <div id="queue-select">
             </div>
         </div>

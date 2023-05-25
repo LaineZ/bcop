@@ -72,7 +72,7 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::player::Player::new(audio_system));
 
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
-    frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;;
+    frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;
 
     if cfg!(debug_assertions) {
         let dir = std::env::current_dir()?.join("frontend");

@@ -1,9 +1,8 @@
 let selectedTags = [];
 let player = new Player();
-let discover = new Discover();
 let loading = new LoadingIndicator();
 let console = new Console();
-let visualizer = new Visualizer(300, 64);
+//let visualizer = new Visualizer(300, 64);
 
 let windowSize;
 const tagSelector = document.getElementById("tags-select");
@@ -123,20 +122,6 @@ function closeModals() {
     albumImportModal.hide();
 }
 
-function extendDiscoverFromUI() {
-    let interval = setInterval(() => {
-        const newScrollHeight = $("#albums-select").prop("scrollHeight");
-        const clientHeight = $("#albums-select").height();
-
-        logDebug(clientHeight + " " + newScrollHeight);
-        discover.extend(selectedTags);
-
-        if (newScrollHeight > clientHeight) {
-            clearInterval(interval);
-        }
-    }, 500);
-}
-
 // HANDLERS
 
 $(".no").on("click", function () {
@@ -146,18 +131,6 @@ $(".no").on("click", function () {
 $("#clear-queue-yes").on("click", function () {
     player.clearQueue();
     closeModals();
-});
-
-$(tagSelector).on("click", function () {
-    discover.clearDiscover();
-    selectedTags = [$(this).val()];
-    $('#discover-heading').text(selectedTags);
-    extendDiscoverFromUI();
-});
-
-$("#albums-select").on("click", ".album-card", function () {
-    var idx = $(this).index();
-    player.addToQueue(discover.discover[idx]);
 });
 
 $("#search-results").on("click", ".track-card", function () {
@@ -172,41 +145,6 @@ document.on("click", function (evt) {
         return true;
     }
     return false;
-});
-
-document.on("contextmenu", function (evt) {
-    // handle discover context menu
-    if (evt.target.className == "album-card" || evt.target.parentElement.className == "album-card") {
-        evt.source = Element.create(<DiscoverContextMenu />);
-        return true;
-    }
-
-    if (evt.target.className.includes("track-card") || evt.target.parentElement.className.includes("track-card")) {
-        evt.source = Element.create(<QueueContextMenu />);
-        return true;
-    }
-
-    return false;
-});
-
-// workaround for context menus
-$(window).on("click", "#discover-context-menu", "li", function (e) {
-    const idx = $(e.target).index();
-
-    // add to queue
-    if (idx == 0) {
-        const index = $(e.source.parentElement).index();
-        player.addToQueue(discover.discover[index]);
-    }
-    // open in browser
-    if (idx == 1) {
-        const index = $(e.source.parentElement).index();
-        openInBrowser(discover.discover[index]);
-    }
-    // copy url
-    if (idx == 2) {
-        setClipboard(discover.discover[index]);
-    }
 });
 
 $(window).on("click", "#discover-queue-menu", "li", function (e) {
@@ -373,26 +311,8 @@ $(".option-tab").click(function () {
     });
 });
 
-$('#albums-select').scroll(function () {
-    const scrollHeight = $('#albums-select').prop('scrollHeight');
-    const scrollTop = $('#albums-select').prop('scrollTop');
-    const clientHeight = $('#albums-select').height();
-
-    if (Math.abs(scrollHeight - clientHeight - scrollTop) < 1) {
-        discover.extend(selectedTags)
-    }
-});
-
 $('#volume').on('input', function (e) {
     player.setVolume($(this).val());
-});
-
-$('#discover-heading').keyup(function (e) {
-    if (e.keyCode == keys.ENTER) {
-        discover.clearDiscover();
-        selectedTags = $(this).val().split(" ");
-        extendDiscoverFromUI();
-    }
 });
 
 $(document).keyup(function (e) {
@@ -402,16 +322,8 @@ $(document).keyup(function (e) {
         return;
     }
 
-    if (e.keyCode == keys.KEY_S) {
-        $("#discover-heading")[0].focus();
-    }
-
     if (debugMode && e.keyCode == keys.F5) {
         Window.this.load(location.href);
-    }
-
-    if (e.keyCode == keys.KEY_C) {
-        discover.clearDiscover();
     }
 
     if (e.keyCode == keys.KEY_GRAVE) {

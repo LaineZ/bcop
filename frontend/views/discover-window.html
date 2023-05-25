@@ -1,0 +1,116 @@
+<div id="discover-window" class="lists-window">
+    <select size="5" id="tags-select">
+    </select>
+
+    <div id="discover-view">
+        <input type="text" id="discover-heading" title="Enter discover tags here, separated by spaces"></input>
+        <div class="album-selector" id="albums-select">
+            <div class="welcome-message">
+                <div id="welcome-message">
+                    <h1>BandcampOnlinePlayer</h1>
+                    <p><strong>S</strong> to enter discover tags</p>
+                    <p><strong>F</strong> to search</p>
+
+                    <canvas></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="classes/discover.js"></script>
+<script>
+    let discover = new Discover();
+
+    function extendDiscoverFromUI() {
+        let interval = setInterval(() => {
+            const newScrollHeight = $("#albums-select").prop("scrollHeight");
+            const clientHeight = $("#albums-select").height();
+
+            logDebug(clientHeight + " " + newScrollHeight);
+            discover.extend(selectedTags);
+
+            if (newScrollHeight > clientHeight) {
+                clearInterval(interval);
+            }
+        }, 500);
+    }
+
+    $(tagSelector).on("click", function () {
+        discover.clearDiscover();
+        selectedTags = [$(this).val()];
+        $('#discover-heading').text(selectedTags);
+        extendDiscoverFromUI();
+    });
+
+    $("#albums-select").on("click", ".album-card", function () {
+        var idx = $(this).index();
+        player.addToQueue(discover.discover[idx]);
+    });
+
+    // workaround for context menus
+    $(window).on("click", "#discover-context-menu", "li", function (e) {
+        const idx = $(e.target).index();
+        const queueIndex = $(e.source.parentElement).index();
+
+        // add to queue
+        if (idx == 0) {
+            player.addToQueue(discover.discover[queueIndex]);
+        }
+        // open in browser
+        if (idx == 1) {
+            openInBrowser(discover.discover[queueIndex]);
+        }
+        // copy url
+        if (idx == 2) {
+            setClipboard(discover.discover[queueIndex]);
+        }
+    });
+
+    $('#albums-select').scroll(function () {
+        const scrollHeight = $('#albums-select').prop('scrollHeight');
+        const scrollTop = $('#albums-select').prop('scrollTop');
+        const clientHeight = $('#albums-select').height();
+
+        if (Math.abs(scrollHeight - clientHeight - scrollTop) < 1) {
+            discover.extend(selectedTags)
+        }
+    });
+
+    $(document).keyup(function (e) {
+        if ($(e.target).closest("input")[0]) {
+            return;
+        }
+
+        if (e.keyCode == keys.KEY_C) {
+            discover.clearDiscover();
+        }
+
+        if (e.keyCode == keys.KEY_S) {
+            $("#discover-heading")[0].focus();
+        }
+    });
+
+    $('#discover-heading').keyup(function (e) {
+        if (e.keyCode == keys.ENTER) {
+            discover.clearDiscover();
+            selectedTags = $(this).val().split(" ");
+            extendDiscoverFromUI();
+        }
+    });
+
+    document.on("contextmenu", function (evt) {
+        // handle discover context menu
+        if (evt.target.className == "album-card" || evt.target.parentElement.className == "album-card") {
+            evt.source = Element.create(<DiscoverContextMenu />);
+            return true;
+        }
+
+        if (evt.target.className.includes("track-card") || evt.target.parentElement.className.includes("track-card")) {
+            evt.source = Element.create(<QueueContextMenu />);
+            return true;
+        }
+
+        return false;
+    });
+</script>

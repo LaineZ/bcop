@@ -28,7 +28,7 @@ class Discover {
                 //log(element);
                 const node = createElementFromHTML(discoverAlbumCard(element.title, element.artist, element.genre));
 
-                $(node).children(function() {
+                $(node).children(function () {
                     if ($(this).prop("className") == "album-image") {
                         setImage(element.art_id, $(this)[0]);
                     }
@@ -36,7 +36,7 @@ class Discover {
 
                 $('#albums-select').append(node);
             });
-            
+
             loading.destroy();
             me.page += 1;
         }, showErrorModal);

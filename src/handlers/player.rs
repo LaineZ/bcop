@@ -1,7 +1,7 @@
 use std::{sync::mpsc, time::Duration};
 
 use raw_window_handle::Win32WindowHandle;
-use sciter::{dispatch_script_call, make_args, Element, Value, value::VALUE_TYPE};
+use sciter::{dispatch_script_call, make_args, Element, Value};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 
 use crate::players::{self, bass::BassPlayer, internal::InternalPlayer, AudioSystem};

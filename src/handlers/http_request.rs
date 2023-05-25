@@ -107,25 +107,19 @@ fn encode_response(
 
 impl HttpRequest {
     pub fn new() -> Self {
-        let artwork_http = ureq::head("https://f4.bcbits.com/")
-            .timeout(Duration::from_secs(2))
-            .call()
-            .is_err();
-        let request_http = ureq::head("https://bandcamp.com/")
-            .timeout(Duration::from_secs(2))
-            .call()
-            .is_err();
-
-        log::info!(
-            "http artwork: {} request http: {}",
-            artwork_http,
-            request_http
-        );
+        // let artwork_http = ureq::head("https://f4.bcbits.com/")
+        //     .timeout(Duration::from_secs(2))
+        //     .call()
+        //     .is_err();
+        // let request_http = ureq::head("https://bandcamp.com/")
+        //     .timeout(Duration::from_secs(2))
+        //     .call()
+        //     .is_err();
 
         Self {
             pool: ThreadPool::new(THREAD_COUNT),
-            artwork_http,
-            request_http,
+            artwork_http: true,
+            request_http: false,
         }
     }
 
