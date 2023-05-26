@@ -24,7 +24,7 @@ impl Player {
 
         match backend {
             AudioSystem::Internal => {
-                return Self {
+                Self {
                     controls: None,
                     rx,
                     tx,
@@ -34,7 +34,7 @@ impl Player {
                 }
             }
             AudioSystem::Bass => {
-                return if let Ok(bass) = BassPlayer::new() {
+                if let Ok(bass) = BassPlayer::new() {
                     Self {
                         controls: None,
                         rx,
@@ -44,14 +44,14 @@ impl Player {
                         selected_audiosystem: AudioSystem::Bass,
                     }
                 } else {
-                    return Self {
+                    Self {
                         controls: None,
                         rx,
                         tx,
                         event: sciter::Value::new(),
                         player: Box::new(InternalPlayer::new()),
                         selected_audiosystem: AudioSystem::Internal,
-                    };
+                    }
                 }
             }
         }

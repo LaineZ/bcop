@@ -125,7 +125,7 @@ impl Player for BassPlayer {
             self.stream_channel = None;
         }
         let http = url.replace("https://", "http://");
-        match StreamChannel::load_from_url(http.clone(), 0) {
+        match StreamChannel::load_from_url(http, 0) {
             Ok(stream) => {
                 stream
                     .play(true)
@@ -149,18 +149,20 @@ impl Player for BassPlayer {
     }
 
     fn get_samples(&mut self) -> Vec<f32> {
-
-        let mut vc = vec![];
-        if let Some(stream) = &self.stream_channel {
-            match stream.channel.get_data(bass_rs::prelude::DataType::FFT4096, 4096) {
-                Ok(mut v) => {
-                    //log::debug!("{:?}", v);
-                    v.sort_by(|a, b| b.partial_cmp(a).unwrap());
-                    vc = v;
-                },
-                Err(value) => {
-                    log::warn!("Unable to get info: {}", value);
-                },
+        let mut vc = vec![0.0; 4096];
+        if self.is_playing() {
+            if let Some(stream) = &self.stream_channel {
+                match stream
+                    .channel
+                    .get_data(bass_rs::prelude::DataType::FFT4096, 4096)
+                {
+                    Ok(v) => {
+                        vc = v;
+                    }
+                    Err(value) => {
+                        log::warn!("Unable to get info: {}", value);
+                    }
+                }
             }
         }
 

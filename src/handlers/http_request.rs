@@ -89,7 +89,11 @@ fn encode_response(
         Ok(response) => {
             let body = response.into_string().unwrap_or_else(|op| {
                 failed
-                    .call(None, &make_args!(format!("Request reading failed: {}", op)), None)
+                    .call(
+                        None,
+                        &make_args!(format!("Request reading failed: {}", op)),
+                        None,
+                    )
                     .unwrap();
                 String::new()
             });
@@ -107,19 +111,19 @@ fn encode_response(
 
 impl HttpRequest {
     pub fn new() -> Self {
-        // let artwork_http = ureq::head("https://f4.bcbits.com/")
-        //     .timeout(Duration::from_secs(2))
-        //     .call()
-        //     .is_err();
-        // let request_http = ureq::head("https://bandcamp.com/")
-        //     .timeout(Duration::from_secs(2))
-        //     .call()
-        //     .is_err();
+        let artwork_http = ureq::head("https://f4.bcbits.com/")
+            .timeout(Duration::from_secs(2))
+            .call()
+            .is_err();
+        let request_http = ureq::head("https://bandcamp.com/")
+            .timeout(Duration::from_secs(2))
+            .call()
+            .is_err();
 
         Self {
             pool: ThreadPool::new(THREAD_COUNT),
-            artwork_http: true,
-            request_http: false,
+            artwork_http,
+            request_http,
         }
     }
 
@@ -139,13 +143,11 @@ impl HttpRequest {
             if let Ok(tags) = file {
                 // use a cached tag file
                 done.call(None, &make_args!(tags), None).unwrap();
-            } else {
-                if let Ok(tags) = get_tags_from_internet() {
-                    // cache tag in file
-                    let tag_string = tags.join("\n");
-                    std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                    done.call(None, &make_args!(tag_string), None).unwrap();
-                }
+            } else if let Ok(tags) = get_tags_from_internet() {
+                // cache tag in file
+                let tag_string = tags.join("\n");
+                std::fs::write("tag.cache", tag_string.clone()).unwrap();
+                done.call(None, &make_args!(tag_string), None).unwrap();
             }
         });
     }

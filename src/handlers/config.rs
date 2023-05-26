@@ -23,7 +23,7 @@ const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
 const AUDIO_SYSTEM: [AudioSystem; 2] = [AudioSystem::Internal, AudioSystem::Bass];
 
 /// Artwork quality.
-/// Bandcamp returns artworks in different resolutions. This can be set with number in URL
+/// Bandcamp returns artworks in different formats and resolutions. This can be set with number in URL
 /// https://f4.bcbits.com/img/a<ART_ID>_<RESOLUTION>.jpg
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub enum ArtworkThumbnailQuality {
@@ -101,18 +101,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn default() -> Self {
-        Self {
-            load_artworks: ArtworkThumbnailQuality::High,
-            volume: 100,
-            tag_pane_hidden: false,
-            window_geometry: WindowGeometry::default(),
-            save_queue_on_exit: true,
-            theme_name: String::from("hope_diamond"),
-            audio_system: AudioSystem::Internal,
-        }
-    }
-
     pub fn new() -> Self {
         // trying to load
         if let Ok(config) = std::fs::read_to_string("configuration.toml") {

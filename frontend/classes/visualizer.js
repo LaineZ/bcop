@@ -24,8 +24,7 @@ class Visualizer {
             x += barWidth;
         }
 
-        const scale = clamp(dataArray[0] * 5.0, 1.0, 1.2);
-
-        $("#now-playing-img")[0].style.transform = `scale(${scale}, ${scale})`;
+        // const scale = clamp(dataArray[0] * 5.0, 1.0, 1.2);
+        // $("#now-playing-img")[0].style.transform = `scale(${scale}, ${scale})`;
     }
 }
