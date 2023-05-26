@@ -8,3 +8,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    let visualizer = new Visualizer();
+    function animate() {
+        visualizer.update();
+        requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+</script>

@@ -11,6 +11,7 @@ use crate::players::Player;
 pub struct BassPlayer {
     stream_channel: Option<StreamChannel>,
     _bass: Bass,
+    sample_data: Vec<f32>,
     volume: f32,
 }
 
@@ -29,6 +30,7 @@ impl BassPlayer {
         match bass {
             Ok(b) => Ok(Self {
                 stream_channel: None,
+                sample_data: Vec::with_capacity(4096),
                 _bass: b,
                 volume: 1.0,
             }),
@@ -61,7 +63,7 @@ impl Player for BassPlayer {
 
     fn is_playing(&self) -> bool {
         if let Some(stream) = &self.stream_channel {
-            log::info!("{:?}", stream.get_playback_state());
+            //log::info!("{:?}", stream.get_playback_state());
             return stream
                 .get_playback_state()
                 .unwrap_or(PlaybackState::Stopped)
@@ -148,8 +150,7 @@ impl Player for BassPlayer {
         }
     }
 
-    fn get_samples(&mut self) -> Vec<f32> {
-        let mut vc = vec![0.0; 4096];
+    fn get_samples(&mut self) -> &[f32] {
         if self.is_playing() {
             if let Some(stream) = &self.stream_channel {
                 match stream
@@ -157,15 +158,18 @@ impl Player for BassPlayer {
                     .get_data(bass_rs::prelude::DataType::FFT4096, 4096)
                 {
                     Ok(v) => {
-                        vc = v;
+                        self.sample_data = v;
                     }
                     Err(value) => {
                         log::warn!("Unable to get info: {}", value);
                     }
                 }
             }
+        } else {
+            self.sample_data.clear();
+            self.sample_data.fill(0.0);
         }
 
-        vc
+        &self.sample_data
     }
 }

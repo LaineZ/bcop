@@ -22,7 +22,7 @@ pub trait Player {
     fn stop(&mut self);
     fn switch_track(&mut self, url: String) -> anyhow::Result<()>;
     fn seek(&mut self, time: Duration);
-    fn get_samples(&mut self) -> Vec<f32>;
+    fn get_samples(&mut self) -> &[f32];
 }
 
 pub struct FormatTime(pub Duration);

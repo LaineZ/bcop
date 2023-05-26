@@ -3,8 +3,6 @@ let player = new Player();
 let loading = new LoadingIndicator();
 let console = new Console();
 
-let visualizer = new Visualizer(300, 64);
-
 let windowSize;
 
 loading.spawn();
@@ -25,11 +23,6 @@ homeView.show();
 
 
 const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
-
-
-function update() {
-    visualizer.update();
-}
 
 optionsModal.modalWindow.addEventListener("closed", (_) => {
     setSettings();

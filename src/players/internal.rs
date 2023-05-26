@@ -459,6 +459,7 @@ pub struct InternalPlayer {
     cmd_tx: Sender<Command>,
     time_rx: Receiver<Option<Duration>>,
     samples_rx: Receiver<Vec<f32>>,
+    sample_data: Vec<f32>,
     is_paused: bool,
     volume: u16,
     last_error: Arc<Mutex<Option<anyhow::Error>>>,
@@ -540,7 +541,7 @@ impl Player for InternalPlayer {
         }
     }
 
-    fn get_samples(&mut self) -> Vec<f32> {
+    fn get_samples(&mut self) -> &[f32] {
         let res = self
             .cmd_tx
             .send(Command::GetSamples)
@@ -565,17 +566,16 @@ impl Player for InternalPlayer {
 
             fft.process(&mut input);
 
-            input
+            self.sample_data = input
                 .iter()
                 .map(|f| f.re)
                 .map(|f| f.abs())
                 .map(|f| f.max(0.0))
                 .map(|f| f * 0.1)
-                .collect()
-        } else {
-            //log::warn!("Can't get time: thread recieve timeout");
-            vec![]
+                .collect();
         }
+        
+        &self.sample_data
     }
 }
 
@@ -603,6 +603,7 @@ impl InternalPlayer {
             cmd_tx,
             time_rx,
             samples_rx,
+            sample_data: Vec::with_capacity(4096),
             is_paused: false,
             volume: 100,
             last_error: error,

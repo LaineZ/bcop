@@ -180,7 +180,7 @@ impl Player {
         let mut value = Value::new();
 
         for sample in self.player.get_samples() {
-            value.push(sample as f64);
+            value.push(*sample as f64);
         }
 
         value
@@ -229,9 +229,6 @@ impl sciter::EventHandler for Player {
                 _ => (),
             }
         }
-
-        root.call_function("update", &make_args!(""))
-        .unwrap();
         false
     }
 
