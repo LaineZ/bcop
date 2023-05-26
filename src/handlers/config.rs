@@ -120,7 +120,7 @@ impl Config {
             window_geometry: WindowGeometry::default(),
             save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
-            audio_system: AudioSystem::Internal,
+            audio_system: AudioSystem::Bass,
         }
     }
 

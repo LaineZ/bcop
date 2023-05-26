@@ -1,7 +1,7 @@
 use std::io::{Read, Cursor};
 use std::ops::Neg;
 use std::sync::atomic::{AtomicU16, AtomicUsize, Ordering};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -326,7 +326,7 @@ impl PlayerThread {
         let mut cur_url = None;
 
         loop {
-            let timeout = Duration::from_millis(10);
+            let timeout = Duration::from_millis(5);
 
             if self.decoder.is_none() {
                 // track almost ended
@@ -336,9 +336,9 @@ impl PlayerThread {
                 }
             }
 
-            let cmd = match self.cmd_rx.recv_timeout(timeout) {
+            let cmd = match self.cmd_rx.try_recv() {
                 Ok(c) => c,
-                Err(RecvTimeoutError::Timeout) => {
+                Err(_) => {
                     if let Some(frame) = self.next_frame()? {
                         let len = frame.data.len();
                         if let Ok(mut frames) = self.buffer.frames.lock() {
@@ -366,7 +366,6 @@ impl PlayerThread {
                     }
                     continue;
                 }
-                _ => continue,
             };
 
             log::debug!("{:?}", cmd);
@@ -439,6 +438,7 @@ impl PlayerThread {
                         self.time_tx.send(None)?;
                     }
                 }
+
                 Command::GetSamples => {
                     let smp = self.buffer.frames.lock().unwrap();
                     let mut smp_frame = vec![];
@@ -475,7 +475,7 @@ impl Player for InternalPlayer {
             .cmd_tx
             .send(Command::GetTime)
             .ok()
-            .and_then(|_| self.time_rx.recv_timeout(Duration::from_millis(10)).ok());
+            .and_then(|_| self.time_rx.recv_timeout(Duration::from_secs(1)).ok());
         if let Some(r) = res {
             log::debug!("main thread time: {:?}", r);
             r

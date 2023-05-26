@@ -16,13 +16,6 @@ class Player {
                 $('#queue-select')[0].classList.add("closed");
                 $('#track-name').text("");
             } else {
-                $('#track-name').text(me.queue[me.queuePosition].title);
-                $("#artist-name").text(me.queue[me.queuePosition].artist);
-
-                $('#track-info-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
-
-                setImage(me.queue[me.queuePosition].art_id, $("#now-playing-img")[0], 5);
-
                 Window.this.xcall("update_metadata",
                     me.queue[me.queuePosition].title,
                     "",
@@ -152,6 +145,13 @@ class Player {
                 loading.destroy();
             });
         }
+
+        $('#track-name').text(me.queue[me.queuePosition].title);
+        $("#artist-name").text(me.queue[me.queuePosition].artist);
+
+        $('#track-info-name').text(me.queue[me.queuePosition].artist + " - " + me.queue[me.queuePosition].title);
+
+        setImage(me.queue[me.queuePosition].art_id, $("#now-playing-img")[0], 5);
     }
 
     setPaused(paused) {
