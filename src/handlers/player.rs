@@ -178,12 +178,13 @@ impl Player {
 
     fn get_samples(&mut self) -> Value {
         let mut value = Value::new();
-
         for sample in self.player.get_samples() {
             value.push(*sample as f64);
         }
-
-        value
+    
+        let new_value = std::mem::take(&mut value);
+    
+        new_value
     }
 }
 
@@ -216,8 +217,6 @@ impl sciter::EventHandler for Player {
         _reason: sciter::dom::EventReason,
     ) -> bool {
         let event = self.rx.try_recv();
-        let root = Element::from(root);
-
 
         if let Ok(event) = event {
             match event {
