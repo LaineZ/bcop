@@ -50,6 +50,7 @@ fn main() {
             out_dir.join("sciter.dll"),
         )
         .unwrap();
+        // currently bass does not support arm64 version of windows =(
     } else if platform.starts_with("i686-pc-windows") {
         std::fs::copy(
             sdk_path.join("bin/windows/x32/sciter.dll"),
@@ -64,16 +65,34 @@ fn main() {
             out_dir.join("libsciter-gtk.so"),
         )
         .unwrap();
+        // copy the bass.so
+        std::fs::copy(
+            bass_path.join("x86_64/libbass.so"),
+            out_dir.join("libbass.so"),
+        )
+        .unwrap();
     } else if platform.starts_with("aarch64-unknown-linux") {
         std::fs::copy(
             sdk_path.join("bin/linux/arm64/libsciter-gtk.so"),
             out_dir.join("libsciter-gtk.so"),
         )
         .unwrap();
+        // copy the bass.so
+        std::fs::copy(
+            bass_path.join("aarch64/libbass.so"),
+            out_dir.join("libbass.so"),
+        )
+        .unwrap();
     } else if platform.starts_with("armv7-unknown-linux") {
         std::fs::copy(
             sdk_path.join("bin/linux/arm32/libsciter-gtk.so"),
             out_dir.join("libsciter-gtk.so"),
+        )
+        .unwrap();
+        // copy the bass.so
+        std::fs::copy(
+            bass_path.join("armhf/libbass.so"),
+            out_dir.join("libbass.so"),
         )
         .unwrap();
     } else if platform == "x86_64-apple-darwin" {

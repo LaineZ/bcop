@@ -20,7 +20,7 @@ const LOAD_ARTWORKS: [ArtworkThumbnailQuality; 5] = [
     ArtworkThumbnailQuality::VeryLow,
 ];
 
-const AUDIO_SYSTEM: [AudioSystem; 2] = [AudioSystem::Internal, AudioSystem::Bass];
+const AUDIO_SYSTEM: [AudioSystem; 1] = [AudioSystem::Bass];
 
 /// Artwork quality.
 /// Bandcamp returns artworks in different formats and resolutions. This can be set with number in URL

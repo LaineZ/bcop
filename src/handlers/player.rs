@@ -4,7 +4,7 @@ use raw_window_handle::Win32WindowHandle;
 use sciter::{dispatch_script_call, make_args, Element, Value};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 
-use crate::players::{self, bass::BassPlayer, internal::InternalPlayer, AudioSystem};
+use crate::players::{self, bass::BassPlayer, AudioSystem};
 
 pub struct Player {
     player: Box<dyn players::Player>,
@@ -22,36 +22,17 @@ impl Player {
             mpsc::Receiver<MediaControlEvent>,
         ) = mpsc::sync_channel(32);
 
+        let bass = BassPlayer::new().expect("Unable to initialize bass library");
+
         match backend {
-            AudioSystem::Internal => {
+            AudioSystem::Bass => {
                 Self {
                     controls: None,
                     rx,
                     tx,
                     event: sciter::Value::new(),
-                    player: Box::new(InternalPlayer::new()),
-                    selected_audiosystem: AudioSystem::Internal,
-                }
-            }
-            AudioSystem::Bass => {
-                if let Ok(bass) = BassPlayer::new() {
-                    Self {
-                        controls: None,
-                        rx,
-                        tx,
-                        event: sciter::Value::new(),
-                        player: Box::new(bass),
-                        selected_audiosystem: AudioSystem::Bass,
-                    }
-                } else {
-                    Self {
-                        controls: None,
-                        rx,
-                        tx,
-                        event: sciter::Value::new(),
-                        player: Box::new(InternalPlayer::new()),
-                        selected_audiosystem: AudioSystem::Internal,
-                    }
+                    player: Box::new(bass),
+                    selected_audiosystem: AudioSystem::Bass,
                 }
             }
         }
@@ -60,11 +41,6 @@ impl Player {
     fn switch_backend(&mut self, backend: i32) -> bool {
         match backend {
             0 => {
-                self.player.stop();
-                self.player = Box::new(InternalPlayer::new());
-                true
-            }
-            1 => {
                 if let Ok(bass) = BassPlayer::new() {
                     self.player.stop();
                     self.player = Box::new(bass);
@@ -124,7 +100,8 @@ impl Player {
                     progress: Some(souvlaki::MediaPosition(
                         self.player.get_time().unwrap_or_default(),
                     )),
-                }).ok();
+                })
+                .ok();
         } else {
             self.controls
                 .as_mut()
@@ -133,7 +110,8 @@ impl Player {
                     progress: Some(souvlaki::MediaPosition(
                         self.player.get_time().unwrap_or_default(),
                     )),
-                }).ok();
+                })
+                .ok();
         }
         self.event.call(None, &make_args!(""), None).unwrap();
     }
@@ -181,9 +159,9 @@ impl Player {
         for sample in self.player.get_samples() {
             value.push(*sample as f64);
         }
-    
+
         let new_value = std::mem::take(&mut value);
-    
+
         new_value
     }
 }
@@ -209,7 +187,7 @@ impl sciter::EventHandler for Player {
 
     fn on_event(
         &mut self,
-        root: sciter::HELEMENT,
+        _root: sciter::HELEMENT,
         _source: sciter::HELEMENT,
         _target: sciter::HELEMENT,
         _code: sciter::dom::event::BEHAVIOR_EVENTS,

@@ -1,7 +1,7 @@
 class Visualizer {
     constructor() {
         this.canvas = $("canvas")[0];
-        this.bufferLength = 128;
+        this.bufferLength = 128;    
         this.ctx = this.canvas.getContext("2d");
         this.sampleData = [];
     }

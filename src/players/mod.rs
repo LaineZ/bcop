@@ -1,4 +1,3 @@
-pub mod internal;
 pub mod bass;
 
 use std::{time::Duration, fmt::{Display, self}};
@@ -7,8 +6,7 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub enum AudioSystem {
-    Internal = 0,
-    Bass = 1,
+    Bass = 0,
 }
 
 pub trait Player {
