@@ -79,7 +79,7 @@ fn main() {
         .unwrap();
         // copy the bass.so
         std::fs::copy(
-            bass_path.join("aarch64/libbass.so"),
+            bass_path.join("libs/aarch64/libbass.so"),
             out_dir.join("libbass.so"),
         )
         .unwrap();
@@ -91,7 +91,7 @@ fn main() {
         .unwrap();
         // copy the bass.so
         std::fs::copy(
-            bass_path.join("armhf/libbass.so"),
+            bass_path.join("libs/armhf/libbass.so"),
             out_dir.join("libbass.so"),
         )
         .unwrap();
