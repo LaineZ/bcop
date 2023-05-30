@@ -20,6 +20,7 @@ jobs:
       - run: mkdir ./artifacts
       - run: mv ./target/release/${{ env.RELEASE_BIN }} ./artifacts
       - run: mv ./target/release/libsciter-gtk.so ./artifacts
+      - run: mv ./target/release/libbass.so ./artifacts
       - uses: actions/upload-artifact@v3
         with:
           name: bc_rs-linux
