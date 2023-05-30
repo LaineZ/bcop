@@ -56,6 +56,10 @@ function setupSizeVars() {
 Window.this.on("size", setupSizeVars);
 setupSizeVars();
 
+function getRandomArbitrary(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
+}  
+
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);
     setTimeout(function () {
@@ -232,6 +236,11 @@ $('#player-queue-toggle').on('click', function () {
     } else {
         tags.classList.add("closed");
     }
+});
+
+$('#player-shuffle-toggle').on('click', function() {
+    player.shuffle = !player.shuffle;
+    $('#player-shuffle-toggle').toggleClass("toggle");
 });
 
 $('#album-import').on('click', function () {

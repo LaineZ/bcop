@@ -75,19 +75,26 @@ class Player {
     }
 
     previous() {
-        if (player.queuePosition > 0) {
-            player.queuePosition -= 1;
-            player.loadTrack();
+        if (this.queuePosition > 0) {
+            this.queuePosition -= 1;
+            this.loadTrack();
         } else {
             seek(0);
         }
     }
 
     next() {
-        const result = player.queuePosition < player.queue.length - 1;
+        if (this.shuffle && this.queue.length > 0) {
+            this.queuePosition = getRandomArbitrary(0, this.queue.length - 1);
+            this.loadTrack();
+            return true;
+        }
+
+
+        const result = this.queuePosition < this.queue.length - 1;
         if (result) {
-            player.queuePosition += 1;
-            player.loadTrack();
+            this.queuePosition += 1;
+            this.loadTrack();
         }
 
         return result;

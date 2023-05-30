@@ -94,7 +94,6 @@ pub struct Config {
     load_artworks: ArtworkThumbnailQuality,
     pub window_geometry: WindowGeometry,
     volume: u16,
-    tag_pane_hidden: bool,
     save_queue_on_exit: bool,
     theme_name: String,
     audio_system: AudioSystem,
@@ -115,7 +114,6 @@ impl Config {
 
         Self {
             load_artworks: ArtworkThumbnailQuality::High,
-            tag_pane_hidden: false,
             volume: 100,
             window_geometry: WindowGeometry::default(),
             save_queue_on_exit: true,
@@ -212,12 +210,6 @@ impl sciter::EventHandler for Config {
         let mut volume_bar = root.find_first("#volume").unwrap().unwrap();
         volume_bar.set_value(self.volume as i32).unwrap();
 
-        // setting tag visiability
-        let mut tags = root.find_first("#tags-select").unwrap().unwrap();
-        if self.tag_pane_hidden {
-            tags.set_attribute("class", "closed").unwrap();
-        }
-
         // populate settings
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
@@ -253,7 +245,7 @@ impl sciter::EventHandler for Config {
 
     fn on_event(
         &mut self,
-        root: sciter::HELEMENT,
+        _root: sciter::HELEMENT,
         _source: sciter::HELEMENT,
         target: sciter::HELEMENT,
         code: event::BEHAVIOR_EVENTS,
@@ -281,12 +273,6 @@ impl sciter::EventHandler for Config {
             }
 
             BEHAVIOR_EVENTS::DOCUMENT_CLOSE_REQUEST => {
-                let root = Element::from(root);
-                let tags = root.find_first("#tags-select").unwrap().unwrap();
-                self.tag_pane_hidden = tags
-                    .get_attribute("class")
-                    .unwrap_or_default()
-                    .contains("closed");
                 self.save_config();
                 false
             }

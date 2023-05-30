@@ -756,6 +756,10 @@ popup.list {
   color: var(--fg3);
 }
 
+.image-button.toggle {
+  color: var(--bg2);
+}
+
 .main-window {
   flow: vertical;
   height: 100vh;
