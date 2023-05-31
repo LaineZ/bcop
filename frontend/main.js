@@ -66,11 +66,11 @@ function showErrorModal(message) {
         $(".error-modal").each(function () {
             $(this)[0].classList.add("closing");
         });
-    }, clamp(message.length * 18, 1000));
+    }, clamp(message.length * 50, 1000));
 
     setTimeout(function () {
         $(".error-modal").eq(0).remove();
-    }, clamp(message.length * 20, 2000));
+    }, clamp(message.length * 60, 2000));
     loading.destroy();
 }
 

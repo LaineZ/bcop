@@ -12,6 +12,8 @@ pub enum AudioSystem {
 pub trait Player {
     fn is_initialized(&self) -> bool;
     fn get_time(&self) -> Option<Duration>;
+    fn get_devices(&self) -> Vec<String>;
+    fn switch_device(&mut self, index: usize) -> anyhow::Result<()>;
     fn is_playing(&self) -> bool;
     fn is_paused(&self) -> bool;
     fn set_paused(&mut self, paused: bool);

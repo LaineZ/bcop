@@ -2,7 +2,7 @@ use sciter::{
     dispatch_script_call,
     dom::{
         self,
-        event::{self, BEHAVIOR_EVENTS},
+        event::{self, BEHAVIOR_EVENTS, PHASE_MASK},
     },
     make_args,
     window::Rectangle,
@@ -97,6 +97,7 @@ pub struct Config {
     save_queue_on_exit: bool,
     theme_name: String,
     audio_system: AudioSystem,
+    device_index: usize,
 }
 
 impl Config {
@@ -119,6 +120,7 @@ impl Config {
             save_queue_on_exit: true,
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Bass,
+            device_index: 0,
         }
     }
 
@@ -194,6 +196,10 @@ impl Config {
         self.window_geometry.w = w;
         self.window_geometry.h = h;
     }
+
+    pub fn get_audio_device_index(&self) -> usize {
+        self.device_index
+    }
 }
 
 impl Default for Config {
@@ -214,7 +220,11 @@ impl sciter::EventHandler for Config {
         let mut load_artworks_dropdown = root.find_first("#artwork-quality").unwrap().unwrap();
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
         let mut audio_system_dropdown = root.find_first("#audio-backend").unwrap().unwrap();
+        let mut audio_device_dropdown = root.find_first("#audio-device").unwrap().unwrap();
         let mut save_queue_checkbox = root.find_first("#save-queue-on-exit").unwrap().unwrap();
+
+        log::debug!("{}", self.device_index);
+        audio_device_dropdown.set_value(self.device_index as i32).unwrap();
 
         theme_dropdown.set_value(&self.theme_name).unwrap();
         save_queue_checkbox
@@ -249,7 +259,7 @@ impl sciter::EventHandler for Config {
         _source: sciter::HELEMENT,
         target: sciter::HELEMENT,
         code: event::BEHAVIOR_EVENTS,
-        _phase: event::PHASE_MASK,
+        phase: event::PHASE_MASK,
         _reason: dom::EventReason,
     ) -> bool {
         match code {
@@ -270,7 +280,16 @@ impl sciter::EventHandler for Config {
                     }
                 }
                 false
-            }
+            },
+
+            BEHAVIOR_EVENTS::SELECT_VALUE_CHANGED => {
+                let target = Element::from(target);
+                if target.get_attribute("id").unwrap_or_default() == "audio-device" && phase == PHASE_MASK::SINKING {
+                    let id = target.child(1).unwrap().get_attribute("value").unwrap_or_default();
+                    self.device_index = id.parse().unwrap_or_default();
+                }
+                false
+            },
 
             BEHAVIOR_EVENTS::DOCUMENT_CLOSE_REQUEST => {
                 self.save_config();

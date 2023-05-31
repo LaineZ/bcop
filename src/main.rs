@@ -56,6 +56,7 @@ fn main() -> anyhow::Result<()> {
 
     let config = handlers::config::Config::new();
     let audio_system = config.get_audio_system();
+    let audio_index = config.get_audio_device_index();
 
     let mut frame = sciter::WindowBuilder::main_window()
         .with_rect(config.window_geometry.into())
@@ -68,7 +69,7 @@ fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::log::Log);
     frame.event_handler(config);
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player::Player::new(audio_system));
+    frame.event_handler(handlers::player::Player::new(audio_system, audio_index));
 
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
     frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;

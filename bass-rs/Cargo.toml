@@ -1,0 +1,18 @@
+[package]
+name = "bass-rs"
+version = "0.3.0"
+edition = "2021"
+license = "GPL-2.0-or-later"
+description = "un4seen Bass for Rust with a nice api"
+repository = "https://gitlab.ayyeve.xyz/ayyEve/bass-rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+drop_debug = []
+bass_fx = []
+
+
+[dependencies]
+bass-sys = "2.2.0"
+once_cell = "1.16"

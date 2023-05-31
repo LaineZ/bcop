@@ -1,14 +1,14 @@
 use std::{sync::mpsc, time::Duration};
 
 use raw_window_handle::Win32WindowHandle;
-use sciter::{dispatch_script_call, make_args, Element, Value};
+use sciter::{dispatch_script_call, make_args, Element, Value, dom::{self, event::{BEHAVIOR_EVENTS, PHASE_MASK}}};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 
 use crate::players::{self, bass::BassPlayer, AudioSystem};
 
 pub struct Player {
     player: Box<dyn players::Player>,
-    selected_audiosystem: AudioSystem,
+    _selected_audiosystem: AudioSystem,
     event: sciter::Value,
     rx: mpsc::Receiver<MediaControlEvent>,
     tx: mpsc::SyncSender<MediaControlEvent>,
@@ -16,13 +16,13 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(backend: AudioSystem) -> Self {
+    pub fn new(backend: AudioSystem, device_id: usize) -> Self {
         let (tx, rx): (
             mpsc::SyncSender<MediaControlEvent>,
             mpsc::Receiver<MediaControlEvent>,
         ) = mpsc::sync_channel(32);
 
-        let bass = BassPlayer::new().expect("Unable to initialize bass library");
+        let bass = BassPlayer::new(device_id).expect("Unable to initialize bass library");
 
         match backend {
             AudioSystem::Bass => {
@@ -32,16 +32,16 @@ impl Player {
                     tx,
                     event: sciter::Value::new(),
                     player: Box::new(bass),
-                    selected_audiosystem: AudioSystem::Bass,
+                    _selected_audiosystem: AudioSystem::Bass,
                 }
             }
         }
     }
 
-    fn switch_backend(&mut self, backend: i32) -> bool {
+    fn switch_backend(&mut self, backend: i32, device_id: i32) -> bool {
         match backend {
             0 => {
-                if let Ok(bass) = BassPlayer::new() {
+                if let Ok(bass) = BassPlayer::new(device_id as usize) {
                     self.player.stop();
                     self.player = Box::new(bass);
                     true
@@ -58,6 +58,7 @@ impl Player {
 
     fn set_state_change_callback(&mut self, value: sciter::Value) {
         self.event = value;
+        log::info!("Available devices: {:?}", self.player.get_devices());
     }
 
     fn fmt_time(&mut self, time: i32) -> String {
@@ -135,13 +136,6 @@ impl Player {
         time.as_secs() as i32
     }
 
-    fn restart_player_on_fault(&mut self) {
-        if !self.player.is_initialized() {
-            log::warn!("Restarting player thread");
-            self.switch_backend(self.selected_audiosystem as i32);
-        }
-    }
-
     fn get_volume(&mut self) -> i32 {
         self.player.get_volume() as i32
     }
@@ -175,26 +169,26 @@ impl sciter::EventHandler for Player {
         fn seek(i32);
         fn get_time();
         fn fmt_time(i32);
-        fn switch_backend(i32);
+        fn switch_backend(i32, i32);
         fn set_state_change_callback(Value);
         fn get_volume();
         fn set_volume(i32);
         fn force_update();
-        fn restart_player_on_fault();
         fn update_metadata(String, String, String, String);
         fn get_samples();
     }
 
     fn on_event(
         &mut self,
-        _root: sciter::HELEMENT,
+        root: sciter::HELEMENT,
         _source: sciter::HELEMENT,
-        _target: sciter::HELEMENT,
-        _code: sciter::dom::event::BEHAVIOR_EVENTS,
-        _phase: sciter::dom::event::PHASE_MASK,
+        target: sciter::HELEMENT,
+        code: sciter::dom::event::BEHAVIOR_EVENTS,
+        phase: sciter::dom::event::PHASE_MASK,
         _reason: sciter::dom::EventReason,
     ) -> bool {
         let event = self.rx.try_recv();
+        let root = Element::from(root);
 
         if let Ok(event) = event {
             match event {
@@ -206,7 +200,25 @@ impl sciter::EventHandler for Player {
                 _ => (),
             }
         }
-        false
+
+        match code {
+            BEHAVIOR_EVENTS::SELECT_VALUE_CHANGED => {
+                let target = Element::from(target);
+                if target.get_attribute("id").unwrap_or_default() == "audio-device" && phase == PHASE_MASK::SINKING {
+                    let id = target.child(1).unwrap().get_attribute("value").unwrap_or_default();
+                    self.player.switch_device(id.parse().unwrap_or_default()).unwrap_or_else(|op| {
+                        log::error!("Unable to switch audio device: {}", op);
+                        root.call_function("showErrorModal", &make_args!(&format!("Unable to switch audio device: {}", op)))
+                        .unwrap();
+                    });
+                    return true
+                }
+                false
+            }
+            _ => {
+                false
+            },
+        }
     }
 
     fn document_complete(&mut self, root: sciter::HELEMENT, _target: sciter::HELEMENT) {
@@ -253,5 +265,13 @@ impl sciter::EventHandler for Player {
             .unwrap()
             .set_playback(MediaPlayback::Playing { progress: None })
             .unwrap();
+
+        // populate options
+        let mut audio_device_dropdown = root.find_first("#audio-device").unwrap().unwrap();
+        let mut html = String::from("");
+        for (idx, dev) in self.player.get_devices().iter().enumerate() {
+            html += &format!("<option value=\"{}\" class=\"audio-device-option\">{}</option>", idx, dev);
+        }
+        audio_device_dropdown.set_html(html.as_bytes(), Some(dom::SET_ELEMENT_HTML::SIH_REPLACE_CONTENT)).unwrap();
     }
 }

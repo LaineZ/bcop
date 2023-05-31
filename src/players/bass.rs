@@ -2,7 +2,7 @@ use std::{env, time::Duration};
 
 use anyhow::bail;
 use bass_rs::{
-    prelude::{PlaybackState, StreamChannel},
+    prelude::{BassDevice, PlaybackState, StreamChannel},
     Bass,
 };
 
@@ -10,13 +10,14 @@ use crate::players::Player;
 
 pub struct BassPlayer {
     stream_channel: Option<StreamChannel>,
-    _bass: Bass,
+    _bass: Vec<Bass>,
     sample_data: Vec<f32>,
     volume: f32,
+    device: BassDevice,
 }
 
 impl BassPlayer {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(device_index: usize) -> anyhow::Result<Self> {
         let mut exe = env::current_exe().unwrap_or_default();
 
         exe.pop();
@@ -25,23 +26,31 @@ impl BassPlayer {
             bail!("Bass library not found!")
         }
 
-        let bass = Bass::init_default();
+        let mut bases = Vec::new();
 
-        match bass {
-            Ok(b) => Ok(Self {
-                stream_channel: None,
-                sample_data: Vec::with_capacity(4096),
-                _bass: b,
-                volume: 1.0,
-            }),
-            Err(err) => bail!("Bass initialization error: {}", err),
+        let devices = BassDevice::get_all_devices().unwrap_or(Vec::new());
+        let selected = devices[device_index].clone();
+
+        for dev in devices {
+            bases.push(Bass::builder().device(dev).build().unwrap());
         }
+
+        Ok(Self {
+            stream_channel: None,
+            sample_data: Vec::with_capacity(4096),
+            _bass: bases,
+            volume: 1.0,
+            device: selected,
+        })
     }
 
     fn setup_stream_volume(&mut self) {
         if let Some(stream) = &self.stream_channel {
             stream.set_volume(self.volume).unwrap_or_else(|op| {
                 log::error!("Unable to change volume due to error: {}", op);
+            });
+            stream.set_device(self.device.clone()).map_err(|e| anyhow::anyhow!("Failed to set device: {}", e)).unwrap_or_else(|op| {
+                log::error!("Unable to switch device due to error: {}", op);
             });
         }
     }
@@ -171,5 +180,25 @@ impl Player for BassPlayer {
         }
 
         &self.sample_data
+    }
+
+    fn get_devices(&self) -> Vec<String> {
+        let devices = BassDevice::get_all_devices().unwrap_or(Vec::new());
+        devices.iter().map(|f| format!("{} ({})", f.name.clone(), f.id)).collect()
+    }
+
+    fn switch_device(&mut self, index: usize) -> anyhow::Result<()> {
+        let devices = BassDevice::get_all_devices()
+            .map_err(|e| anyhow::anyhow!("Failed to enumerate devices: {}", e))?;
+
+        if index > devices.len() - 1 {
+            bail!("Device selection out of range...")
+        }
+
+        let device = devices[index].clone();
+        self.device = device;
+
+        self.setup_stream_volume();
+        Ok(())
     }
 }
