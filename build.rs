@@ -101,6 +101,11 @@ fn main() {
             out_dir.join("libsciter.dylib"),
         )
         .unwrap();
+        std::fs::copy(
+            bass_path.join("libbass.dylib"),
+            out_dir.join("libbass.dylib"),
+        )
+        .unwrap();
     } else {
         panic!("{} is not supported target by sciter", platform);
     }

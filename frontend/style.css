@@ -96,6 +96,11 @@ body {
   font-family: Helvetica, sans-serif;
 }
 
+h1 {
+  margin: 0;
+  padding: 0;
+}
+
 a {
   color: var(--fg2);
 }
@@ -164,6 +169,8 @@ menu li {
 }
 
 h2 {
+  margin: 0;
+  padding: 0;
   margin-bottom: 5dip;
 }
 
@@ -304,15 +311,11 @@ popup.list {
 .now-playing-container h1 {
   overflow: hidden;
   font-size: 6vh;
-  margin: 0;
-  padding: 0;
 }
 
 .now-playing-container h2 {
   overflow: hidden;
   font-size: 4vh;
-  margin: 0;
-  padding: 0;
   color: var(--fg2);
 }
 
@@ -562,7 +565,7 @@ popup.list {
 .option-tabs {
   background: var(--bg1);
   margin-right: 20dip;
-  height: 100%;
+  height: *;
 }
 
 .modal {
@@ -602,8 +605,6 @@ popup.list {
 }
 
 .modal-content h1 {
-  padding: 0;
-  margin: 0;
   margin-bottom: 10dip;
 }
 
@@ -698,16 +699,6 @@ popup.list {
   height: *;
   width: *;
   position: relative;
-}
-
-.welcome-message h1 {
-  margin: 0;
-  padding: 0;
-}
-
-.welcome-message h2 {
-  margin: 0;
-  padding: 0;
 }
 
 .option-selection {

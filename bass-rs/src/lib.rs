@@ -124,6 +124,7 @@ impl Bass {
 }
 impl Drop for Bass {
     fn drop(&mut self) {
+        #[cfg(drop_debug)]
         println!("dropping bass!!");
 
         if BASS_Free() == 0 {

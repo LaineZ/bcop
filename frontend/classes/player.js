@@ -4,6 +4,44 @@ class Player {
         this.queue = [];
         this.queuePosition = 0;
         this.shuffle = false;
+
+        $('#back').on("click", () => {
+            this.previous();
+        });
+
+        $('#forward').on("click", () => {
+            this.next();
+        });
+
+        $('#stop').on("click", () => {
+            this.stop();
+        });
+
+        $('#play-pause').on("click", () => {
+            if (this.isPaused()) {
+                this.setPaused(false);
+            } else {
+                this.setPaused(true);
+            }
+        });
+
+        $('#player-shuffle-toggle').on('click', () => {
+            this.shuffle = !this.shuffle;
+            $('#player-shuffle-toggle').toggleClass("toggle");
+        });
+
+        $('#volume').on('input', (e) => {
+            this.setVolume($(e.currentTarget).val());
+        });
+
+        $('#seekbar').on('input', (e) => {
+            this.seek($(e.currentTarget).val());
+            this.updatePlayerInformation();
+        });
+
+        $('#audio-backend').on('change', (e) => {
+            this.switchBackend(parseInt(e.currentTarget.value));
+        });
     }
 
     /** Setups all required player callbacks and handlers. 
@@ -28,6 +66,7 @@ class Player {
             });
 
             $("#seekbar").attr("disabled", me.queue.length == 0);
+            $("#now-playing").attr("disabled", me.queue.length == 0);
 
             if (me.isPaused()) {
                 $('#play-pause').attr("src", "icons/play.svg");
@@ -220,6 +259,7 @@ class Player {
         this.stop();
         this.queue = [];
         this.queuePosition = 0;
+
         $('#queue-select').empty();
         this.forceUpdate();
     }

@@ -185,14 +185,6 @@ $("#track-name").on("click", function () {
     log($(".track-card.current").offset());
 });
 
-$('#play-pause').on("click", function () {
-    if (player.isPaused()) {
-        player.setPaused(false);
-    } else {
-        player.setPaused(true);
-    }
-});
-
 $('#github').on("click", function () {
     openInBrowser("https://github.com/lainez/bc_rs")
 });
@@ -203,18 +195,6 @@ $('#sciter-link').on("click", function () {
 
 $('#bass-link').on("click", function () {
     openInBrowser("http://www.un4seen.com")
-});
-
-$('#back').on("click", function () {
-    player.previous();
-});
-
-$('#forward').on("click", function () {
-    player.next();
-});
-
-$('#stop').on("click", function () {
-    player.stop();
 });
 
 $('#clear-queue').on('click', function () {
@@ -238,11 +218,6 @@ $('#player-queue-toggle').on('click', function () {
     }
 });
 
-$('#player-shuffle-toggle').on('click', function() {
-    player.shuffle = !player.shuffle;
-    $('#player-shuffle-toggle').toggleClass("toggle");
-});
-
 $('#album-import').on('click', function () {
     albumImportModal.show();
 });
@@ -262,14 +237,8 @@ $('#now-playing').on('click', function () {
     nowPlayingView.show();
 });
 
-
-
 $('#theme').on('change', function () {
     setTheme(this.value);
-});
-
-$('#audio-backend').on('change', function () {
-    player.switchBackend(parseInt(this.value));
 });
 
 const searchRequest = debounce(function () {
@@ -338,10 +307,6 @@ $(".option-tab").click(function () {
     });
 });
 
-$('#volume').on('input', function (e) {
-    player.setVolume($(this).val());
-});
-
 $(document).keyup(function (e) {
     logDebug(e.keyCode);
 
@@ -366,11 +331,6 @@ $(document).keyup(function (e) {
         saveSettings();
         closeModals();
     }
-});
-
-$('#seekbar').on('input', function (e) {
-    player.seek($(this).val());
-    player.updatePlayerInformation();
 });
 
 document.on("closerequest", function (evt) {
