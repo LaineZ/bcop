@@ -10,7 +10,8 @@
 </div>
 
 <script>
-    let visualizer = new Visualizer();
+    let visualizer = new Visualizer(themes[currentTheme].fg);
+
     function animate() {
         visualizer.update();
         requestAnimationFrame(animate);

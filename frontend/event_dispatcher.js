@@ -37,7 +37,6 @@ function setSettings() {
     Window.this.xcall("set_settings", settings);
 }
 
-
 function genUrlImage(art_id, q) {
     const quality = q != undefined ? q : Window.this.xcall("get_load_artworks");
     const http = Window.this.xcall("artwork_http");

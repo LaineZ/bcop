@@ -74,17 +74,6 @@ function showErrorModal(message) {
     loading.destroy();
 }
 
-function setTheme(theme) {
-    if (themes[theme]) {
-        for (const [key, value] of Object.entries(themes[theme])) {
-            document.style.variable(key, value);
-        }
-    } else {
-        logWarn("Unable to find theme: " + theme + " reverting to hope_diamond...");
-        setTheme("hope_diamond");
-    }
-}
-
 function createElementFromHTML(html) {
     const placeholder = document.createElement("div");
     placeholder.insertAdjacentHTML("afterbegin", html);

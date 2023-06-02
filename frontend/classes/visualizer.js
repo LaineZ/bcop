@@ -1,9 +1,20 @@
+// sorry guys, but sciter does not support fill in #FFFFFFFF format
+function hex2rgba(hex) {
+    var r = parseInt(hex.substring(1, 3), 16) / 255;
+    var g = parseInt(hex.substring(3, 5), 16) / 255;
+    var b = parseInt(hex.substring(5, 7), 16) / 255;
+    var alpha = 1.0;
+    return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+}
+
+
 class Visualizer {
-    constructor() {
+    constructor(color) {
         this.canvas = $("canvas")[0];
         this.bufferLength = 128;    
         this.ctx = this.canvas.getContext("2d");
         this.sampleData = [];
+        this.color = hex2rgba(color);
     }
 
     update() {
@@ -19,7 +30,7 @@ class Visualizer {
 
         for (let i = 0; i < this.bufferLength; i++) {
             let barHeight = this.sampleData[i] * this.canvas.width;
-            this.ctx.fillStyle = "rgb(1.0,0.8,0.7)";
+            this.ctx.fillStyle = this.color;
             this.ctx.fillRect(x, this.canvas.height - barHeight, barWidth, barHeight);
             x += barWidth;
         }
