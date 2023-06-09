@@ -13,6 +13,7 @@ pub struct Player {
     rx: mpsc::Receiver<MediaControlEvent>,
     tx: mpsc::SyncSender<MediaControlEvent>,
     controls: Option<MediaControls>,
+    sample_values: sciter::Value,
 }
 
 impl Player {
@@ -27,6 +28,7 @@ impl Player {
         match backend {
             AudioSystem::Bass => {
                 Self {
+                    sample_values: sciter::Value::new(),
                     controls: None,
                     rx,
                     tx,
@@ -58,7 +60,6 @@ impl Player {
 
     fn set_state_change_callback(&mut self, value: sciter::Value) {
         self.event = value;
-        log::info!("Available devices: {:?}", self.player.get_devices());
     }
 
     fn fmt_time(&mut self, time: i32) -> String {
@@ -149,12 +150,12 @@ impl Player {
     }
 
     fn get_samples(&mut self) -> Value {
-        let mut value = Value::new();
+        self.sample_values.clear();
         for sample in self.player.get_samples() {
-            value.push(*sample as f64);
+            self.sample_values.push(*sample as f64);
         }
 
-        let new_value = std::mem::take(&mut value);
+        let new_value = std::mem::take(&mut self.sample_values);
 
         new_value
     }
