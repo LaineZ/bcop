@@ -17,12 +17,33 @@ const albumImportModal = new Modal("album-import-modal");
 // VIEWS
 const homeView = new View("home-window", "home");
 const discoverView = new View("discover-window", "discover");
-const nowPlayingView = new View("now-playing-window", "now-playing");
+const nowPlayingView = new View("now-playing-window", "now-playing", {
+    visualizer: new Visualizer(themes[currentTheme].fg),
+    aid: null,
+});
 
 homeView.show();
 
 
 const clamp = (num, min, max = Number.MAX_SAFE_INTEGER) => Math.min(Math.max(num, min), max);
+
+nowPlayingView.view.addEventListener("closed", (event, element) => {
+    event.detail.visualizer.enabled = false;
+    cancelAnimationFrame(event.detail.aid);
+    event.detail.aid = null;
+});
+
+nowPlayingView.view.addEventListener("open", (event, element) => {
+    event.detail.visualizer.enabled = true;
+    if (!event.detail.aid) {
+        function animate() {
+            event.detail.visualizer.update();
+            event.detail.aid = requestAnimationFrame(animate);
+        }
+
+        event.detail.aid = requestAnimationFrame(animate);
+    }
+});
 
 optionsModal.modalWindow.addEventListener("closed", (_) => {
     setSettings();
@@ -58,7 +79,7 @@ setupSizeVars();
 
 function getRandomArbitrary(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
-}  
+}
 
 function showErrorModal(message) {
     $("body").append(`<div class="error-modal">${message}</div>`);

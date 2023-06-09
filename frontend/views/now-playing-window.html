@@ -8,14 +8,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    let visualizer = new Visualizer(themes[currentTheme].fg);
-
-    function animate() {
-        visualizer.update();
-        requestAnimationFrame(animate);
-    }
-
-    requestAnimationFrame(animate);
-</script>
