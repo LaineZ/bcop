@@ -34,7 +34,7 @@ nowPlayingView.view.addEventListener("closed", (event, element) => {
 });
 
 nowPlayingView.view.addEventListener("open", (event, element) => {
-    event.detail.visualizer.enabled = true;
+    event.detail.visualizer.enabled = Window.this.xcall("get_visualizer");
     if (!event.detail.aid) {
         function animate() {
             event.detail.visualizer.update();

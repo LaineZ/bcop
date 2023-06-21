@@ -34,7 +34,6 @@ pub enum ArtworkThumbnailQuality {
     VeryLow = 22,
 }
 
-
 /// Converts integer value to enum
 macro_rules! set_enum {
     ($arr:expr, $idx:expr) => {
@@ -98,6 +97,12 @@ pub struct Config {
     theme_name: String,
     audio_system: AudioSystem,
     device_index: usize,
+    visualizer: bool,
+}
+
+fn set_widget_state<S: AsRef<str>, I: Into<Value>>(root: &Element, selector: S, value: I) {
+    let mut element = root.find_first(selector.as_ref()).unwrap().unwrap();
+    element.set_value(value).unwrap();
 }
 
 impl Config {
@@ -121,6 +126,7 @@ impl Config {
             theme_name: String::from("hope_diamond"),
             audio_system: AudioSystem::Bass,
             device_index: 0,
+            visualizer: true,
         }
     }
 
@@ -139,6 +145,8 @@ impl Config {
             .unwrap()
             .unwrap();
 
+        let visualizer = settings_window.find_first("#visualizer").unwrap().unwrap();
+
         let load_artworks_value = load_artworks_dropdown
             .get_value()
             .to_string()
@@ -156,6 +164,7 @@ impl Config {
         let theme_value = theme_dropdown.get_value().to_string().replace('\"', "");
         self.load_artworks = set_enum!(LOAD_ARTWORKS, load_artworks_value);
         self.save_queue_on_exit = save_queue_on_exit.get_value().to_bool().unwrap_or(true);
+        self.visualizer = visualizer.get_value().to_bool().unwrap_or(true);
         self.audio_system = set_enum!(AUDIO_SYSTEM, audio_backend_value);
 
         self.theme_name = if !theme_value.trim().is_empty() {
@@ -190,6 +199,10 @@ impl Config {
         self.save_queue_on_exit
     }
 
+    pub fn get_visualizer(&self) -> bool {
+        self.visualizer
+    }
+
     pub fn set_geometry(&mut self, x: i32, y: i32, w: i32, h: i32) {
         self.window_geometry.x = x;
         self.window_geometry.y = y;
@@ -221,15 +234,14 @@ impl sciter::EventHandler for Config {
         let mut theme_dropdown = root.find_first("#theme").unwrap().unwrap();
         let mut audio_system_dropdown = root.find_first("#audio-backend").unwrap().unwrap();
         let mut audio_device_dropdown = root.find_first("#audio-device").unwrap().unwrap();
-        let mut save_queue_checkbox = root.find_first("#save-queue-on-exit").unwrap().unwrap();
-
-        log::debug!("{}", self.device_index);
-        audio_device_dropdown.set_value(self.device_index as i32).unwrap();
+        audio_device_dropdown
+            .set_value(self.device_index as i32)
+            .unwrap();
 
         theme_dropdown.set_value(&self.theme_name).unwrap();
-        save_queue_checkbox
-            .set_value(self.save_queue_on_exit)
-            .unwrap();
+
+        set_widget_state(&root, "#save-queue-on-exit", self.save_queue_on_exit);
+        set_widget_state(&root, "#visualizer", self.visualizer);
 
         load_artworks_dropdown
             .set_value(
@@ -280,16 +292,22 @@ impl sciter::EventHandler for Config {
                     }
                 }
                 false
-            },
+            }
 
             BEHAVIOR_EVENTS::SELECT_VALUE_CHANGED => {
                 let target = Element::from(target);
-                if target.get_attribute("id").unwrap_or_default() == "audio-device" && phase == PHASE_MASK::SINKING {
-                    let id = target.child(1).unwrap().get_attribute("value").unwrap_or_default();
+                if target.get_attribute("id").unwrap_or_default() == "audio-device"
+                    && phase == PHASE_MASK::SINKING
+                {
+                    let id = target
+                        .child(1)
+                        .unwrap()
+                        .get_attribute("value")
+                        .unwrap_or_default();
                     self.device_index = id.parse().unwrap_or_default();
                 }
                 false
-            },
+            }
 
             BEHAVIOR_EVENTS::DOCUMENT_CLOSE_REQUEST => {
                 self.save_config();
@@ -302,6 +320,7 @@ impl sciter::EventHandler for Config {
     dispatch_script_call! {
         fn get_load_artworks();
         fn get_save_queue_on_exit();
+        fn get_visualizer();
         fn set_settings(Value);
         fn set_geometry(i32, i32, i32, i32);
         fn save_config();
