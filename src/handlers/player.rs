@@ -1,84 +1,58 @@
-use std::{sync::mpsc, time::Duration};
+use std::{
+    sync::{mpsc, Arc},
+    time::Duration,
+};
 
 use raw_window_handle::Win32WindowHandle;
-use sciter::{dispatch_script_call, make_args, Element, Value, dom::{self, event::{BEHAVIOR_EVENTS, PHASE_MASK}}};
+use sciter::{
+    dom::{
+        self,
+        event::{BEHAVIOR_EVENTS, PHASE_MASK},
+    },
+    Element,
+};
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
+use tokio::sync::Mutex;
 
-use crate::players::{self, bass::BassPlayer, AudioSystem};
+use crate::{players, services};
 
 pub struct Player {
-    player: Box<dyn players::Player>,
-    _selected_audiosystem: AudioSystem,
-    event: sciter::Value,
     rx: mpsc::Receiver<MediaControlEvent>,
     tx: mpsc::SyncSender<MediaControlEvent>,
     controls: Option<MediaControls>,
     sample_values: sciter::Value,
+    player_service: Arc<Mutex<services::player::Player>>,
 }
 
 impl Player {
-    pub fn new(backend: AudioSystem, device_id: usize) -> Self {
+    pub fn new(player_service: Arc<Mutex<services::player::Player>>) -> Self {
         let (tx, rx): (
             mpsc::SyncSender<MediaControlEvent>,
             mpsc::Receiver<MediaControlEvent>,
         ) = mpsc::sync_channel(32);
 
-        let bass = BassPlayer::new(device_id).expect("Unable to initialize bass library");
-
-        match backend {
-            AudioSystem::Bass => {
-                Self {
-                    sample_values: sciter::Value::new(),
-                    controls: None,
-                    rx,
-                    tx,
-                    event: sciter::Value::new(),
-                    player: Box::new(bass),
-                    _selected_audiosystem: AudioSystem::Bass,
-                }
-            }
+        Self {
+            sample_values: sciter::Value::new(),
+            controls: None,
+            rx,
+            tx,
+            player_service,
         }
-    }
-
-    fn switch_backend(&mut self, backend: i32, device_id: i32) -> bool {
-        match backend {
-            0 => {
-                if let Ok(bass) = BassPlayer::new(device_id as usize) {
-                    self.player.stop();
-                    self.player = Box::new(bass);
-                    true
-                } else {
-                    false
-                }
-            }
-            _ => {
-                log::error!("Invalid backend value out of range 1 < {}", backend);
-                false
-            }
-        }
-    }
-
-    fn set_state_change_callback(&mut self, value: sciter::Value) {
-        self.event = value;
     }
 
     fn fmt_time(&mut self, time: i32) -> String {
         format!("{}", players::FormatTime(Duration::from_secs(time as u64)))
     }
 
-    pub fn load_track(&mut self, url: String) -> bool {
-        let res = self.player.switch_track(url).is_ok();
-        self.event.call(None, &make_args!(""), None).unwrap();
-        res
-    }
-
-    pub fn update_metadata(
+    pub async fn update_metadata(
         &mut self,
         title: String,
         album: String,
         artist: String,
         cover_url: String,
     ) {
+        let lock = self.player_service.lock().await;
+
         self.controls
             .as_mut()
             .unwrap()
@@ -86,21 +60,28 @@ impl Player {
                 title: Some(&title),
                 album: Some(&album),
                 artist: Some(&artist),
-                duration: self.player.get_time(),
+                duration: lock.player.get_time(),
                 cover_url: Some(&cover_url),
             })
             .unwrap();
     }
 
-    fn set_paused(&mut self, state: bool) {
-        self.player.set_paused(state);
+    async fn is_paused(&self) -> bool {
+        let lock = self.player_service.lock().await;
+        lock.player.is_paused()
+    }
+
+    async fn set_paused(&mut self, state: bool) {
+        let mut lock = self.player_service.lock().await;
+
+        lock.player.set_paused(state);
         if state {
             self.controls
                 .as_mut()
                 .unwrap()
                 .set_playback(MediaPlayback::Paused {
                     progress: Some(souvlaki::MediaPosition(
-                        self.player.get_time().unwrap_or_default(),
+                        lock.player.get_time().unwrap_or_default(),
                     )),
                 })
                 .ok();
@@ -110,75 +91,15 @@ impl Player {
                 .unwrap()
                 .set_playback(MediaPlayback::Playing {
                     progress: Some(souvlaki::MediaPosition(
-                        self.player.get_time().unwrap_or_default(),
+                        lock.player.get_time().unwrap_or_default(),
                     )),
                 })
                 .ok();
         }
-        self.event.call(None, &make_args!(""), None).unwrap();
-    }
-
-    fn is_paused(&self) -> bool {
-        self.player.is_paused()
-    }
-
-    fn stop(&mut self) {
-        self.player.stop();
-        self.event.call(None, &make_args!(""), None).unwrap();
-    }
-
-    fn seek(&mut self, seconds: i32) {
-        self.player.seek(Duration::from_secs(seconds as u64));
-        self.event.call(None, &make_args!(""), None).unwrap();
-    }
-
-    fn get_time(&mut self) -> i32 {
-        let time = self.player.get_time().unwrap_or_default();
-        time.as_secs() as i32
-    }
-
-    fn get_volume(&mut self) -> i32 {
-        self.player.get_volume() as i32
-    }
-
-    fn set_volume(&mut self, value: i32) {
-        self.player.set_volume(value as u16);
-    }
-
-    fn force_update(&self) {
-        self.event.call(None, &make_args!(""), None).unwrap();
-    }
-
-    fn get_samples(&mut self) -> Value {
-        self.sample_values.clear();
-        for sample in self.player.get_samples() {
-            self.sample_values.push(*sample as f64);
-        }
-
-        let new_value = std::mem::take(&mut self.sample_values);
-
-        new_value
     }
 }
 
 impl sciter::EventHandler for Player {
-    dispatch_script_call! {
-        fn load_track(String);
-        fn set_paused(bool);
-        fn is_paused();
-        fn stop();
-        fn seek(i32);
-        fn get_time();
-        fn fmt_time(i32);
-        fn switch_backend(i32, i32);
-        fn set_state_change_callback(Value);
-        fn get_volume();
-        fn set_volume(i32);
-        fn force_update();
-        fn update_metadata(String, String, String, String);
-        fn get_samples();
-    }
-
     fn on_event(
         &mut self,
         root: sciter::HELEMENT,
@@ -192,33 +113,62 @@ impl sciter::EventHandler for Player {
         let root = Element::from(root);
 
         if let Ok(event) = event {
-            match event {
-                MediaControlEvent::Toggle => self.set_paused(!self.is_paused()),
-                MediaControlEvent::Play => self.set_paused(false),
-                MediaControlEvent::Pause => self.set_paused(true),
-                MediaControlEvent::Stop => self.stop(),
-                MediaControlEvent::SeekBy(_, duration) => self.player.seek(duration),
-                _ => (),
-            }
+            let psc = self.player_service.clone();
+
+            tokio::spawn({
+                async move {
+                    let mut ps = psc.lock().await;
+
+                    let paused = ps.player.is_paused();
+
+                    match event {
+                        MediaControlEvent::Toggle => ps.player.set_paused(!paused),
+                        MediaControlEvent::Play => ps.player.set_paused(false),
+                        MediaControlEvent::Pause => ps.player.set_paused(true),
+                        MediaControlEvent::Stop => ps.player.stop(),
+                        MediaControlEvent::SeekBy(_, duration) => ps.player.seek(duration),
+                        _ => (),
+                    }
+                }
+            });
         }
 
         match code {
-            BEHAVIOR_EVENTS::SELECT_VALUE_CHANGED => {
+            BEHAVIOR_EVENTS::BUTTON_CLICK => {
                 let target = Element::from(target);
-                if target.get_attribute("id").unwrap_or_default() == "audio-device" && phase == PHASE_MASK::SINKING {
-                    let id = target.child(1).unwrap().get_attribute("value").unwrap_or_default();
-                    self.player.switch_device(id.parse().unwrap_or_default()).unwrap_or_else(|op| {
-                        log::error!("Unable to switch audio device: {}", op);
-                        root.call_function("showErrorModal", &make_args!(&format!("Unable to switch audio device: {}", op)))
-                        .unwrap();
+                log::info!("{}", target);
+                if target.get_attribute("id").unwrap_or_default() == "play-pause"
+                    && phase == PHASE_MASK::SINKING
+                {
+                    let psc = self.player_service.clone();
+                    tokio::spawn({
+                        async move {
+                            let mut ps = psc.lock().await;
+                            let paused = ps.player.is_paused();
+
+                            if paused {
+                                ps.player.set_paused(false);
+                            } else {
+                                ps.player.set_paused(true);
+                            }
+                        }
                     });
-                    return true
+
+                    return true;
                 }
                 false
             }
-            _ => {
+
+            BEHAVIOR_EVENTS::SELECT_VALUE_CHANGED => {
+                let target = Element::from(target);
+                if target.get_attribute("id").unwrap_or_default() == "audio-device"
+                    && phase == PHASE_MASK::SINKING
+                {
+                    return true;
+                }
                 false
-            },
+            }
+            _ => false,
         }
     }
 
@@ -266,13 +216,5 @@ impl sciter::EventHandler for Player {
             .unwrap()
             .set_playback(MediaPlayback::Playing { progress: None })
             .unwrap();
-
-        // populate options
-        let mut audio_device_dropdown = root.find_first("#audio-device").unwrap().unwrap();
-        let mut html = String::from("");
-        for (idx, dev) in self.player.get_devices().iter().enumerate() {
-            html += &format!("<option value=\"{}\" class=\"audio-device-option\">{}</option>", idx, dev);
-        }
-        audio_device_dropdown.set_html(html.as_bytes(), Some(dom::SET_ELEMENT_HTML::SIH_REPLACE_CONTENT)).unwrap();
     }
 }

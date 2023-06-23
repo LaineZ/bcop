@@ -1,8 +1,13 @@
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
 use anyhow::anyhow;
 use sciter::Value;
 
 pub mod handlers;
 pub mod players;
+pub mod services;
 
 #[cfg(target_os = "windows")]
 fn hide_console_window() {
@@ -49,14 +54,14 @@ fn check_options() {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     hide_console_window();
     env_logger::init();
     check_options();
 
-    let config = handlers::config::Config::new();
-    let audio_system = config.get_audio_system();
-    let audio_index = config.get_audio_device_index();
+    let config = services::config::Config::new();
+    let player = Arc::new(Mutex::new(services::player::Player::new(config.audio_system, config.device_index)));
 
     let mut frame = sciter::WindowBuilder::main_window()
         .with_rect(config.window_geometry.into())
@@ -67,9 +72,9 @@ fn main() -> anyhow::Result<()> {
         .unwrap();
     frame.event_handler(handlers::http_request::HttpRequest::new());
     frame.event_handler(handlers::log::Log);
-    frame.event_handler(config);
+    //frame.event_handler(config);
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player::Player::new(audio_system, audio_index));
+    frame.event_handler(handlers::player::Player::new(player));
 
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
     frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;
