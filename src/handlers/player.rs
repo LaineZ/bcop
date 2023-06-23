@@ -1,8 +1,9 @@
 use std::{
     sync::{mpsc, Arc},
-    time::Duration,
+    time::Duration, fmt::Error,
 };
 
+use anyhow::bail;
 use raw_window_handle::Win32WindowHandle;
 use sciter::{
     dom::{
@@ -71,6 +72,50 @@ impl Player {
         lock.player.is_paused()
     }
 
+    fn handle_click(&mut self, id: &str, element: Element) -> anyhow::Result<()> {
+        match id {
+            "play-pause" => {
+                let psc = self.player_service.clone();
+                tokio::spawn({
+                    async move {
+                        let mut ps = psc.lock().await;
+                        let paused = ps.player.is_paused();
+
+                        if paused {
+                            ps.player.set_paused(false);
+                        } else {
+                            ps.player.set_paused(true);
+                        }
+                    }
+                });
+            }
+            
+            "back" => {
+                let psc = self.player_service.clone();
+                tokio::spawn({
+                    async move {
+                        let mut ps = psc.lock().await;
+                        ps.prev()
+                    }
+                });
+            }
+
+            "next" => {
+                let psc = self.player_service.clone();
+                tokio::spawn({
+                    async move {
+                        let mut ps = psc.lock().await;
+                        ps.next()
+                    }
+                });
+            }
+
+            _ => {}
+        }
+
+        bail!("Event not handled")
+    }
+
     async fn set_paused(&mut self, state: bool) {
         let mut lock = self.player_service.lock().await;
 
@@ -136,25 +181,11 @@ impl sciter::EventHandler for Player {
         match code {
             BEHAVIOR_EVENTS::BUTTON_CLICK => {
                 let target = Element::from(target);
+                let id = target.get_attribute("id");
                 log::info!("{}", target);
-                if target.get_attribute("id").unwrap_or_default() == "play-pause"
-                    && phase == PHASE_MASK::SINKING
-                {
-                    let psc = self.player_service.clone();
-                    tokio::spawn({
-                        async move {
-                            let mut ps = psc.lock().await;
-                            let paused = ps.player.is_paused();
 
-                            if paused {
-                                ps.player.set_paused(false);
-                            } else {
-                                ps.player.set_paused(true);
-                            }
-                        }
-                    });
-
-                    return true;
+                if id.is_some() && phase == PHASE_MASK::SINKING {
+                    return self.handle_click(&id.unwrap(), target).is_ok();
                 }
                 false
             }

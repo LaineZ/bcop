@@ -1,3 +1,4 @@
+use anyhow::bail;
 use regex::Regex;
 
 use crate::players::{self, bass::BassPlayer, AudioSystem};
@@ -64,6 +65,26 @@ impl Player {
 
     pub fn get_current_track(&self) -> QueuedTrack {
         self.queue[self.queue_position].clone()
+    }
+
+    pub fn prev(&mut self) -> anyhow::Result<()> {
+        if self.queue_position > 0 {
+            self.queue_position -= 1;
+            self.load_track()?;
+        } else {
+            bail!("Queue is already at beginning!")
+        }
+        Ok(())
+    }
+
+    pub fn next(&mut self) -> anyhow::Result<()> {
+        if self.queue_position < self.queue.len() - 1 {
+            self.load_track()?;
+        } else {
+            bail!("Queue is already at end!")
+        }
+
+        Ok(())
     }
 
     pub fn load_track(&mut self) -> anyhow::Result<()> {
