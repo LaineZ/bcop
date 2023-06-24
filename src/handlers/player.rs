@@ -1,13 +1,12 @@
 use std::{
     sync::{mpsc, Arc},
-    time::Duration, fmt::Error,
+    time::Duration
 };
 
 use anyhow::bail;
 use raw_window_handle::Win32WindowHandle;
 use sciter::{
     dom::{
-        self,
         event::{BEHAVIOR_EVENTS, PHASE_MASK},
     },
     Element,
@@ -67,12 +66,7 @@ impl Player {
             .unwrap();
     }
 
-    async fn is_paused(&self) -> bool {
-        let lock = self.player_service.lock().await;
-        lock.player.is_paused()
-    }
-
-    fn handle_click(&mut self, id: &str, element: Element) -> anyhow::Result<()> {
+    fn handle_click(&mut self, id: &str, _element: Element) -> anyhow::Result<()> {
         match id {
             "play-pause" => {
                 let psc = self.player_service.clone();
@@ -157,13 +151,23 @@ impl sciter::EventHandler for Player {
         let event = self.rx.try_recv();
         let root = Element::from(root);
 
+        let psc = self.player_service.clone();
+
+        tokio::spawn({
+            async move {
+                let mut ps = psc.lock().await;
+                let paused = ps.player.is_paused();
+            }
+        });
+
+        
+
         if let Ok(event) = event {
             let psc = self.player_service.clone();
 
             tokio::spawn({
                 async move {
                     let mut ps = psc.lock().await;
-
                     let paused = ps.player.is_paused();
 
                     match event {
