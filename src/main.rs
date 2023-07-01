@@ -74,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
     frame.event_handler(handlers::log::Log);
     //frame.event_handler(config);
     frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player::Player::new(&mut player));
+    frame.event_handler(handlers::player_controls::PlayerControls::new(&mut player));
 
     frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
     frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;

@@ -114,9 +114,7 @@ impl Player {
             .unwrap();
     }
 
-    pub fn update_metadata(&mut self) -> anyhow::Result<()> {
-        let ct = self.get_current_track();
-
+    pub fn update_metadata(&mut self, ct: &QueuedTrack) -> anyhow::Result<()> {
         self.controls
             .as_mut()
             .unwrap()
@@ -170,8 +168,11 @@ impl Player {
         }
     }
 
-    pub fn get_current_track(&self) -> QueuedTrack {
-        self.queue[self.queue_position].clone()
+    pub fn get_current_track(&self) -> Option<QueuedTrack> {
+        if self.queue.len() > 0 {
+            return Some(self.queue[0].clone());
+        }
+        None
     }
 
     pub fn prev(&mut self) -> anyhow::Result<()> {
@@ -195,11 +196,13 @@ impl Player {
     }
 
     pub fn load_track(&mut self) -> anyhow::Result<()> {
-        if let Some(url) = self.get_current_track().mp3_url {
-            self.player.switch_track(url)?;
-            self.update_metadata();
-        } else {
-            // TODO: revoke track URL
+        if let Some(ct) = self.get_current_track() {
+            if let Some(url) = ct.mp3_url.clone() {
+                self.player.switch_track(url)?;
+                self.update_metadata(&ct)?;
+            } else {
+                // TODO: revoke track URL
+            }
         }
         Ok(())
     }

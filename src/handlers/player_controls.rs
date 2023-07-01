@@ -8,13 +8,17 @@ use sciter::{
 
 use crate::{players, services};
 
-pub struct Player<'a> {
+pub struct PlayerControls<'a> {
     player_service: &'a mut services::player::Player,
+    controls: Element,
 }
 
-impl<'a> Player<'a> {
+impl<'a> PlayerControls<'a> {
     pub fn new(player_service: &'a mut services::player::Player) -> Self {
-        Self { player_service }
+        Self {
+            player_service,
+            controls: Element::create("a").unwrap(),
+        }
     }
 
     fn fmt_time(&mut self, time: i32) -> String {
@@ -44,18 +48,27 @@ impl<'a> Player<'a> {
 
     fn update_control(&self, element_root: Element) {
         let player_controls = element_root.find_first("#controls").unwrap().unwrap();
+        let mut track_name = element_root
+            .find_first("#track-info-name")
+            .unwrap()
+            .unwrap();
 
-        // disable all controls if queuelist is empty
         if self.player_service.queue.is_empty() {
-            player_controls
-                .children()
-                .into_iter()
-                .for_each(|mut f| { f.set_attribute("disabled", "false").unwrap(); });
+            // disable all controls if queuelist is empty
+            player_controls.children().into_iter().for_each(|mut f| {
+                f.set_attribute("disabled", "true").unwrap();
+            });
         }
+
+        if let Some(track) = self.player_service.get_current_track() {
+
+        }
+
+        track_name.set_text("").unwrap();
     }
 }
 
-impl sciter::EventHandler for Player<'_> {
+impl sciter::EventHandler for PlayerControls<'_> {
     fn on_event(
         &mut self,
         root: sciter::HELEMENT,
@@ -65,11 +78,7 @@ impl sciter::EventHandler for Player<'_> {
         phase: sciter::dom::event::PHASE_MASK,
         _reason: sciter::dom::EventReason,
     ) -> bool {
-        let root = Element::from(root);
-
         self.player_service.process_mediabutton_events();
-        self.update_control(root);
-
         match code {
             BEHAVIOR_EVENTS::BUTTON_CLICK => {
                 let target = Element::from(target);
@@ -93,5 +102,10 @@ impl sciter::EventHandler for Player<'_> {
             }
             _ => false,
         }
+    }
+
+    fn document_complete(&mut self, root: sciter::HELEMENT, _target: sciter::HELEMENT) {
+        let root = Element::from(root);
+        self.update_control(root);
     }
 }
