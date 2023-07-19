@@ -1,5 +1,5 @@
 use sciter::window::Rectangle;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::players::AudioSystem;
 
@@ -40,32 +40,10 @@ macro_rules! set_enum {
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct WindowGeometry {
-    x: i32,
-    y: i32,
-    w: i32,
-    h: i32,
-}
-
-impl From<Rectangle> for WindowGeometry {
-    fn from(value: Rectangle) -> Self {
-        Self {
-            x: value.x,
-            y: value.y,
-            w: value.width,
-            h: value.height,
-        }
-    }
-}
-
-impl Into<Rectangle> for WindowGeometry {
-    fn into(self) -> Rectangle {
-        Rectangle {
-            x: self.x,
-            y: self.y,
-            width: self.w,
-            height: self.h,
-        }
-    }
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
 }
 
 impl Default for WindowGeometry {

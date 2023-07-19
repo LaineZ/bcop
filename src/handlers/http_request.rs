@@ -42,44 +42,6 @@ fn parse_album(html_code: String) -> Option<String> {
     Some(album_data_json)
 }
 
-fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
-    log::info!("Loading tags from bandcamp.com...");
-    let response = ureq::get("https://bandcamp.com/tags").call()?;
-
-    let resp = &response.into_string().unwrap_or_default();
-    log::info!("{}", resp);
-
-    let fragment = Html::parse_fragment(resp);
-    let selector = Selector::parse("a").unwrap();
-
-    let mut tags: Vec<String> = fragment
-        .select(&selector)
-        .filter_map(|el| {
-            let value = el.value().attr("href")?;
-
-            if !value.starts_with("/tag/") {
-                return None;
-            }
-            Some(value.replace("/tag/", ""))
-        })
-        .map(|f| {
-            // capitalize tag letters
-            let mut chars = f.chars();
-            match chars.next() {
-                Some(v) => v.to_uppercase().collect::<String>() + chars.as_str(),
-                None => String::new(),
-            }
-        })
-        .collect();
-
-    tags.sort();
-    tags.dedup();
-    // post processing
-    tags.retain(|x| x.chars().all(char::is_alphanumeric) && !x.is_empty());
-
-    Ok(tags)
-}
-
 fn encode_response(
     resp: Result<Response, ureq::Error>,
     done: sciter::Value,
@@ -133,23 +95,6 @@ impl HttpRequest {
 
     fn request_http(&self) -> bool {
         self.request_http
-    }
-
-    fn get_tags(&self, done: sciter::Value) {
-        log::info!("{}", self.pool.active_count());
-        self.pool.execute(move || {
-            let file = std::fs::read_to_string("tag.cache");
-
-            if let Ok(tags) = file {
-                // use a cached tag file
-                done.call(None, &make_args!(tags), None).unwrap();
-            } else if let Ok(tags) = get_tags_from_internet() {
-                // cache tag in file
-                let tag_string = tags.join("\n");
-                std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                done.call(None, &make_args!(tag_string), None).unwrap();
-            }
-        });
     }
 
     fn http_request_get(&self, url: String, done: sciter::Value, failed: sciter::Value) {
@@ -244,7 +189,6 @@ impl sciter::EventHandler for HttpRequest {
         fn parse_album_data(String);
         fn open_in_browser(String);
         fn copy_to_clipboard(String);
-        fn get_tags(Value);
         fn artwork_http();
         fn request_http();
     }

@@ -1,11 +1,16 @@
-use std::sync::Arc;
+use std::path::PathBuf;
 
-use tokio::sync::Mutex;
+use dioxus::prelude::*;
+use dioxus_desktop::{tao::dpi::LogicalPosition, wry::http::Response, LogicalSize, WindowBuilder};
+use dioxus_router::{Link, Route, Router};
+use load_file::load_bytes;
+use reqwest::header::CONTENT_TYPE;
 
-use anyhow::anyhow;
-use sciter::Value;
+pub mod icons;
 
+pub mod components;
 pub mod handlers;
+pub mod models;
 pub mod players;
 pub mod services;
 
@@ -28,77 +33,128 @@ fn hide_console_window() {
     // just do nothing
 }
 
-fn check_options() {
-    for arg in std::env::args() {
-        if arg.starts_with("--sciter-gfx=") {
-            use sciter::GFX_LAYER;
-            let backend = match arg.split_at("--sciter-gfx=".len()).1.trim() {
-                "auto" => GFX_LAYER::AUTO,
-                "cpu" => GFX_LAYER::CPU,
-                "skia" | "skia-cpu" => GFX_LAYER::SKIA_CPU,
-                "skia-opengl" => GFX_LAYER::SKIA_OPENGL,
-
-                #[cfg(windows)]
-                "d2d" => GFX_LAYER::D2D,
-                #[cfg(windows)]
-                "warp" => GFX_LAYER::WARP,
-
-                _ => GFX_LAYER::AUTO,
-            };
-            log::info!("setting {:?} backend", backend);
-            let ok = sciter::set_options(sciter::RuntimeOptions::GfxLayer(backend));
-            if let Err(e) = ok {
-                log::error!("failed to set backend: {:?}", e);
-            }
-        }
-    }
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     hide_console_window();
     env_logger::init();
-    check_options();
 
-    let config = services::config::Config::new();
-    let mut player = services::player::Player::new(config.audio_system, config.device_index);
+    let configuration = services::config::Config::new();
 
-    let mut frame = sciter::WindowBuilder::main_window()
-        .with_rect(config.window_geometry.into())
-        .create();
+    let wb = WindowBuilder::new()
+        .with_focused(true)
+        .with_title("BandcampOnlinePlayer")
+        .with_resizable(true)
+        .with_position(LogicalPosition::new(
+            configuration.window_geometry.x,
+            configuration.window_geometry.y,
+        ))
+        .with_inner_size(LogicalSize::new(
+            configuration.window_geometry.w,
+            configuration.window_geometry.h,
+        ));
 
-    frame
-        .set_options(sciter::window::Options::DebugMode(true))
-        .unwrap();
-    frame.event_handler(handlers::http_request::HttpRequest::new());
-    frame.event_handler(handlers::log::Log);
-    //frame.event_handler(config);
-    frame.event_handler(handlers::io::Io);
-    frame.event_handler(handlers::player_controls::PlayerControls::new(&mut player));
+    let desktop_config = dioxus_desktop::Config::default()
+        .with_window(wb)
+        .with_custom_head(include_str!("assets/head.html").to_string())
+        .with_custom_protocol("assets".into(), |request| {
+            let path = request
+                .uri()
+                .path()
+                .to_string()
+                .chars()
+                .into_iter()
+                .skip(1)
+                .collect::<String>();
 
-    frame.set_variable("debugMode", Value::from(cfg!(debug_assertions)))?;
-    frame.set_variable("bcRsVersion", Value::from(env!("CARGO_PKG_VERSION")))?;
+            let mut asset_path = PathBuf::new();
+            asset_path.push("assets/");
+            asset_path.push(path.clone());
 
-    if cfg!(debug_assertions) {
-        let dir = std::env::current_dir()?.join("frontend");
+            let mime = mime_guess::from_path(asset_path.clone())
+                .first_raw()
+                .unwrap_or("");
 
-        if dir.exists() {
-            frame.load_file(dir.join("index.html").to_str().unwrap());
-        } else {
-            return Err(
-                anyhow!("Unable to find {} directory. You running in debug mode, you need fronend/ directory in bc_rs
-                working directory. If you don't want that please build in release mode.", 
-                dir.display()));
-        }
-    } else {
-        let resources = include_bytes!("archive.rc");
-        frame.archive_handler(resources).map_err(|_| {
-            anyhow!("Invalid archive, cannot load.")
-        })?;
-        frame.load_file("this://app/index.html");
-    }
+            println!(
+                "{}: {} -> {}",
+                request.uri(),
+                path,
+                asset_path.to_str().unwrap()
+            );
 
-    frame.run_app();
+            if path != "/" {
+                Response::builder()
+                    .header(CONTENT_TYPE, mime)
+                    .body(load_bytes!(asset_path.to_str().unwrap()).into())
+                    .map_err(Into::into)
+            } else {
+                Response::builder().body("".into()).map_err(Into::into)
+            }
+        });
+    dioxus_desktop::launch_cfg(app, desktop_config);
 
     Ok(())
+}
+
+fn app(cx: Scope) -> Element {
+    let current_pos = use_state(cx, || 0);
+
+    cx.render(rsx! (
+        Router {
+            main {
+                div {
+                    class: "main-window",
+                    menu {
+                        Link { to: "/", icons::home(cx), },
+                        Link { to: "/now-playing", icons::loading(cx), },
+                        Link { to: "/tags", icons::tags(cx), },
+                        icons::settings(cx),
+                        icons::search(cx),
+                    }
+
+                    div {
+                        Route { to: "/", components::home::home(cx)}
+                        Route { to: "/now-playing", "Now Playing" }
+                        Route { to: "/tags", components::discover::discover(cx)}
+                    }
+                }
+
+                div {
+                    class: "player-controls",
+                    button {
+                        icons::previous(cx)
+                    }
+                    button {
+                        icons::play(cx),
+                    }
+                    button {
+                        icons::next(cx),
+                    }
+                    div {
+                        div {
+                            class: "seekbar",
+                            style: "background: linear-gradient(
+                                to right, 
+                                var(--fg),
+                                var(--fg) {current_pos}%,
+                                var(--bg1) {current_pos}%,
+                                var(--bg1)
+                              );",
+                            input {
+                                r#type: "range",
+                                min: 0,
+                                max: 320,
+                                value: 0,
+                                oninput: move |e| {
+                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32);
+                                },
+                                onchange: move |e| {
+                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ))
 }

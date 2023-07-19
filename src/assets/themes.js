@@ -74,9 +74,10 @@ const themes = {
 
 function setTheme(theme) {
     currentTheme = theme;
+    let root = document.documentElement;
     if (themes[theme]) {
         for (const [key, value] of Object.entries(themes[theme])) {
-            document.style.variable(key, value);
+            root.style.setProperty("--" + key, value);
         }
     } else {
         logWarn("Unable to find theme: " + theme + " reverting to hope_diamond...");

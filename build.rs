@@ -129,7 +129,7 @@ fn main() {
     {
         use winres::WindowsResource;
         WindowsResource::new()
-            .set_icon("frontend/icons/icon.ico")
+            .set_icon("src/assets/icons/icon.ico")
             .set_language(0x0009)
             .set("LegalCopyright", "© 140bpmdubstep")
             .set("ProductName", "BandcampOnlinePlayer")
