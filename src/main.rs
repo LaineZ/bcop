@@ -130,6 +130,7 @@ fn app(cx: Scope) -> Element {
                         icons::next(cx),
                     }
                     div {
+                        class: "track-name",
                         div {
                             class: "seekbar",
                             style: "background: linear-gradient(
@@ -145,12 +146,15 @@ fn app(cx: Scope) -> Element {
                                 max: 320,
                                 value: 0,
                                 oninput: move |e| {
-                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32);
+                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
                                 },
                                 onchange: move |e| {
-                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32);
+                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
                                 }
                             }
+                        }
+                        p {
+                            "No track loaded"
                         }
                     }
                 }
