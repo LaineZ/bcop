@@ -144,13 +144,12 @@ fn app(cx: Scope) -> Element {
                                 r#type: "range",
                                 min: 0,
                                 max: 320,
-                                value: 0,
                                 oninput: move |e| {
                                     current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
                                 },
                                 onchange: move |e| {
                                     current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
-                                }
+                                },
                             }
                         }
                         p {
