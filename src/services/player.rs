@@ -3,7 +3,6 @@ use std::sync::mpsc;
 use anyhow::bail;
 use raw_window_handle::Win32WindowHandle;
 use regex::Regex;
-use sciter::types::HWINDOW;
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 
 use crate::players::{self, bass::BassPlayer, AudioSystem};

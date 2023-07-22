@@ -9,7 +9,7 @@ use reqwest::header::CONTENT_TYPE;
 pub mod icons;
 
 pub mod components;
-pub mod handlers;
+//pub mod handlers;
 pub mod models;
 pub mod players;
 pub mod services;
@@ -84,6 +84,7 @@ async fn main() -> anyhow::Result<()> {
             if path != "/" {
                 Response::builder()
                     .header(CONTENT_TYPE, mime)
+                    .header("Access-Control-Allow-Origin", "*")
                     .body(load_bytes!(asset_path.to_str().unwrap()).into())
                     .map_err(Into::into)
             } else {
@@ -97,6 +98,7 @@ async fn main() -> anyhow::Result<()> {
 
 fn app(cx: Scope) -> Element {
     let current_pos = use_state(cx, || 0);
+    let volume = use_state(cx, || 0u16);
 
     cx.render(rsx! (
         Router {
@@ -130,30 +132,33 @@ fn app(cx: Scope) -> Element {
                         icons::next(cx),
                     }
                     div {
-                        class: "track-name",
+                        class: "track-information",
+                        components::seekbar::seekbar {
+                            min: 0,
+                            max: 100,
+                            on_value_change: move |event| {
+                                println!("track:{}", event);
+                            }
+                        },
                         div {
-                            class: "seekbar",
-                            style: "background: linear-gradient(
-                                to right, 
-                                var(--fg),
-                                var(--fg) {current_pos}%,
-                                var(--bg1) {current_pos}%,
-                                var(--bg1)
-                              );",
-                            input {
-                                r#type: "range",
-                                min: 0,
-                                max: 320,
-                                oninput: move |e| {
-                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
+                            class: "track-bottom",
+                            p {
+                                id: "track-name",
+                                "No track loaded"
+                            }
+                            div {
+                                id: "track-clock",
+                                components::seekbar::seekbar {
+                                    min: 0,
+                                    max: 100,
+                                    on_value_change: move |event| {
+                                        println!("{}", event);
+                                    }
                                 },
-                                onchange: move |e| {
-                                    current_pos.set((e.value.parse::<f32>().unwrap_or_default() / 320.0 * 100.0) as i32)
+                                p {
+                                    dangerous_inner_html: "00:00 <strong>00:00</strong>"
                                 },
                             }
-                        }
-                        p {
-                            "No track loaded"
                         }
                     }
                 }

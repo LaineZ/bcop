@@ -1,4 +1,3 @@
-use sciter::window::Rectangle;
 use serde::{Deserialize, Serialize};
 
 use crate::players::AudioSystem;
@@ -23,19 +22,6 @@ pub enum ArtworkThumbnailQuality {
     Medium = 6,
     Low = 42,
     VeryLow = 22,
-}
-
-/// Converts integer value to enum
-macro_rules! set_enum {
-    ($arr:expr, $idx:expr) => {
-        match $arr.get($idx as usize) {
-            Some(val) => *val,
-            None => {
-                log::warn!("Value out of range {} > {}", $idx, $arr.len() - 1);
-                $arr[0]
-            }
-        }
-    };
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
