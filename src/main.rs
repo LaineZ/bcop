@@ -13,6 +13,7 @@ pub mod components;
 pub mod models;
 pub mod players;
 pub mod services;
+pub mod url_resolver;
 
 #[cfg(target_os = "windows")]
 fn hide_console_window() {
@@ -57,39 +58,37 @@ async fn main() -> anyhow::Result<()> {
         .with_window(wb)
         .with_custom_head(include_str!("assets/head.html").to_string())
         .with_custom_protocol("assets".into(), |request| {
-            let path = request
-                .uri()
-                .path()
-                .to_string()
-                .chars()
-                .into_iter()
-                .skip(1)
-                .collect::<String>();
-
-            let mut asset_path = PathBuf::new();
-            asset_path.push("assets/");
-            asset_path.push(path.clone());
+            let asset_path = url_resolver::resolve_assets_url(request);
 
             let mime = mime_guess::from_path(asset_path.clone())
                 .first_raw()
                 .unwrap_or("");
 
-            println!(
-                "{}: {} -> {}",
-                request.uri(),
-                path,
-                asset_path.to_str().unwrap()
-            );
+            println!("{} -> {}", request.uri(), asset_path.to_str().unwrap());
 
-            if path != "/" {
-                Response::builder()
-                    .header(CONTENT_TYPE, mime)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(load_bytes!(asset_path.to_str().unwrap()).into())
-                    .map_err(Into::into)
-            } else {
-                Response::builder().body("".into()).map_err(Into::into)
-            }
+            let file_conetent: &[u8] = match asset_path
+                .file_name()
+                .unwrap_or_default()
+                .to_str()
+                .unwrap_or_default()
+            {
+                "style.css" => {
+                    include_bytes!("assets/style.css")
+                },
+                "themes.js" => {
+                    include_bytes!("assets/themes.js")
+                }
+                _ => {
+                    &[]
+                }
+
+            };
+
+            Response::builder()
+                .header(CONTENT_TYPE, mime)
+                .header("Access-Control-Allow-Origin", "*")
+                .body(file_conetent.into())
+                .map_err(Into::into)
         });
     dioxus_desktop::launch_cfg(app, desktop_config);
 
