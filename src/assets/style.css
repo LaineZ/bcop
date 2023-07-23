@@ -48,7 +48,12 @@ main {
 
 .main-window {
   display: flex;
+  overflow: hidden;
   flex-grow: 1;
+}
+
+.discover {
+  height: 100%;
 }
 
 .home {
@@ -82,7 +87,7 @@ main {
 }
 
 .player-controls {
-  height: 48px;
+  border-top: 1px solid var(--bg1);
   display: flex;
 }
 

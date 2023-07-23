@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
 use scraper::{Html, Selector};
 
-use crate::models;
-
 async fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
     log::info!("Loading tags from bandcamp.com...");
     let response = reqwest::get("https://bandcamp.com/api/hub/2/dig_deeper").await?;
@@ -61,7 +59,7 @@ pub fn discover(cx: Scope) -> Element {
     let tags = use_state(cx, || Vec::new());
 
     use_future(cx, (), move |_| {
-        let mut count = tags.clone();
+        let count = tags.clone();
         async move {
             let tags = get_tags().await;
             count.set(tags);
