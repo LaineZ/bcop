@@ -2,36 +2,36 @@ use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Root {
+pub struct Discover {
     pub ok: bool,
     pub filters: String,
     pub items: Vec<Item>,
     pub more_available: bool,
-    pub discover_spec: DiscoverSpec,
+    //pub discover_spec: DiscoverSpec,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Item {
     pub tralbum_type: String,
-    pub tralbum_id: i64,
-    pub item_id: i64,
+    //pub tralbum_id: i64,
+    //pub item_id: i64,
     pub title: String,
     pub art_id: i64,
-    pub audio_track_id: i64,
-    pub featured_track_title: String,
-    pub featured_track_number: i64,
+    //pub audio_track_id: i64,
+    //pub featured_track_title: String,
+    //pub featured_track_number: i64,
     pub artist: String,
     pub band_name: String,
     pub subdomain: String,
-    pub custom_domain: Value,
-    pub custom_domain_verified: Value,
-    pub genre_id: i64,
-    pub slug_text: String,
-    pub item_type: String,
-    pub band_id: i64,
-    pub is_preorder: Option<i64>,
-    pub packages: Vec<Package>,
-    pub num_comments: i64,
+    //pub custom_domain: Value,
+    //pub custom_domain_verified: Value,
+    //pub genre_id: i64,
+    //pub slug_text: String,
+    //pub item_type: String,
+    //pub band_id: i64,
+    //pub is_preorder: Option<i64>,
+    //pub packages: Vec<Package>,
+    //pub num_comments: i64,
     pub band_url: String,
     pub tralbum_url: String,
     pub genre: String,

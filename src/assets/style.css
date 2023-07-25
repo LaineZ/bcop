@@ -1,3 +1,13 @@
+@font-face {
+  font-family: "Open Sans";
+  src: url("https://assets.storage/opensans.ttf");
+}
+
+@font-face {
+  font-family: "Open Sans";
+  src: url("assets://opensans.ttf");
+}
+
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -18,11 +28,12 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
+  font-family: "Open Sans", sans-serif;
   background: var(--bg);
   color: var(--fg);
   overflow: hidden;
   height: 100vh;
+  user-select: none;
 }
 
 p {
@@ -54,6 +65,11 @@ main {
 
 .discover {
   height: 100%;
+  display: flex;
+}
+
+.discover h1 {
+  margin-left: 20px;
 }
 
 .home {
@@ -143,6 +159,14 @@ main {
   pointer-events: none;
 }
 
+.discover-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  max-height: 100%;
+  overflow-y: scroll;
+}
+
 .seekbar input[type='range'] {
   -webkit-appearance: none;
   background-color: transparent;
@@ -151,6 +175,51 @@ main {
   height: 16px;
   z-index: -1;
 }
+
+.album-card {
+  width: 150px;
+  height: 250px;
+  margin: 20px;
+  margin-bottom: 0;
+  overflow: hidden;
+  background: var(--bg1);
+  color: var(--fg);
+  border-radius: 10px;
+  border: 1px solid var(--bg2);
+  box-shadow: 0px 0px 20px var(--bg1);
+  transform: scale(1.0, 1.0);
+  transition: transform ease 0.2s, box-shadow ease 0.2s;
+  animation: ease 1000ms fade;
+}
+
+.album-card:hover {
+  transform: scale(1.12, 1.12);
+  box-shadow: 0px 0px 20px var(--bg2);
+  transition: transform ease 0.2s, box-shadow ease 0.2s;
+}
+
+.album-image {
+  width: 150px;
+  height: 150px;
+  border-bottom: 1px solid var(--bg2);
+}
+
+.album-description h4 {
+  font-size: medium;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  max-height: 50px;
+  overflow-wrap: break-word;
+  column-width: 150px;
+}
+
+.album-description {
+  margin-top: 4px;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
 
 .seekbar input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;

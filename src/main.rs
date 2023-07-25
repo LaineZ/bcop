@@ -77,6 +77,9 @@ async fn main() -> anyhow::Result<()> {
                 },
                 "themes.js" => {
                     include_bytes!("assets/themes.js")
+                },
+                "opensans.ttf" => {
+                    include_bytes!("assets/opensans.ttf")
                 }
                 _ => {
                     &[]
@@ -96,9 +99,6 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn app(cx: Scope) -> Element {
-    let current_pos = use_state(cx, || 0);
-    let volume = use_state(cx, || 0u16);
-
     cx.render(rsx! (
         Router {
             main {
@@ -115,7 +115,7 @@ fn app(cx: Scope) -> Element {
                     div {
                         Route { to: "/", components::home::home(cx)}
                         Route { to: "/now-playing", "Now Playing" }
-                        Route { to: "/tags", components::discover::discover(cx)}
+                        Route { to: "/tags", components::discover::discover_window(cx)}
                     }
                 }
 
