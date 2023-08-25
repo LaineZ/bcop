@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use scraper::{Html, Selector};
 use serde_json::json;
 
-use crate::{models::discover, services::config};
+use crate::{models::{discover, self}, services::config};
 
 async fn set_image(url: String) -> anyhow::Result<String> {
     let client = reqwest::Client::new();
@@ -18,7 +18,7 @@ async fn set_image(url: String) -> anyhow::Result<String> {
 
 async fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
     log::info!("Loading tags from bandcamp.com...");
-    let response = reqwest::get("https://bandcamp.com/api/hub/2/dig_deeper").await?;
+    let response = reqwest::get("https://bandcamp.com/tags").await?;
 
     let resp = &response.text().await.unwrap_or_default();
     log::info!("{}", resp);
@@ -100,7 +100,7 @@ pub struct DiscoverProps<'a> {
 pub fn discover_list<'a>(cx: Scope<'a, DiscoverProps<'a>>) -> Element {
     cx.render(rsx!(div {
         h1 {
-            "Select discover"
+            "{cx.props.tags}"
         }
         div {
         class: "discover-list",
@@ -119,41 +119,50 @@ pub struct DiscoverItemProps<'a> {
 }
 
 pub fn discover_item<'a>(cx: Scope<'a, DiscoverItemProps<'a>>) -> Element {
-    let quality = config::ArtworkThumbnailQuality::Medium as u32;
+    let quality = config::ArtworkThumbnailQuality::High as u32;
     let art_id = cx.props.item.art_id;
 
-    let image = use_state(cx, || String::new());
-
-    use_future(cx, (), move |_| {
-        let i = image.clone();
-        async move {
-            let img = set_image(format!(
+    let image = use_future(cx, (), |_| async move {
+            log::debug!("loading image request");
+            set_image(format!(
                 "http://f4.bcbits.com/img/a{}_{}.jpg",
                 art_id, quality
             ))
             .await
-            .unwrap_or_default();
-            i.set(img);
-        }
+            .unwrap_or_default()
     });
 
-    cx.render(rsx!(div {
-        class: "album-card",
-        img {
-            class: "album-image",
-            src: "{image.get()}",
+
+    let render = match image.value() {
+        Some(image) => {
+            cx.render(rsx!(div {
+                class: "album-card",
+                img {
+                    class: "album-image",
+                    src: "{image}",
+                },
+                div {
+                    class: "album-description",
+                    h4 {
+                        title: "{cx.props.item.title}",
+                        "{cx.props.item.title}"
+                    },
+                    p {
+                        "{cx.props.item.artist}"
+                    },
+                    p {
+                        class: "genre",
+                        "{cx.props.item.genre}"
+                    }
+                }
+            }))
         },
-        div {
-            class: "album-description",
-            h4 {
-                title: "{cx.props.item.title}",
-                "{cx.props.item.title}"
-            }
-            p {
-                "{cx.props.item.genre} × {cx.props.item.artist}"
-            }
-        }
-    }))
+        None => {
+            None
+        },
+    };
+
+    render
 }
 
 pub fn discover_window(cx: Scope) -> Element {
@@ -169,24 +178,32 @@ pub fn discover_window(cx: Scope) -> Element {
         }
     });
 
+
+    let fut = use_future(cx, (), move |_| {
+        let d = discover.clone();
+        let st = selected_tags.clone();
+        async move {
+            if st.get().is_empty() {
+                return;
+            }
+            d.set(models::discover::Discover::default());
+            let dsc = get_discover(st.get().clone(), 1).await.unwrap();
+            d.set(dsc);
+            log::info!("Everything is loaded");
+        }
+    });
+
     cx.render(rsx!(div {
         class: "discover",
         div {
             class: "tags-select",
-            size: 5,
-            for tag in tags.iter() {
+            for (index, tag) in tags.iter().enumerate() {
                 option {
                     dangerous_inner_html: "{tag}",
+                    prevent_default: "onclick",
                     onclick: move |_| {
-                        use_future(cx, (), move |_| {
-                            let d = discover.clone();
-                            let t = selected_tags.clone();
-                            t.set(vec![tag.clone()]);
-                            async move {
-                                let dsc = get_discover(t.get().clone(), 1).await.unwrap();
-                                d.set(dsc);
-                            }
-                        });
+                        selected_tags.set(vec![tag.clone()]);
+                        fut.restart();
                     }
                 }
             }

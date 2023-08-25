@@ -177,8 +177,7 @@ main {
 }
 
 .album-card {
-  width: 150px;
-  height: 250px;
+  position: relative;
   margin: 20px;
   margin-bottom: 0;
   overflow: hidden;
@@ -199,25 +198,32 @@ main {
 }
 
 .album-image {
-  width: 150px;
-  height: 150px;
-  border-bottom: 1px solid var(--bg2);
+  width: 180px;
+  height: 180px;
 }
 
 .album-description h4 {
-  font-size: medium;
+  font-size: 14px;
   margin-top: 5px;
   margin-bottom: 2px;
-  max-height: 50px;
-  overflow-wrap: break-word;
-  column-width: 150px;
+  height: 28px;
+  column-width: 160px;
 }
 
 .album-description {
-  margin-top: 4px;
-  margin-left: 8px;
-  margin-right: 8px;
-  margin-bottom: 4px;
+  position: absolute;
+  z-index: 1;
+  bottom: 0px;
+  padding: 10px;
+  background: linear-gradient(180deg, var(--bg1_gradient), var(--bg));
+  max-height: 64px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  text-overflow: ellipsis;
+}
+
+.album-description .genre {
+  font-size: 10px;
 }
 
 

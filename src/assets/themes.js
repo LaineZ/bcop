@@ -4,7 +4,7 @@ const themes = {
     hope_diamond: {
         "bg": "#150e10",
         "bg1": "#272739",
-        "bg1_gradient": "#272739C8",
+        "bg1_gradient": "#272739C5",
         "bg2": "#393849",
         "fg": "#77888c",
         "fg2": "#4f5a64",

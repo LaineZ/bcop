@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     let desktop_config = dioxus_desktop::Config::default()
         .with_window(wb)
         .with_custom_head(include_str!("assets/head.html").to_string())
-        .with_custom_protocol("assets".into(), |request| {
+        .with_custom_protocol("assets".into(), |request|  {
             let asset_path = url_resolver::resolve_assets_url(request);
 
             let mime = mime_guess::from_path(asset_path.clone())
