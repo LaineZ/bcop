@@ -79,8 +79,7 @@ fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
         Regex::new(r#"<div[\n\s]+id="DiscoverApp"[\n\s]+data-blob="(?P<data>.+?)"[\n\s]*><"#)
             .unwrap();
     if let Some(captures) = data_regex.captures(response_text) {
-        let test = captures.name("data").unwrap().as_str();
-        data = test.replace("&quot;", "\"");
+        data = captures.name("data").unwrap().as_str().replace("&quot;", "\"");
     } else {
         return Err(anyhow::anyhow!("Can't find DiscoverApp json"));
     }
