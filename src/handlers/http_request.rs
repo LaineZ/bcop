@@ -4,7 +4,7 @@ use base64::{engine::general_purpose, Engine};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use regex::Regex;
 use sciter::{dispatch_script_call, make_args, Element, Value};
-use scraper::{Html, Selector};
+use serde::Deserialize;
 use threadpool::ThreadPool;
 use ureq::Response;
 
@@ -42,26 +42,91 @@ fn parse_album(html_code: String) -> Option<String> {
     Some(album_data_json)
 }
 
+#[derive(Deserialize)]
+pub struct DiscoverAppData {
+    #[serde(rename = "appData")]
+    app_data: AppData,
+}
+
+#[derive(Deserialize)]
+pub struct AppData {
+    #[serde(rename = "initialState")]
+    initial_state: InitialState,
+}
+
+#[derive(Deserialize)]
+pub struct InitialState {
+    genres: Vec<Data>,
+    subgenres: Vec<Data>,
+    locations: Vec<Data>,
+}
+
+#[derive(Deserialize)]
+pub struct Data {
+    id: i32,
+    label: String,
+}
+
 fn get_tags_from_internet() -> anyhow::Result<Vec<String>> {
     log::info!("Loading tags from bandcamp.com...");
-    let response = ureq::get("https://bandcamp.com/tags").call()?;
+    let response = ureq::get("https://bandcamp.com/discover").call()?;
 
-    let resp = &response.into_string().unwrap_or_default();
-    log::info!("{}", resp);
+    let response_text = &response.into_string().unwrap_or_default();
+    log::info!("{}", response_text);
 
-    let fragment = Html::parse_fragment(resp);
-    let selector = Selector::parse("a").unwrap();
+    let data;
+    let data_regex =
+        Regex::new(r#"<div[\n\s]+id="DiscoverApp"[\n\s]+data-blob="(?P<data>.+?)"[\n\s]*><"#)
+            .unwrap();
+    if let Some(captures) = data_regex.captures(response_text) {
+        data = captures.name("data").unwrap().as_str().replace("&quot;", "\"");
+    } else {
+        return Err(anyhow::anyhow!("Can't find DiscoverApp json"));
+    }
 
-    let mut tags: Vec<String> = fragment
-        .select(&selector)
-        .filter_map(|el| {
-            let value = el.value().attr("href")?;
+    let discover_app_data: DiscoverAppData = serde_json::from_str(&data).unwrap();
+    let init_state = discover_app_data.app_data.initial_state;
 
-            if !value.starts_with("/tag/") {
-                return None;
+    let mut tags: Vec<String> = init_state
+        .genres
+        .into_iter()
+        .filter_map(|genre| {
+            // filter 'all genres'
+            if genre.id > 0 {
+                Some(genre)
+            } else {
+                None
             }
-            Some(value.replace("/tag/", ""))
         })
+        .map(|genre| genre.label)
+        .chain(
+            init_state
+                .subgenres
+                .into_iter()
+                .filter_map(|sub_genre| {
+                    // filter parent genre tags (like 'all alternative')
+                    if sub_genre.id >= 0 {
+                        Some(sub_genre)
+                    } else {
+                        None
+                    }
+                })
+                .map(|sub_genre| sub_genre.label),
+        )
+        .chain(
+            init_state
+                .locations
+                .into_iter()
+                .filter_map(|location| {
+                    // filter 'from anywhere'
+                    if location.id > 0 {
+                        Some(location)
+                    } else {
+                        None
+                    }
+                })
+                .map(|location| location.label),
+        )
         .map(|f| {
             // capitalize tag letters
             let mut chars = f.chars();
@@ -136,18 +201,25 @@ impl HttpRequest {
     }
 
     fn get_tags(&self, done: sciter::Value) {
-        log::info!("{}", self.pool.active_count());
+        log::info!("Active pool count: {}", self.pool.active_count());
         self.pool.execute(move || {
             let file = std::fs::read_to_string("tag.cache");
 
             if let Ok(tags) = file {
                 // use a cached tag file
                 done.call(None, &make_args!(tags), None).unwrap();
-            } else if let Ok(tags) = get_tags_from_internet() {
-                // cache tag in file
-                let tag_string = tags.join("\n");
-                std::fs::write("tag.cache", tag_string.clone()).unwrap();
-                done.call(None, &make_args!(tag_string), None).unwrap();
+                return;
+            }
+
+            match get_tags_from_internet() {
+                Ok(tags) => {
+                    let tag_string = tags.join("\n");
+                    std::fs::write("tag.cache", tag_string.clone()).unwrap();
+                    done.call(None, &make_args!(tag_string), None).unwrap();
+                }
+                Err(error) => {
+                    log::error!("{}", error.to_string());
+                }
             }
         });
     }
