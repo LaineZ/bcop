@@ -1,6 +1,4 @@
-let currentTheme = "hope_diamond"
-
-const themes = {
+const THEMES = {
     hope_diamond: {
         "bg": "#150e10",
         "bg1": "#272739",
@@ -72,15 +70,26 @@ const themes = {
     }
 }
 
-function setTheme(theme) {
-    currentTheme = theme;
-    if (themes[theme]) {
-        for (const [key, value] of Object.entries(themes[theme])) {
-            document.style.variable(key, value);
+export class Theme {
+    #currentTheme = "hope_diamond";
+
+    constructor(theme = "hope_diamond") {
+        this.setTheme(theme);
+    }
+
+    setTheme(theme) {
+        this.#currentTheme = theme;
+        if (THEMES[theme]) {
+            for (const [key, value] of Object.entries(THEMES[theme])) {
+                document.style.variable(key, value);
+            }
+        } else {
+            console.warn(`Theme "${themeName}" not found. Falling back to "hope_diamond"...`);
+            this.setTheme("hope_diamond");
         }
-    } else {
-        logWarn("Unable to find theme: " + theme + " reverting to hope_diamond...");
-        setTheme("hope_diamond");
+    }
+
+    getTheme() {
+        return this.#currentTheme;
     }
 }
-

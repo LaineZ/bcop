@@ -5,11 +5,11 @@ use std::{
 };
 
 fn main() {
-    let mut sdk_path = Path::new("sciter-js-sdk-5caf429a1578d541f6dadc787f8014d1c2ebe71a");
+    let mut sdk_path = Path::new("sciter-js-sdk-main");
     let bass_path = Path::new("bass24");
 
     if !sdk_path.exists() {
-        sdk_path = Path::new("sciter-js-sdk-4.4.9.3");
+        sdk_path = Path::new("sciter-js-sdk-main");
     }
 
     let mut out_dir = PathBuf::from_str(&std::env::var("OUT_DIR").unwrap()).unwrap();
